@@ -11,6 +11,7 @@ import { Header } from './components/common/Header';
 import { PortalSSOModal } from './components/common/PortalSSOModal';
 import { ExportModal } from './components/common/ExportModal';
 import { AdminAccessModal } from './components/common/AdminAccessModal';
+import { DataSourceSettingsModal } from './components/common/DataSourceSettingsModal';
 
 import { OverviewView } from './components/views/OverviewView';
 import { MultiChannelSyncView } from './components/views/MultiChannelSyncView';
@@ -31,6 +32,7 @@ export default function App() {
   const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
   const [isSSOOpen, setIsSSOOpen] = useState(false);
   const [isAdminModalOpen, setIsAdminModalOpen] = useState(false);
+  const [isSettingsModalOpen, setIsSettingsModalOpen] = useState(false);
   const [isExportOpen, setIsExportOpen] = useState(false);
   const [exportTitle, setExportTitle] = useState('Báo Cáo Tiếp Nhận Đa Kênh CSKH KiotViet');
   const [syncNotice, setSyncNotice] = useState<string | null>(null);
@@ -140,6 +142,7 @@ export default function App() {
           onOpenExportModal={() => handleOpenExport()}
           onTriggerSync={handleTriggerSync}
           onOpenAdminModal={() => setIsAdminModalOpen(true)}
+          onOpenSettings={() => setIsSettingsModalOpen(true)}
           onSignOut={handleSignOut}
         />
 
@@ -269,6 +272,16 @@ export default function App() {
         isOpen={isExportOpen}
         onClose={() => setIsExportOpen(false)}
         reportTitle={exportTitle}
+      />
+
+      {/* Raw Data Source & Settings Modal (Biểu tượng setting góc phải bên trên) */}
+      <DataSourceSettingsModal
+        isOpen={isSettingsModalOpen}
+        onClose={() => setIsSettingsModalOpen(false)}
+        onNavigateToTab={(tab) => {
+          setCurrentTab(tab);
+          setIsSettingsModalOpen(false);
+        }}
       />
     </div>
   );

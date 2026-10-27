@@ -5,16 +5,16 @@ export const DEFAULT_RAW_CSV = `HỖ TRỢ KHÁCH HÀNG (SUPPORT) — BÁO CÁO 
 "Ô vàng chữ xanh = nhập số liệu  •  Ô xám = tự tính, không sửa  •  Mỗi cột là một tháng",,,,,,,,,,,,,,
 ,,,,,,,,,,,,,,
 Kênh,Chỉ số,Tháng 1,Tháng 2,Tháng 3,Tháng 4,Tháng 5,Tháng 6,Tháng 7,Tháng 8,Tháng 9,Tháng 10,Tháng 11,Tháng 12,Định nghĩa / cách tính
-Call,Call in,133.882,61.099,99.977,104.475,72.671,75.074,93.785,67.534,50.350,,,,Tổng cuộc gọi khách hàng gọi vào tổng đài
-,Miss call,12.935,1.727,3.822,13.003,1.297,1.531,4.345,2.313,511,,,,Cuộc gọi nhỡ chưa kịp tiếp nhận
-,Deduction,0,13,69,89,0,129,299,96,0,,,,"Cuộc gọi loại trừ (spam, gọi nhầm…)"
-,Total call,146.817,62.839,103.868,117.567,73.968,76.734,98.429,69.943,50.861,,,,Call in + Miss call + Deduction
-,Miss call rate,"8,81%","2,75%","3,68%","11,06%","1,75%","2,00%","4,41%","3,31%","1,00%",,,,Miss call / Total call — mục tiêu ≤ 3%
-FreshChat,Total software business chat,21.784,9.789,18.855,20.442,15.170,15.816,18.387,22.109,20.818,15.993,,,Phiên chat nghiệp vụ phần mềm
-,Total technicality chat,12.645,7.064,11.553,11.482,9.060,10.101,10.501,9.648,7.838,5.731,,,Phiên chat kỹ thuật
-,Total chat,34.429,16.853,30.408,31.924,24.230,25.917,28.888,31.757,28.656,21.724,,,Chat nghiệp vụ + chat kỹ thuật
+Call,Call in,133.882,61.099,99.977,104.475,72.671,75.074,93.785,67.534,52.742,48.751,,,Tổng cuộc gọi khách hàng gọi vào tổng đài
+,Miss call,12.935,1.727,3.822,13.003,1.297,1.531,4.345,2.313,547,1.190,,,Cuộc gọi nhỡ chưa kịp tiếp nhận
+,Deduction,0,13,69,89,0,129,299,96,0,0,,,"Cuộc gọi loại trừ (spam, gọi nhầm…)"
+,Total call,146.817,62.839,103.868,117.567,73.968,76.734,98.429,69.943,53.289,49.941,,,Call in + Miss call + Deduction
+,Miss call rate,"8,81%","2,75%","3,68%","11,06%","1,75%","2,00%","4,41%","3,31%","1,03%","2,38%",,,Miss call / Total call — mục tiêu ≤ 3%
+FreshChat,Total software business chat,21.784,9.789,18.855,20.442,15.170,15.816,18.387,22.109,20.818,19.454,,,Phiên chat nghiệp vụ phần mềm
+,Total technicality chat,12.645,7.064,11.553,11.482,9.060,10.101,10.501,9.648,7.838,7.086,,,Phiên chat kỹ thuật
+,Total chat,34.429,16.853,30.408,31.924,24.230,25.917,28.888,31.757,28.656,26.540,,,Chat nghiệp vụ + chat kỹ thuật
 ,First chat response rate (minute),"87,09%","86,17%","87,65%","85,96%","90,49%","85,53%","85,84%","77,60%","77,98%","85,84%",,,Tỷ lệ phiên được phản hồi trong phút đầu — mục tiêu ≥ 85%
-,Average response time in chat (Sec),"183,34","44,21","52,94","59,00","38,00","41,00","47,67","43,18","43,26","44,49",,,Thời gian phản hồi trung bình (giây) — mục tiêu ≤ 45s
+,Average response time in chat (Sec),"183,34","44,21","52,94","59,00","38,00","41,00","47,67","43,18","43,26","44,37",,,Thời gian phản hồi trung bình (giây) — mục tiêu ≤ 45s
 FanPage KV,Interactive,19.334,14.924,15.521,12.673,12.881,10.858,10.650,9.722,9.585,6.441,,,Lượt tương tác Fanpage KiotViet
 ,Lead,13.006,8.561,12.538,10.774,11.133,9.447,9.470,8.453,8.348,5.629,,,Lead thu được
 ,Lead conversion rate,"84,75%","83,49%","84,20%","85,02%","86,43%","87,00%","88,92%","86,95%","87,09%","87,39%",,,Lead / Interactive

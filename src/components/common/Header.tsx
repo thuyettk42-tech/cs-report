@@ -10,6 +10,7 @@ interface HeaderProps {
   onOpenExportModal: () => void;
   onTriggerSync: () => void;
   onOpenAdminModal?: () => void;
+  onOpenSettings?: () => void;
   onSignOut?: () => void;
 }
 
@@ -38,6 +39,7 @@ export const Header: React.FC<HeaderProps> = ({
   onOpenPortalSSO,
   onTriggerSync,
   onOpenAdminModal,
+  onOpenSettings,
   onSignOut,
 }) => {
   const [showUserMenu, setShowUserMenu] = useState(false);
@@ -168,6 +170,18 @@ export const Header: React.FC<HeaderProps> = ({
           )}
         </div>
 
+        {/* Settings & Raw Data Source Launcher (Góc phải bên trên) */}
+        <button
+          onClick={onOpenSettings}
+          className="relative p-2 rounded-lg text-slate-600 hover:bg-sky-50 hover:text-primary transition-all group shrink-0"
+          title="Cài đặt & File dữ liệu gốc báo cáo"
+        >
+          <span className="material-symbols-outlined text-[20px] transition-transform group-hover:rotate-45">
+            settings
+          </span>
+          <span className="absolute top-1.5 right-1.5 w-2 h-2 rounded-full bg-primary ring-2 ring-white"></span>
+        </button>
+
         {/* User Profile */}
         <div className="relative">
           <div
@@ -210,6 +224,16 @@ export const Header: React.FC<HeaderProps> = ({
                   Tự động duy trì không giới hạn khi có thao tác (click, phím, cuộn).
                 </div>
               </div>
+              <button
+                onClick={() => {
+                  setShowUserMenu(false);
+                  if (onOpenSettings) onOpenSettings();
+                }}
+                className="w-full text-left flex items-center gap-2 px-3 py-2 hover:bg-slate-50 text-slate-700 rounded-lg transition-colors font-medium"
+              >
+                <span className="material-symbols-outlined text-[18px] text-sky-600">settings</span>
+                <span>Cài đặt &amp; File dữ liệu gốc</span>
+              </button>
               <button
                 onClick={() => {
                   setShowUserMenu(false);
