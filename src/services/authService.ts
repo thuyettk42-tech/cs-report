@@ -256,6 +256,7 @@ export function setCurrentUser(user: UserProfile | null): void {
 }
 
 const STORAGE_KEY_GOOGLE_CLIENT_ID = 'kiotviet_google_client_id_v1';
+export const DEFAULT_GOOGLE_CLIENT_ID = '115149341080-3n986jfq7k3pvt73drts82r6moaeo50q.apps.googleusercontent.com';
 
 export function getGoogleClientId(): string {
   try {
@@ -264,7 +265,7 @@ export function getGoogleClientId(): string {
   } catch (e) {
     console.warn(e);
   }
-  return (import.meta as any).env?.VITE_GOOGLE_CLIENT_ID || '';
+  return (import.meta as any).env?.VITE_GOOGLE_CLIENT_ID || DEFAULT_GOOGLE_CLIENT_ID;
 }
 
 export function saveGoogleClientId(clientId: string): void {
@@ -412,14 +413,19 @@ export function loginWithWhitelistedEmail(
     };
   }
 
-  // Check password if provided (default KiotViet#2026)
-  if (passwordInput && passwordInput.trim() !== '') {
-    if (passwordInput !== 'KiotViet#2026' && passwordInput !== 'KiotViet#2024') {
-      return {
-        success: false,
-        message: 'Mật khẩu bảo mật nội bộ không chính xác. Mật khẩu mặc định: KiotViet#2026',
-      };
-    }
+  // Require mandatory password verification for direct credential authentication
+  if (!passwordInput || passwordInput.trim() === '') {
+    return {
+      success: false,
+      message: 'Vui lòng nhập mật khẩu bảo mật tài khoản để xác thực danh tính.',
+    };
+  }
+
+  if (passwordInput !== 'KiotViet#2026' && passwordInput !== 'KiotViet#2024') {
+    return {
+      success: false,
+      message: 'Mật khẩu bảo mật nội bộ không chính xác. Vui lòng kiểm tra lại!',
+    };
   }
 
   const initials = allowedUser?.name

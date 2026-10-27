@@ -3,6 +3,7 @@ import {
   loginWithWhitelistedEmail,
   triggerGoogleIdentityPopup,
   getGoogleClientId,
+  saveGoogleClientId,
 } from '../../services/authService';
 import { UserProfile } from '../../types';
 
@@ -21,14 +22,11 @@ export const PortalSSOModal: React.FC<PortalSSOModalProps> = ({
   isFullPage = false,
   sessionExpiredNotice,
 }) => {
-  // Clean standard login inputs (empty by default)
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
-  const [showGoogleInput, setShowGoogleInput] = useState(false);
-  const [googleEmail, setGoogleEmail] = useState('');
 
   if (!isOpen) return null;
 
@@ -55,14 +53,44 @@ export const PortalSSOModal: React.FC<PortalSSOModalProps> = ({
     }, 300);
   };
 
-  // Handle Google Account Sign-In
+  // Handle Google Account Sign-In (Real Google SSO Popup)
+  const [showGoogleConfig, setShowGoogleConfig] = useState(false);
+  const [clientIdInput, setClientIdInput] = useState(getGoogleClientId());
+
   const handleGoogleClick = () => {
     setIsLoading(true);
     setErrorMessage(null);
 
-    const clientId = getGoogleClientId();
-    if (clientId && typeof window !== 'undefined' && (window as any).google?.accounts?.oauth2) {
-      // Trigger official GIS popup if Client ID is configured
+    triggerGoogleIdentityPopup({
+      onSuccess: (user) => {
+        setIsLoading(false);
+        if (onLoginSuccess) onLoginSuccess(user);
+        if (onClose) onClose();
+      },
+      onError: (msg) => {
+        setIsLoading(false);
+        setErrorMessage(msg);
+      },
+      onConfigNeeded: () => {
+        setIsLoading(false);
+        setShowGoogleConfig(true);
+      },
+    });
+  };
+
+  const handleSaveClientIdAndOpenGoogle = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!clientIdInput.trim()) {
+      setErrorMessage('Vui lòng nhập Google OAuth Client ID hợp lệ.');
+      return;
+    }
+    saveGoogleClientId(clientIdInput.trim());
+    setShowGoogleConfig(false);
+    setIsLoading(true);
+    setErrorMessage(null);
+
+    // Trigger real Google popup with the newly saved client ID
+    setTimeout(() => {
       triggerGoogleIdentityPopup({
         onSuccess: (user) => {
           setIsLoading(false);
@@ -75,35 +103,9 @@ export const PortalSSOModal: React.FC<PortalSSOModalProps> = ({
         },
         onConfigNeeded: () => {
           setIsLoading(false);
-          setShowGoogleInput(true);
+          setShowGoogleConfig(true);
         },
       });
-    } else {
-      // Direct Google Account input flow
-      setIsLoading(false);
-      setShowGoogleInput(true);
-    }
-  };
-
-  const handleGoogleEmailSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!googleEmail.trim()) {
-      setErrorMessage('Vui lòng nhập email tài khoản Google của bạn.');
-      return;
-    }
-
-    setIsLoading(true);
-    setErrorMessage(null);
-
-    setTimeout(() => {
-      const result = loginWithWhitelistedEmail(googleEmail);
-      setIsLoading(false);
-      if (result.success && result.user) {
-        if (onLoginSuccess) onLoginSuccess(result.user);
-        if (onClose) onClose();
-      } else {
-        setErrorMessage(`Tài khoản Google "${googleEmail}" chưa được cấp quyền trong Whitelist nội bộ. Vui lòng liên hệ quản trị viên.`);
-      }
     }, 300);
   };
 
@@ -169,7 +171,7 @@ export const PortalSSOModal: React.FC<PortalSSOModalProps> = ({
           type="button"
           onClick={handleGoogleClick}
           disabled={isLoading}
-          className="w-full h-11 px-4 rounded-xl border border-slate-300 bg-white hover:bg-slate-50 active:scale-[0.99] text-slate-800 font-semibold text-sm flex items-center justify-center gap-3 transition-all shadow-xs hover:shadow-sm cursor-pointer"
+          className="w-full h-11 px-4 rounded-xl border border-slate-300 bg-white hover:bg-slate-50 active:scale-[0.99] text-slate-800 font-semibold text-sm flex items-center justify-center gap-3 transition-all shadow-xs hover:shadow-sm cursor-pointer disabled:opacity-70"
         >
           {/* Google Icon SVG */}
           <svg className="w-5 h-5 shrink-0" viewBox="0 0 24 24">
@@ -180,35 +182,6 @@ export const PortalSSOModal: React.FC<PortalSSOModalProps> = ({
           </svg>
           <span>Đăng nhập với Google Account</span>
         </button>
-
-        {/* Google Email Input Drawer if popup not directly active */}
-        {showGoogleInput && (
-          <form onSubmit={handleGoogleEmailSubmit} className="p-3 bg-sky-50/70 rounded-xl border border-sky-200 space-y-2 animate-fadeIn text-xs">
-            <label className="block font-semibold text-slate-700">
-              Nhập email tài khoản Google của bạn:
-            </label>
-            <div className="flex gap-2">
-              <input
-                type="email"
-                required
-                value={googleEmail}
-                onChange={(e) => setGoogleEmail(e.target.value)}
-                placeholder="vd: thuyettk42@gmail.com"
-                className="flex-1 px-3 py-1.5 bg-white border border-slate-300 rounded-lg text-slate-900 focus:outline-none focus:ring-2 focus:ring-primary/20 text-xs"
-              />
-              <button
-                type="submit"
-                disabled={isLoading}
-                className="px-3.5 py-1.5 bg-primary hover:bg-[#004b74] text-white font-bold rounded-lg text-xs transition-colors shrink-0 cursor-pointer"
-              >
-                Tiếp tục
-              </button>
-            </div>
-            <p className="text-[10px] text-slate-400">
-              Chỉ các email Google đã được kích hoạt trong danh sách phân quyền mới có thể đăng nhập.
-            </p>
-          </form>
-        )}
       </div>
 
       {/* Divider */}
@@ -303,6 +276,75 @@ export const PortalSSOModal: React.FC<PortalSSOModalProps> = ({
           >
             Đóng cửa sổ
           </button>
+        </div>
+      )}
+      {/* Google OAuth Setup Dialog if Client ID is needed */}
+      {showGoogleConfig && (
+        <div className="fixed inset-0 z-[60] flex items-center justify-center p-4 bg-black/60 backdrop-blur-xs animate-fadeIn">
+          <div className="w-full max-w-md bg-white rounded-2xl shadow-2xl border border-slate-200 p-6 text-left space-y-4">
+            <div className="flex items-start justify-between">
+              <div className="flex items-center gap-2">
+                <span className="material-symbols-outlined text-primary text-[24px]">key</span>
+                <h3 className="font-bold text-slate-800 text-base">Cấu hình Google OAuth 2.0 (SSO)</h3>
+              </div>
+              <button
+                type="button"
+                onClick={() => setShowGoogleConfig(false)}
+                className="text-slate-400 hover:text-slate-600 cursor-pointer"
+              >
+                <span className="material-symbols-outlined text-[20px]">close</span>
+              </button>
+            </div>
+
+            <p className="text-xs text-slate-600 leading-relaxed">
+              Để mở cửa sổ xác thực Google SSO chính thức (<span className="font-mono text-slate-800">accounts.google.com</span>) trên domain{' '}
+              <span className="font-semibold text-primary">cs-report-sage.vercel.app</span>, bạn cần cấu hình Google OAuth Client ID:
+            </p>
+
+            <div className="p-3 bg-sky-50 rounded-xl border border-sky-200 text-xs text-slate-700 space-y-1.5">
+              <div className="font-semibold text-[#006195]">Các bước lấy Google Client ID:</div>
+              <ol className="list-decimal pl-4 space-y-1 text-[11px] text-slate-600">
+                <li>Truy cập <a href="https://console.cloud.google.com/apis/credentials" target="_blank" rel="noreferrer" className="text-primary underline">Google Cloud Console &gt; Credentials</a>.</li>
+                <li>Tạo OAuth 2.0 Client ID (Application type: Web application).</li>
+                <li>Thêm vào <b>Authorized JavaScript origins</b>:
+                  <div className="font-mono bg-white p-1 rounded border border-sky-300 mt-0.5 select-all text-[11px]">https://cs-report-sage.vercel.app</div>
+                </li>
+                <li>Sao chép Client ID và dán vào bên dưới:</li>
+              </ol>
+            </div>
+
+            <form onSubmit={handleSaveClientIdAndOpenGoogle} className="space-y-3">
+              <div>
+                <label className="block text-xs font-semibold text-slate-700 mb-1">
+                  Google Client ID:
+                </label>
+                <input
+                  type="text"
+                  required
+                  value={clientIdInput}
+                  onChange={(e) => setClientIdInput(e.target.value)}
+                  placeholder="vd: 123456789-xxxx.apps.googleusercontent.com"
+                  className="w-full px-3 py-2 bg-white border border-slate-300 rounded-xl text-xs text-slate-800 font-mono focus:outline-none focus:ring-2 focus:ring-primary/20"
+                />
+              </div>
+
+              <div className="flex items-center gap-2 pt-1">
+                <button
+                  type="button"
+                  onClick={() => setShowGoogleConfig(false)}
+                  className="flex-1 py-2 px-3 border border-slate-200 text-slate-600 hover:bg-slate-50 text-xs font-semibold rounded-xl transition-colors cursor-pointer"
+                >
+                  Đăng nhập mật khẩu
+                </button>
+                <button
+                  type="submit"
+                  className="flex-1 py-2 px-3 bg-primary hover:bg-[#004b74] text-white text-xs font-bold rounded-xl shadow-xs transition-colors cursor-pointer"
+                >
+                  Lưu & Mở Google SSO
+                </button>
+              </div>
+            </form>
+          </div>
         </div>
       )}
     </div>
