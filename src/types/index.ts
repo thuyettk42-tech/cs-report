@@ -47,6 +47,9 @@ export interface AllowedUser {
   email: string;
   name: string;
   role: string;
+  permission?: 'super_admin' | 'full_access' | 'view_export' | 'view_only' | string;
+  permissionLabel?: string;
+  department?: string;
   addedAt: string;
   addedBy: string;
 }

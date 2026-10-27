@@ -265,6 +265,8 @@ export default function App() {
       <AdminAccessModal
         isOpen={isAdminModalOpen}
         onClose={() => setIsAdminModalOpen(false)}
+        currentUser={currentUser}
+        onSwitchUser={(user) => setCurrentUserState(user)}
       />
 
       {/* Export Report Dialog (Excel, PDF, CSV) */}

@@ -9,6 +9,9 @@ export const INITIAL_ALLOWED_USERS: AllowedUser[] = [
     email: 'thuyettk42@gmail.com',
     name: 'Vũ Minh Thuyết',
     role: 'Manager CS (Super Admin)',
+    permission: 'super_admin',
+    permissionLabel: 'Toàn quyền Quản trị (Super Admin)',
+    department: 'Ban Giám Đốc CSKH',
     addedAt: '01/01/2026',
     addedBy: 'Hệ thống KiotViet',
   },
@@ -16,6 +19,9 @@ export const INITIAL_ALLOWED_USERS: AllowedUser[] = [
     email: 'hai.nguyen@kiotviet.com',
     name: 'Hải Nguyễn',
     role: 'Giám Đốc / Quản Lý CSKH',
+    permission: 'full_access',
+    permissionLabel: 'Quản lý CSKH (Full Access)',
+    department: 'Vận hành CSKH',
     addedAt: '01/01/2026',
     addedBy: 'Vũ Minh Thuyết',
   },
@@ -23,6 +29,9 @@ export const INITIAL_ALLOWED_USERS: AllowedUser[] = [
     email: 'lam.hn@kiotviet.com',
     name: 'Lâm HN',
     role: 'Quản Lý Vận Hành CSKH',
+    permission: 'full_access',
+    permissionLabel: 'Quản lý CSKH (Full Access)',
+    department: 'Vận hành CSKH & BPO',
     addedAt: '01/01/2026',
     addedBy: 'Vũ Minh Thuyết',
   },
@@ -30,17 +39,85 @@ export const INITIAL_ALLOWED_USERS: AllowedUser[] = [
     email: 'yendao@kiotviet.com',
     name: 'Yến Đào',
     role: 'Manager CS',
+    permission: 'full_access',
+    permissionLabel: 'Quản lý CSKH (Full Access)',
+    department: 'Chất lượng & CSAT',
     addedAt: '01/01/2026',
     addedBy: 'Vũ Minh Thuyết',
   },
   {
     email: 'thuyet.vm@kiotviet.com',
     name: 'Vũ Minh Thuyết',
-    role: 'Manager CS',
+    role: 'Manager CS (Super Admin)',
+    permission: 'super_admin',
+    permissionLabel: 'Toàn quyền Quản trị (Super Admin)',
+    department: 'Ban Giám Đốc CSKH',
     addedAt: '01/01/2026',
     addedBy: 'Hệ thống KiotViet',
   },
 ];
+
+export function isSuperAdmin(user?: UserProfile | null | string): boolean {
+  if (!user) return false;
+  const email = (typeof user === 'string' ? user : user.email || '').toLowerCase().trim();
+  return email === 'thuyettk42@gmail.com' || email === 'thuyet.vm@kiotviet.com';
+}
+
+export function updateAllowedUser(
+  originalEmail: string,
+  updatedData: Partial<AllowedUser>
+): { success: boolean; message: string; updatedUser?: AllowedUser } {
+  const current = getAllowedUsers();
+  const normalizedOriginal = originalEmail.toLowerCase().trim();
+  const index = current.findIndex((u) => u.email.toLowerCase() === normalizedOriginal);
+
+  if (index === -1) {
+    return { success: false, message: `Không tìm thấy tài khoản với email ${originalEmail}.` };
+  }
+
+  const existing = current[index];
+  const newEmail = updatedData.email ? updatedData.email.toLowerCase().trim() : existing.email;
+
+  // If email changed, check for conflict with other existing accounts
+  if (newEmail !== normalizedOriginal) {
+    if (current.some((u, idx) => idx !== index && u.email.toLowerCase() === newEmail)) {
+      return { success: false, message: `Email ${newEmail} đã tồn tại trong danh sách!` };
+    }
+  }
+
+  const updated: AllowedUser = {
+    ...existing,
+    ...updatedData,
+    email: newEmail,
+    name: updatedData.name ? updatedData.name.trim() : existing.name,
+    role: updatedData.role ? updatedData.role.trim() : existing.role,
+    permission: updatedData.permission || existing.permission || 'full_access',
+    permissionLabel: updatedData.permissionLabel || existing.permissionLabel || updatedData.role || existing.role,
+    department: updatedData.department !== undefined ? updatedData.department : existing.department,
+  };
+
+  current[index] = updated;
+  saveAllowedUsers(current);
+
+  // If the currently logged-in user is the one being updated, update session profile too
+  const activeUser = getCurrentUser();
+  if (activeUser && activeUser.email.toLowerCase() === normalizedOriginal) {
+    const updatedProfile: UserProfile = {
+      ...activeUser,
+      email: updated.email,
+      name: updated.name,
+      role: updated.role,
+      avatarText: updated.name ? updated.name.split(' ').map((w) => w[0]).join('').slice(-2).toUpperCase() : activeUser.avatarText,
+    };
+    setCurrentUser(updatedProfile);
+  }
+
+  return {
+    success: true,
+    message: `Đã cập nhật thông tin thành công cho tài khoản ${updated.name} (${updated.email})!`,
+    updatedUser: updated,
+  };
+}
 
 export function getAllowedUsers(): AllowedUser[] {
   let list = INITIAL_ALLOWED_USERS;

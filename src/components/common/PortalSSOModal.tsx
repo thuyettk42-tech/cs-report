@@ -168,11 +168,11 @@ export const PortalSSOModal: React.FC<PortalSSOModalProps> = ({
       {/* Brand Header */}
       <div className="flex items-center justify-between mb-5">
         <div className="flex items-center gap-2">
-          <svg className="h-8 w-auto" viewBox="0 0 120 34" fill="none" xmlns="http://www.w3.org/2000/svg">
-            <path d="M12 4C7.58 4 4 7.58 4 12V22C4 26.42 7.58 30 12 30C16.42 30 20 26.42 20 22V12C20 7.58 16.42 4 12 4Z" fill="#0090DA"/>
-            <path d="M22 14L28 20L22 26V14Z" fill="#20C65A"/>
-            <text x="36" y="24" fontFamily="'Be Vietnam Pro', sans-serif" fontWeight="bold" fontSize="20" fill="#073763">KiotViet</text>
-          </svg>
+          <img
+            src="/assets/aistudio/_ZNS__Color_Logo_ecc542c2.png"
+            alt="KiotViet Logo"
+            className="h-8 w-auto max-w-[150px] object-contain"
+          />
         </div>
 
         <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-slate-100 text-slate-700 font-mono text-[11px] font-semibold tracking-wide">

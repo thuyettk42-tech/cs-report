@@ -67,9 +67,9 @@ export const Sidebar: React.FC<SidebarProps> = ({
         <div className="h-16 px-4 flex items-center justify-between border-b border-slate-100">
           <div className="flex items-center gap-2.5 overflow-hidden">
             <img
-              src="https://lh3.googleusercontent.com/aida-public/AB6AXuAxX6k4ahfYwRkq2-4qnQq0kWr-pOwpeKr6t-Ws6yOLA44EU6WHlajrex5UxZN2xbMJR5n2gELcf4d1lyJPLJRYs0GP_2b9tU6-nD4Url1ImVUje7sjUf1kZQvSc9GGK1g1uwN-w5OKzyAuyQpLrqrMLmvOq3kSf4Y88QlpE_Hlw8vbbP_VWtAy4xUCCnKtGRAjEah0T6wsCmbZ5Ge61CjfhTCEiLxNfiXSbdVUt1Cod4foYIXT81Redg"
+              src="/assets/aistudio/_ZNS__Color_Logo_ecc542c2.png"
               alt="KiotViet Logo"
-              className="h-8 w-auto object-contain shrink-0"
+              className="h-7 sm:h-8 w-auto max-w-[135px] object-contain shrink-0"
             />
             {!isCollapsed && (
               <div className="flex flex-col min-w-0">
