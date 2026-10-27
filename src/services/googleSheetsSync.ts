@@ -62,6 +62,31 @@ export function parseCsvValue(val: string): number | string | null {
   return isNaN(plainNum) ? val : plainNum;
 }
 
+export function parseCsvLine(line: string): string[] {
+  const result: string[] = [];
+  let current = '';
+  let inQuotes = false;
+
+  for (let i = 0; i < line.length; i++) {
+    const char = line[i];
+    if (char === '"') {
+      if (inQuotes && line[i + 1] === '"') {
+        current += '"';
+        i++; // skip escaped quote
+      } else {
+        inQuotes = !inQuotes;
+      }
+    } else if (char === ',' && !inQuotes) {
+      result.push(current.trim());
+      current = '';
+    } else {
+      current += char;
+    }
+  }
+  result.push(current.trim());
+  return result;
+}
+
 export function parseCsvToMetrics(csvContent: string): MultiChannelMetricRow[] {
   const lines = csvContent.split(/\r?\n/).filter(line => line.trim().length > 0);
   const rows: MultiChannelMetricRow[] = [];
@@ -82,14 +107,7 @@ export function parseCsvToMetrics(csvContent: string): MultiChannelMetricRow[] {
   let currentChannel = '';
 
   for (let i = headerIndex + 1; i < lines.length; i++) {
-    const rawLine = lines[i];
-    // Split by comma preserving quoted entries
-    const regex = /(?:^|,)(?:"([^"]*)"|([^",]*))/g;
-    const cols: string[] = [];
-    let match;
-    while ((match = regex.exec(rawLine)) !== null) {
-      cols.push(match[1] !== undefined ? match[1] : match[2] || '');
-    }
+    const cols = parseCsvLine(lines[i]);
 
     if (cols.length < 2) continue;
 

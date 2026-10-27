@@ -195,6 +195,21 @@ export const Header: React.FC<HeaderProps> = ({
                 <div className="font-bold text-slate-900">{currentUser.name}</div>
                 <div className="text-[11px] text-slate-400">{currentUser.email}</div>
               </div>
+              {/* 60m Inactivity Session indicator */}
+              <div className="p-2.5 mx-1 my-1 rounded-lg bg-sky-50/70 border border-sky-100 text-[11px]">
+                <div className="flex items-center justify-between text-slate-700 font-semibold mb-0.5">
+                  <span className="flex items-center gap-1.5">
+                    <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
+                    Phiên: 60 phút
+                  </span>
+                  <span className="text-primary font-mono text-[10px] bg-white px-1.5 py-0.5 rounded border border-sky-200">
+                    Tự động gia hạn
+                  </span>
+                </div>
+                <div className="text-[10px] text-slate-500 leading-tight">
+                  Tự động duy trì không giới hạn khi có thao tác (click, phím, cuộn).
+                </div>
+              </div>
               <button
                 onClick={() => {
                   setShowUserMenu(false);

@@ -3,9 +3,9 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { NavigationTab, UserProfile } from './types';
-import { getCurrentUser, signOut } from './services/authService';
+import { getCurrentUser, signOut, refreshSession, isSessionExpired } from './services/authService';
 import { Sidebar } from './components/common/Sidebar';
 import { Header } from './components/common/Header';
 import { PortalSSOModal } from './components/common/PortalSSOModal';
@@ -34,6 +34,47 @@ export default function App() {
   const [isExportOpen, setIsExportOpen] = useState(false);
   const [exportTitle, setExportTitle] = useState('Báo Cáo Tiếp Nhận Đa Kênh CSKH KiotViet');
   const [syncNotice, setSyncNotice] = useState<string | null>(null);
+  const [sessionExpiredNotice, setSessionExpiredNotice] = useState<string | null>(null);
+
+  // Inactivity Session Tracker: 60 minutes
+  // Extends session indefinitely on any user interaction (click, keydown, scroll, touch)
+  useEffect(() => {
+    if (!currentUser) return;
+
+    // Refresh immediately when active
+    refreshSession();
+
+    let lastRefreshed = Date.now();
+    const handleUserActivity = () => {
+      const now = Date.now();
+      // Throttle refresh calls to once every 15 seconds to optimize performance
+      if (now - lastRefreshed > 15000) {
+        lastRefreshed = now;
+        refreshSession();
+      }
+    };
+
+    const activityEvents = ['mousedown', 'keydown', 'scroll', 'touchstart', 'click'];
+    activityEvents.forEach((ev) => {
+      window.addEventListener(ev, handleUserActivity, { passive: true });
+    });
+
+    // Check expiration every 5 seconds
+    const checkInterval = setInterval(() => {
+      if (isSessionExpired()) {
+        signOut();
+        setCurrentUserState(null);
+        setSessionExpiredNotice('Phiên đăng nhập đã kết thúc sau 60 phút không có thao tác. Vui lòng đăng nhập lại để tiếp tục làm việc.');
+      }
+    }, 5000);
+
+    return () => {
+      activityEvents.forEach((ev) => {
+        window.removeEventListener(ev, handleUserActivity);
+      });
+      clearInterval(checkInterval);
+    };
+  }, [currentUser]);
 
   const handleOpenExport = (title?: string) => {
     if (title) setExportTitle(title);
@@ -50,11 +91,13 @@ export default function App() {
   const handleSignOut = () => {
     signOut();
     setCurrentUserState(null);
+    setSessionExpiredNotice(null);
   };
 
   const handleLoginSuccess = (user: UserProfile) => {
     setCurrentUserState(user);
     setIsSSOOpen(false);
+    setSessionExpiredNotice(null);
     setSyncNotice(`Chào mừng ${user.name} (${user.email}) đã đăng nhập vào KiotViet Care!`);
     setTimeout(() => setSyncNotice(null), 4000);
   };
@@ -65,6 +108,7 @@ export default function App() {
       <PortalSSOModal
         isOpen={true}
         isFullPage={true}
+        sessionExpiredNotice={sessionExpiredNotice}
         onLoginSuccess={handleLoginSuccess}
       />
     );

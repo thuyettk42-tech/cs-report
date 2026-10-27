@@ -7,6 +7,7 @@ interface PortalSSOModalProps {
   onClose?: () => void;
   onLoginSuccess?: (user: UserProfile) => void;
   isFullPage?: boolean;
+  sessionExpiredNotice?: string | null;
 }
 
 export const PortalSSOModal: React.FC<PortalSSOModalProps> = ({
@@ -14,11 +15,13 @@ export const PortalSSOModal: React.FC<PortalSSOModalProps> = ({
   onClose,
   onLoginSuccess,
   isFullPage = false,
+  sessionExpiredNotice,
 }) => {
   const [email, setEmail] = useState('thuyet.vm@kiotviet.com');
   const [password, setPassword] = useState('KiotViet#2026');
   const [showPassword, setShowPassword] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
+  const [infoNotice, setInfoNotice] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [googleEmailInput, setGoogleEmailInput] = useState('thuyet.vm@kiotviet.com');
   const [showGoogleCustomInput, setShowGoogleCustomInput] = useState(false);
@@ -32,12 +35,14 @@ export const PortalSSOModal: React.FC<PortalSSOModalProps> = ({
     setEmail(roleEmail);
     setPassword('KiotViet#2026');
     setErrorMessage(null);
+    setInfoNotice(null);
   };
 
   const handleCredentialsSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     setIsLoading(true);
     setErrorMessage(null);
+    setInfoNotice(null);
 
     setTimeout(() => {
       const result = signInWithCredentials(email, password);
@@ -54,6 +59,7 @@ export const PortalSSOModal: React.FC<PortalSSOModalProps> = ({
   const handleGoogleLogin = (targetEmail?: string) => {
     setIsLoading(true);
     setErrorMessage(null);
+    setInfoNotice(null);
     const emailToUse = targetEmail || googleEmailInput || email;
 
     setTimeout(() => {
@@ -120,7 +126,14 @@ export const PortalSSOModal: React.FC<PortalSSOModalProps> = ({
             onClick={() => handleQuickfill('lam.tran@kiotviet.com')}
             className="px-2.5 py-1 rounded-full bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs transition-colors"
           >
-            CC Manager
+            Lâm (Quản lý CSKH)
+          </button>
+          <button
+            type="button"
+            onClick={() => handleQuickfill('yen.nguyen@kiotviet.com')}
+            className="px-2.5 py-1 rounded-full bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs transition-colors"
+          >
+            Yến (Manager CS)
           </button>
           <button
             type="button"
@@ -129,17 +142,10 @@ export const PortalSSOModal: React.FC<PortalSSOModalProps> = ({
           >
             Team Leader
           </button>
-          <button
-            type="button"
-            onClick={() => handleQuickfill('admin.care@kiotviet.com')}
-            className="px-2.5 py-1 rounded-full bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs transition-colors"
-          >
-            System Admin
-          </button>
         </div>
       </div>
 
-      {/* PRIMARY GOOGLE LOGIN BUTTON (Mandated in Prompt) */}
+      {/* PRIMARY GOOGLE LOGIN BUTTON */}
       <div className="mb-5 space-y-2">
         <button
           type="button"
@@ -197,6 +203,25 @@ export const PortalSSOModal: React.FC<PortalSSOModalProps> = ({
         <div className="flex-grow border-t border-slate-200"></div>
       </div>
 
+      {/* Session Expired Inactivity Notice */}
+      {sessionExpiredNotice && (
+        <div className="mb-4 p-3 rounded-xl bg-amber-50 text-amber-900 text-left flex items-start gap-2.5 text-xs animate-fadeIn border border-amber-300 shadow-xs">
+          <span className="material-symbols-outlined text-[18px] text-amber-600 shrink-0 mt-0.5">timer_off</span>
+          <div className="flex-1">
+            <div className="font-bold text-amber-800">Phiên làm việc đã hết hạn</div>
+            <div className="mt-0.5 leading-relaxed text-amber-700">{sessionExpiredNotice}</div>
+          </div>
+        </div>
+      )}
+
+      {/* Info Notice Box */}
+      {infoNotice && (
+        <div className="mb-4 p-3 rounded-xl bg-sky-50 text-slate-700 text-left flex items-start gap-2.5 text-xs animate-fadeIn border border-sky-200">
+          <span className="material-symbols-outlined text-[18px] text-primary shrink-0 mt-0.5">info</span>
+          <div className="flex-1 leading-relaxed">{infoNotice}</div>
+        </div>
+      )}
+
       {/* Error / Unauthorized Warning Banner */}
       {errorMessage && (
         <div className="mb-4 p-3 rounded-xl bg-error-container text-on-error-container text-left flex items-start gap-2.5 text-xs animate-fadeIn border border-error/20">
@@ -212,7 +237,7 @@ export const PortalSSOModal: React.FC<PortalSSOModalProps> = ({
       <form onSubmit={handleCredentialsSubmit} className="space-y-4 text-left">
         <div className="space-y-1">
           <label className="block text-xs font-semibold text-slate-700">
-            Tên đăng nhập hoặc Tài khoản nội bộ
+            Tên đăng nhập hoặc Email nội bộ
           </label>
           <div className="relative flex items-center">
             <span className="material-symbols-outlined absolute left-3 text-slate-400 text-[18px]">badge</span>
@@ -221,7 +246,7 @@ export const PortalSSOModal: React.FC<PortalSSOModalProps> = ({
               required
               value={email}
               onChange={(e) => setEmail(e.target.value)}
-              placeholder="lam.tran@kiotviet.com"
+              placeholder="thuyet.vm@kiotviet.com"
               className="w-full h-10 pl-9 pr-3 rounded-lg bg-white border border-slate-300 text-slate-900 text-sm focus:outline-none focus:ring-2 focus:ring-primary/20"
             />
           </div>
@@ -238,13 +263,13 @@ export const PortalSSOModal: React.FC<PortalSSOModalProps> = ({
               required
               value={password}
               onChange={(e) => setPassword(e.target.value)}
-              placeholder="Nhập mật khẩu..."
+              placeholder="Nhập mật khẩu (vd: KiotViet#2026)"
               className="w-full h-10 pl-9 pr-10 rounded-lg bg-white border border-slate-300 text-slate-900 text-sm focus:outline-none focus:ring-2 focus:ring-primary/20"
             />
             <button
               type="button"
               onClick={() => setShowPassword(!showPassword)}
-              className="absolute right-3 text-slate-400 hover:text-slate-600"
+              className="absolute right-3 text-slate-400 hover:text-slate-600 cursor-pointer"
             >
               <span className="material-symbols-outlined text-[18px]">
                 {showPassword ? 'visibility_off' : 'visibility'}
@@ -258,9 +283,13 @@ export const PortalSSOModal: React.FC<PortalSSOModalProps> = ({
             <input type="checkbox" defaultChecked className="rounded border-slate-300 text-primary focus:ring-primary" />
             <span>Ghi nhớ đăng nhập trên thiết bị này</span>
           </label>
-          <a href="#" onClick={(e) => { e.preventDefault(); alert('Vui lòng liên hệ Admin: thuyet.vm@kiotviet.com để reset mật khẩu.'); }} className="text-primary hover:underline font-medium">
+          <button
+            type="button"
+            onClick={() => setInfoNotice('Quên mật khẩu? Vui lòng liên hệ Quản trị viên: thuyet.vm@kiotviet.com hoặc lam.tran@kiotviet.com để được cấp lại.')}
+            className="text-primary hover:underline font-medium bg-transparent border-0 p-0 cursor-pointer"
+          >
             Quên mật khẩu?
-          </a>
+          </button>
         </div>
 
         {/* Primary Login Button matching #006195 in image_93b94bf6.png */}
@@ -270,7 +299,7 @@ export const PortalSSOModal: React.FC<PortalSSOModalProps> = ({
           className="w-full h-11 rounded-lg bg-[#006195] hover:bg-[#004b74] active:scale-[0.99] text-white font-bold text-sm flex items-center justify-center gap-2 transition-all shadow-md mt-2 cursor-pointer"
         >
           {isLoading && <span className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></span>}
-          <span>Đăng nhập</span>
+          <span>Đăng nhập hệ thống</span>
           <span className="material-symbols-outlined text-[18px]">arrow_forward</span>
         </button>
       </form>
@@ -280,17 +309,17 @@ export const PortalSSOModal: React.FC<PortalSSOModalProps> = ({
         <button
           type="button"
           onClick={() => setShowWhitelistPreview(!showWhitelistPreview)}
-          className="hover:text-primary transition-colors flex items-center gap-1 font-medium"
+          className="hover:text-primary transition-colors flex items-center gap-1 font-medium cursor-pointer"
         >
           <span className="material-symbols-outlined text-[16px]">verified_user</span>
-          <span>Xem Whitelist ({allowedList.length} Admin)</span>
+          <span>Xem Whitelist ({allowedList.length} Admin được cấp quyền)</span>
         </button>
 
         {!isFullPage && onClose && (
           <button
             type="button"
             onClick={onClose}
-            className="text-slate-500 hover:text-slate-800 font-semibold"
+            className="text-slate-500 hover:text-slate-800 font-semibold cursor-pointer"
           >
             Đóng cửa sổ
           </button>
@@ -315,8 +344,12 @@ export const PortalSSOModal: React.FC<PortalSSOModalProps> = ({
 
   if (isFullPage) {
     return (
-      <div className="min-h-screen bg-[#f8f9ff] flex items-center justify-center p-4">
+      <div className="min-h-screen bg-gradient-to-br from-slate-50 via-sky-50/40 to-slate-100 flex flex-col items-center justify-center p-4">
         {content}
+        <div className="mt-6 text-center text-xs text-slate-500 space-y-1">
+          <p>© 2026 KiotViet Customer Care Enterprise • All rights reserved</p>
+          <p className="text-[11px] text-slate-400">Hệ thống bảo mật xác thực tập trung theo tiêu chuẩn nội bộ</p>
+        </div>
       </div>
     );
   }
