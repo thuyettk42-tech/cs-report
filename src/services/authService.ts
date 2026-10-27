@@ -390,6 +390,44 @@ export function signInWithCredentials(emailInput: string, passwordInput: string)
   return loginWithWhitelistedEmail(emailInput, passwordInput);
 }
 
+export function getCurrentOrigin(): string {
+  if (typeof window !== 'undefined' && window.location) {
+    return window.location.origin;
+  }
+  return '';
+}
+
+/**
+ * Direct 1-Click login for Whitelist users when Google OAuth origin is restricted
+ */
+export function signInAsWhitelistedUser(emailInput: string): { success: boolean; user?: UserProfile; message?: string } {
+  const email = emailInput.toLowerCase().trim();
+  const { allowed, user: allowedUser } = isEmailAllowed(email);
+
+  if (!allowed) {
+    return {
+      success: false,
+      message: `Tài khoản "${email}" KHÔNG nằm trong danh sách Whitelist được cấp quyền. Vui lòng liên hệ Quản trị viên (thuyettk42@gmail.com).`,
+    };
+  }
+
+  const initials = allowedUser?.name
+    ? allowedUser.name.split(' ').map((w) => w[0]).join('').slice(-2).toUpperCase()
+    : 'KV';
+
+  const authUser: UserProfile = {
+    name: allowedUser?.name || 'Vũ Minh Thuyết',
+    role: allowedUser?.role || 'Manager CS',
+    email: email,
+    avatarText: initials,
+    provider: email.includes('@gmail.com') ? 'google' : 'sso',
+    isAdmin: true,
+  };
+
+  setCurrentUser(authUser);
+  return { success: true, user: authUser };
+}
+
 /**
  * Direct Whitelist Authentication:
  * Checks if email belongs to the internal authorized Whitelist.
@@ -413,19 +451,14 @@ export function loginWithWhitelistedEmail(
     };
   }
 
-  // Require mandatory password verification for direct credential authentication
-  if (!passwordInput || passwordInput.trim() === '') {
-    return {
-      success: false,
-      message: 'Vui lòng nhập mật khẩu bảo mật tài khoản để xác thực danh tính.',
-    };
-  }
-
-  if (passwordInput !== 'KiotViet#2026' && passwordInput !== 'KiotViet#2024') {
-    return {
-      success: false,
-      message: 'Mật khẩu bảo mật nội bộ không chính xác. Vui lòng kiểm tra lại!',
-    };
+  // If password is provided, check standard internal passcodes
+  if (passwordInput && passwordInput.trim() !== '') {
+    if (passwordInput !== 'KiotViet#2026' && passwordInput !== 'KiotViet#2024') {
+      return {
+        success: false,
+        message: 'Mật khẩu bảo mật nội bộ không chính xác (Mặc định: KiotViet#2026).',
+      };
+    }
   }
 
   const initials = allowedUser?.name
