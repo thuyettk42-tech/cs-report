@@ -1,0 +1,8 @@
+{
+  "name": "Remix KiotViet Customer Care Enterprise",
+  "description": "Trung tâm Điều hành \u0026 Quản lý CSKH KiotViet: Báo cáo Hiệu suất Call Center, Freshchat, Ticket SLA, Định biên \u0026 KPI Nhân sự Inhouse \u0026 Outsource, Quản lý Sự cố Phân hệ Retail.",
+  "requestFramePermissions": [],
+  "majorCapabilities": [
+    "MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"
+  ]
+}

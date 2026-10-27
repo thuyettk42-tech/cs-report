@@ -1,0 +1,1297 @@
+<!DOCTYPE html><html lang="vi"><head><meta charset="utf-8"><meta content="width=device-width, initial-scale=1.0" name="viewport"><meta content="web_dashboard" name="shell-type"><link href="https://fonts.googleapis.com" rel="preconnect"><link crossorigin="" href="https://fonts.gstatic.com" rel="preconnect"><link href="https://fonts.googleapis.com/css2?family=Be+Vietnam+Pro:wght@400;500;600;700&amp;family=Inter:wght@400;500;600;700&amp;display=swap" rel="stylesheet"><link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"><style>@layer base{html,body{margin:0;padding:0;}body{overscroll-behavior:none;}main>:first-child{margin-top:0!important;}main>:last-child{margin-bottom:0!important;}}::-webkit-scrollbar{display:none;}</style><script src="https://cdn.tailwindcss.com"></script><script id="tailwind-config">tailwind.config={darkMode:"class",theme:{extend:{colors:{"primary":"#006195","outline-variant":"#bfc7d2","surface-tint":"#006398","secondary-container":"#66fc88","surface-dim":"#cbdbf5","inverse-surface":"#213145","on-primary-fixed-variant":"#004b74","error":"#ba1a1a","on-secondary-fixed":"#002108","surface":"#f8f9ff","on-primary-container":"#fdfcff","surface-container-lowest":"#ffffff","on-secondary":"#ffffff","on-secondary-fixed-variant":"#005320","error-container":"#ffdad6","tertiary-fixed-dim":"#a4c9fd","on-tertiary":"#ffffff","surface-container-highest":"#d3e4fe","surface-variant":"#d3e4fe","surface-container-low":"#eff4ff","on-tertiary-fixed":"#001c39","tertiary-fixed":"#d3e3ff","on-tertiary-container":"#fdfcff","on-error-container":"#93000a","secondary-fixed-dim":"#48e171","primary-fixed-dim":"#94ccff","surface-container-high":"#dce9ff","surface-bright":"#f8f9ff","on-surface-variant":"#3f4851","primary-container":"#007aba","on-surface":"#0b1c30","on-background":"#0b1c30","secondary-fixed":"#69ff8b","on-primary":"#ffffff","tertiary":"#385e8c","outline":"#6f7882","inverse-primary":"#94ccff","surface-container":"#e5eeff","background":"#f8f9ff","inverse-on-surface":"#eaf1ff","on-primary-fixed":"#001d32","on-secondary-container":"#00722f","primary-fixed":"#cde5ff","on-error":"#ffffff","secondary":"#006e2c","on-tertiary-fixed-variant":"#204875","tertiary-container":"#5276a6"},borderRadius:{"DEFAULT":"0.25rem","lg":"0.5rem","xl":"0.75rem","full":"9999px"},spacing:{"space-xs":"0.25rem","space-xl":"1.75rem","space-md":"0.75rem","space-lg":"1.25rem","margin-sm":"1rem","gutter-dense":"0.75rem","space-sm":"0.5rem","gutter":"1rem","margin":"1.5rem"},fontFamily:{"code-sm":["Inter"],"body-sm":["Be Vietnam Pro"],"headline-md":["Be Vietnam Pro"],"body-md":["Be Vietnam Pro"],"headline-xl":["Be Vietnam Pro"],"headline-sm":["Be Vietnam Pro"],"label-sm":["Inter"],"headline-lg":["Be Vietnam Pro"],"label-md":["Inter"],"body-lg":["Be Vietnam Pro"]},fontSize:{"code-sm":["12px",{"lineHeight":"16px","fontWeight":"500"}],"body-sm":["13px",{"lineHeight":"18px","fontWeight":"400"}],"headline-md":["20px",{"lineHeight":"28px","fontWeight":"600"}],"body-md":["14px",{"lineHeight":"20px","fontWeight":"400"}],"headline-xl":["30px",{"lineHeight":"38px","fontWeight":"700"}],"headline-sm":["16px",{"lineHeight":"24px","fontWeight":"600"}],"label-sm":["11px",{"lineHeight":"16px","fontWeight":"600"}],"headline-lg":["24px",{"lineHeight":"32px","fontWeight":"600"}],"label-md":["13px",{"lineHeight":"18px","fontWeight":"500"}],"body-lg":["16px",{"lineHeight":"24px","fontWeight":"400"}]}}}}</script></head><body class="bg-surface font-body-md text-body-md text-on-surface antialiased"><aside class="fixed left-0 top-0 h-full w-64 bg-surface-container-lowest shadow-[0_1px_8px_rgba(7,55,99,0.06)] z-50 flex flex-col justify-between overflow-y-auto transition-all" id="app-sidebar"><div class="flex flex-col"><div class="h-16 px-margin flex items-center justify-between border-b border-surface-container-high/60"><div class="flex items-center gap-space-sm"><img alt="logo.kiotviet-01.png" class="h-8 w-auto object-contain" src="https://lh3.googleusercontent.com/aida/AEtjO1WU316XVr8F1MHmuYuQaMf5RyryvmfaM9sAI_TvheE4JVlZF8coSwKDk0dwp8hSd2MsgLd4-Vsz9H8AxB52XZ7IzDGIR6uHOhyuf9uqlx-U-eRDxgLA4NhuwzNRrVgqLExc7heRyiWWl37jzdtnAfabM-MLa0KkQ6jaP5yieAxH6iDGWs8M_HT4x7Izh5d-ERbo37lyjIKUMN0pzVUrCR45Qk8-K-l5A8VA_6qDxlVD98hkD1w9LQv5zYGwkswfFxB1H5xoP1hWM3U"><div class="flex flex-col"><span class="font-headline-sm text-headline-sm text-primary font-bold tracking-tight leading-none">KiotViet</span><span class="font-label-sm text-label-sm text-outline tracking-wider uppercase mt-0.5">Care Center</span></div></div><button aria-label="Thu gọn thanh điều hướng" class="p-space-xs rounded-lg text-outline hover:text-on-surface hover:bg-surface-container-low transition-colors" type="button" id="sidebar-toggle-btn"><span class="material-symbols-outlined text-[20px]">menu_open</span></button></div><nav class="flex flex-col py-space-md px-space-sm gap-space-xs" data-active-classes="bg-primary-container text-on-primary-container font-semibold shadow-sm"><div class="px-space-md pt-space-xs pb-space-xs font-label-sm text-label-sm text-outline uppercase tracking-wider">TỔNG QUAN</div><a class="flex items-center gap-space-md px-space-md py-space-sm rounded-lg text-on-surface-variant hover:bg-surface-container-high hover:text-on-surface transition-all group" data-path="overview" href="#"><span class="material-symbols-outlined text-[20px] text-outline group-hover:text-on-surface">dashboard</span><span class="font-body-md text-body-md">Tổng quan CSKH</span></a><div class="px-space-md pt-space-md pb-space-xs font-label-sm text-label-sm text-outline uppercase tracking-wider">KÊNH VẬN HÀNH</div><a class="flex items-center gap-space-md px-space-md py-space-sm rounded-lg text-on-surface-variant hover:bg-surface-container-high hover:text-on-surface transition-all group" data-path="call-center-1900-6522" href="#"><span class="material-symbols-outlined text-[20px] text-outline group-hover:text-on-surface">headset_mic</span><span class="font-body-md text-body-md">Call Center 1900 6522</span></a><a aria-current="page" class="flex items-center gap-space-md px-space-md py-space-sm rounded-lg transition-all group bg-primary-container text-on-primary-container font-semibold shadow-sm" data-path="chat-freshchat" href="#"><span class="material-symbols-outlined text-[20px] text-outline group-hover:text-on-surface">chat</span><span class="font-body-md text-body-md">Chat (Freshchat)</span><span class="ml-auto w-2 h-2 rounded-full bg-secondary-fixed-dim"></span></a><a class="flex items-center gap-space-md px-space-md py-space-sm rounded-lg text-on-surface-variant hover:bg-surface-container-high hover:text-on-surface transition-all group" data-path="ticket-support" href="#"><span class="material-symbols-outlined text-[20px] text-outline group-hover:text-on-surface">confirmation_number</span><span class="font-body-md text-body-md">Ticket Hỗ trợ</span></a><div class="px-space-md pt-space-md pb-space-xs font-label-sm text-label-sm text-outline uppercase tracking-wider">LỰC LƯỢNG NHÂN SỰ</div><a class="flex items-center gap-space-md px-space-md py-space-sm rounded-lg text-on-surface-variant hover:bg-surface-container-high hover:text-on-surface transition-all group" data-path="internal-agents" href="#"><span class="material-symbols-outlined text-[20px] text-outline group-hover:text-on-surface">badge</span><span class="font-body-md text-body-md">Nhân sự Inhouse</span></a><a class="flex items-center gap-space-md px-space-md py-space-sm rounded-lg text-on-surface-variant hover:bg-surface-container-high hover:text-on-surface transition-all group" data-path="outsourced-agents" href="#"><span class="material-symbols-outlined text-[20px] text-outline group-hover:text-on-surface">groups</span><span class="font-body-md text-body-md">Nhân sự Outsourced</span></a><a class="flex items-center gap-space-md px-space-md py-space-sm rounded-lg text-on-surface-variant hover:bg-surface-container-high hover:text-on-surface transition-all group" data-path="kpi-evaluation" href="#"><span class="material-symbols-outlined text-[20px] text-outline group-hover:text-on-surface">trending_up</span><span class="font-body-md text-body-md">Đánh giá KPI</span></a><div class="px-space-md pt-space-md pb-space-xs font-label-sm text-label-sm text-outline uppercase tracking-wider">PHÂN HỆ DỰ ÁN</div><a class="flex items-center gap-space-md px-space-md py-space-sm rounded-lg text-on-surface-variant hover:bg-surface-container-high hover:text-on-surface transition-all group" data-path="kiotviet-retail" href="#"><span class="material-symbols-outlined text-[20px] text-outline group-hover:text-on-surface">storefront</span><span class="font-body-md text-body-md">KiotViet Retail</span></a><a class="flex items-center gap-space-md px-space-md py-space-sm rounded-lg text-on-surface-variant hover:bg-surface-container-high hover:text-on-surface transition-all group" data-path="kiotviet-fnb" href="#"><span class="material-symbols-outlined text-[20px] text-outline group-hover:text-on-surface">restaurant</span><span class="font-body-md text-body-md">KiotViet FNB</span></a><a class="flex items-center gap-space-md px-space-md py-space-sm rounded-lg text-on-surface-variant hover:bg-surface-container-high hover:text-on-surface transition-all group" data-path="kat-project" href="#"><span class="material-symbols-outlined text-[20px] text-outline group-hover:text-on-surface">hub</span><span class="font-body-md text-body-md">KAT</span></a><div class="px-space-md pt-space-md pb-space-xs font-label-sm text-label-sm text-outline uppercase tracking-wider">HỆ THỐNG</div><a class="flex items-center gap-space-md px-space-md py-space-sm rounded-lg text-on-surface-variant hover:bg-surface-container-high hover:text-on-surface transition-all group" data-path="system-settings" href="#"><span class="material-symbols-outlined text-[20px] text-outline group-hover:text-on-surface">tune</span><span class="font-body-md text-body-md">Cấu hình &amp; Báo cáo</span></a></nav></div><div class="p-space-md m-space-sm rounded-xl bg-surface-container-low flex items-center justify-between"><div class="flex items-center gap-space-sm"><span class="material-symbols-outlined text-primary text-[20px]">support_agent</span><div class="flex flex-col"><span class="font-label-sm text-label-sm text-on-surface font-semibold">Hotline Kỹ thuật</span><span class="font-code-sm text-code-sm text-outline">Ext: 1088</span></div></div><span class="inline-flex items-center px-1.5 py-0.5 rounded-full text-[10px] font-semibold bg-secondary-container text-on-secondary-container">ONLINE</span></div></aside><div class="pl-64 transition-all" id="main-wrapper"><header class="fixed top-0 left-64 right-0 h-16 bg-surface-container-lowest/90 backdrop-blur-md shadow-[0_1px_8px_rgba(7,55,99,0.04)] z-40 flex items-center justify-between px-margin transition-all" id="top-header"><div class="flex items-center gap-space-md min-w-0"><nav aria-label="Breadcrumb" class="flex items-center gap-space-xs font-body-sm text-body-sm text-on-surface-variant truncate"><a class="hover:text-primary transition-colors flex items-center gap-1" href="#"><span class="material-symbols-outlined text-[16px]">home</span><span class="">Trang chủ</span></a><span class="material-symbols-outlined text-[14px] text-outline-variant">chevron_right</span><span class="text-outline">Kênh vận hành</span><span class="material-symbols-outlined text-[14px] text-outline-variant">chevron_right</span><span class="font-semibold text-on-surface truncate">Báo cáo Freshchat Livechat &amp; AI</span></nav></div><div class="flex items-center gap-space-md"><div class="hidden xl:flex items-center gap-space-xs px-space-md py-1.5 rounded-full bg-surface-container text-primary font-label-sm text-label-sm"><span class="material-symbols-outlined text-[16px] text-primary">history_toggle_off</span><span class="">Dữ liệu chốt đến: Hết ngày hôm qua (T-1) · 23:59:59 - 22/10/2026</span></div><button class="inline-flex items-center gap-space-xs px-space-md py-1.5 rounded-lg bg-surface-container-low hover:bg-surface-container hover:text-on-surface text-primary font-label-md text-label-md transition-colors" type="button"><span class="material-symbols-outlined text-[18px]">sync</span><span class="">Đồng bộ</span></button><div class="relative"><button aria-label="Thông báo" class="relative p-space-xs rounded-lg text-on-surface-variant hover:bg-surface-container-low hover:text-on-surface transition-colors" type="button"><span class="material-symbols-outlined text-[22px]">notifications</span><span class="absolute top-1.5 right-1.5 w-2 h-2 rounded-full bg-error ring-2 ring-surface-container-lowest"></span></button></div><div class="h-6 w-px bg-surface-container-high"></div><div class="flex items-center gap-space-sm pl-space-xs"><div class="w-8 h-8 rounded-full bg-primary flex items-center justify-center"><span class="material-symbols-outlined text-on-primary text-[18px]">person</span></div><div class="flex flex-col text-left"><span class="font-label-md text-label-md text-on-surface font-semibold leading-none">Trần Lâm</span><span class="font-label-sm text-label-sm text-outline mt-0.5 leading-none">Quản lý CSKH</span></div></div></div></header><main class="relative w-full pt-16 bg-surface min-h-screen px-margin py-margin"><div class="flex flex-col w-full gap-space-lg">
+<!-- ================= TOP SECTION: KPI BANNER & ADVANCED FILTERS ================= -->
+<div class="flex flex-col xl:flex-row gap-space-md items-stretch">
+<!-- Filter Matrix Control Panel -->
+<div class="flex-1 bg-surface-container-lowest p-space-md rounded-xl shadow-sm flex flex-col gap-space-sm">
+<div class="flex items-center justify-between pb-space-xs">
+<div class="flex items-center gap-space-sm">
+<span class="w-2.5 h-2.5 rounded-full bg-primary animate-pulse"></span>
+<span class="font-headline-sm text-headline-sm text-on-surface">Bộ lọc Phân tích Freshchat</span>
+<span class="font-label-sm text-label-sm px-2 py-0.5 rounded-full bg-primary-fixed text-on-primary-fixed uppercase font-semibold">T-1 Khép sổ</span>
+</div>
+<div class="flex items-center gap-space-xs">
+<button class="inline-flex items-center gap-1 text-primary hover:text-primary-container font-label-md text-label-md px-2 py-1 rounded transition-colors" type="button">
+<span class="material-symbols-outlined text-[16px]">restart_alt</span>
+<span class="">Đặt lại bộ lọc</span>
+</button>
+</div>
+</div>
+<!-- Filter Controls Grid -->
+<div class="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-8 gap-space-xs items-end">
+<!-- Date range from -->
+<div class="col-span-1 flex flex-col gap-1">
+<label class="font-label-sm text-label-sm text-outline font-semibold">Từ ngày</label>
+<div class="relative flex items-center">
+<input class="w-full bg-surface-container-low text-on-surface text-code-sm font-code-sm rounded-lg px-2.5 py-1.5 focus:outline-none focus:ring-2 focus:ring-primary/30" type="text" value="10/01/2026">
+<span class="material-symbols-outlined absolute right-2 text-outline text-[16px] pointer-events-none">calendar_today</span>
+</div>
+</div>
+<!-- Date range to -->
+<div class="col-span-1 flex flex-col gap-1">
+<label class="font-label-sm text-label-sm text-outline font-semibold">Đến ngày (T-1)</label>
+<div class="relative flex items-center">
+<input class="w-full bg-surface-container-low text-on-surface text-code-sm font-code-sm rounded-lg px-2.5 py-1.5 focus:outline-none focus:ring-2 focus:ring-primary/30" type="text" value="10/22/2026">
+<span class="material-symbols-outlined absolute right-2 text-primary text-[16px] pointer-events-none">event_available</span>
+</div>
+</div>
+<!-- Working Hours Range -->
+<div class="col-span-1 flex flex-col gap-1">
+<label class="font-label-sm text-label-sm text-outline font-semibold">Khung giờ tạo</label>
+<div class="flex items-center gap-1">
+<input class="w-1/2 bg-surface-container-low text-on-surface text-code-sm font-code-sm rounded-lg px-2 py-1.5 text-center focus:outline-none" max="23" min="0" type="number" value="7">
+<span class="text-outline text-xs">-</span>
+<input class="w-1/2 bg-surface-container-low text-on-surface text-code-sm font-code-sm rounded-lg px-2 py-1.5 text-center focus:outline-none" max="23" min="0" type="number" value="22">
+</div>
+</div>
+<!-- Chat AI / Agent Type -->
+<div class="col-span-1 flex flex-col gap-1">
+<label class="font-label-sm text-label-sm text-outline font-semibold">Chat AI / NS</label>
+<select class="w-full bg-surface-container-low text-on-surface text-label-md font-label-md rounded-lg px-2 py-1.5 focus:outline-none">
+<option selected="">Tất cả kênh</option>
+<option>No AI (Chỉ NS)</option>
+<option>AI Bot Only</option>
+<option>AI + Chuyển NS</option>
+</select>
+</div>
+<!-- Channel Filter -->
+<div class="col-span-1 flex flex-col gap-1">
+<label class="font-label-sm text-label-sm text-outline font-semibold">Nguồn Kênh</label>
+<select class="w-full bg-surface-container-low text-on-surface text-label-md font-label-md rounded-lg px-2 py-1.5 focus:outline-none">
+<option selected="">5 Kênh (Tất cả)</option>
+<option>ZOA (Zalo OA)</option>
+<option>Website Care</option>
+<option>App Phần Mềm</option>
+<option>Kỹ Thuật POS</option>
+<option>Phân hệ KAT</option>
+</select>
+</div>
+<!-- Chuyen Line -->
+<div class="col-span-1 flex flex-col gap-1">
+<label class="font-label-sm text-label-sm text-outline font-semibold">Chuyển Line</label>
+<select class="w-full bg-surface-container-low text-on-surface text-label-md font-label-md rounded-lg px-2 py-1.5 focus:outline-none">
+<option selected="">Tất cả</option>
+<option>Có chuyển line</option>
+<option>Không chuyển</option>
+</select>
+</div>
+<!-- KPI 4.1 Filter -->
+<div class="col-span-1 flex flex-col gap-1">
+<label class="font-label-sm text-label-sm text-outline font-semibold">KPI Reply &lt; 1p</label>
+<select class="w-full bg-surface-container-low text-on-surface text-label-md font-label-md rounded-lg px-2 py-1.5 focus:outline-none">
+<option selected="">Tất cả tỷ lệ</option>
+<option>Đạt chuẩn (&gt;=75%)</option>
+<option>Dưới chuẩn (&lt;75%)</option>
+</select>
+</div>
+<!-- Shift Filter -->
+<div class="col-span-1 flex flex-col gap-1">
+<label class="font-label-sm text-label-sm text-outline font-semibold">Ca trực</label>
+<select class="w-full bg-surface-container-low text-on-surface text-label-md font-label-md rounded-lg px-2 py-1.5 focus:outline-none">
+<option selected="">Tất cả ca</option>
+<option>Ca sáng (7h-12h)</option>
+<option>Ca chiều (12h-18h)</option>
+<option>Ca tối (18h-22h)</option>
+</select>
+</div>
+</div>
+</div>
+<!-- Right Highlight Big Card: Total Freshchat KPI -->
+<div class="xl:w-80 bg-surface-container-lowest p-space-md rounded-xl shadow-sm flex flex-col justify-between relative overflow-hidden">
+<div class="absolute -right-4 -bottom-4 w-28 h-28 rounded-full bg-secondary-fixed/20 pointer-events-none"></div>
+<div class="flex items-center justify-between">
+<div class="flex flex-col">
+<span class="font-label-sm text-label-sm text-outline uppercase tracking-wider font-semibold">% KPI Tổng Freshchat</span>
+<span class="font-body-sm text-body-sm text-secondary font-medium">Vượt mục tiêu MTD tháng 10</span>
+</div>
+<div class="w-8 h-8 rounded-lg bg-secondary-container flex items-center justify-center">
+<span class="material-symbols-outlined text-on-secondary-container text-[20px]">verified</span>
+</div>
+</div>
+<div class="my-space-xs flex items-baseline gap-space-xs">
+<span class="font-headline-xl text-headline-xl text-secondary font-bold tracking-tight">118.56%</span>
+<span class="font-code-sm text-code-sm px-1.5 py-0.5 rounded bg-secondary-container text-on-secondary-container font-semibold">+18.56%</span>
+</div>
+<div class="flex flex-col gap-1">
+<div class="w-full h-2 bg-surface-container-high rounded-full overflow-hidden">
+<div class="h-full bg-secondary rounded-full" style="width: 88%;"></div>
+</div>
+<div class="flex justify-between font-label-sm text-label-sm text-outline">
+<span class="">Chuẩn KPI: 100%</span>
+<span class="text-on-surface font-semibold">T-1: 137.06%</span>
+</div>
+</div>
+</div>
+</div>
+<!-- ================= SECTION 1: OVERVIEW & REPLY TIME CARDS ================= -->
+<div class="grid grid-cols-1 lg:grid-cols-2 gap-space-md">
+<!-- Overview Metric Group -->
+<div class="bg-surface-container-lowest rounded-xl p-space-md shadow-sm flex flex-col gap-space-sm">
+<div class="flex items-center justify-between pb-space-xs">
+<div class="flex items-center gap-space-xs">
+<span class="material-symbols-outlined text-primary text-[20px]">equalizer</span>
+<h2 class="font-headline-sm text-headline-sm text-on-surface">Overview - Tổng quan Sản lượng Chat</h2>
+</div>
+<span class="font-label-sm text-label-sm text-outline font-semibold">22 ngày MTD</span>
+</div>
+<div class="grid grid-cols-3 sm:grid-cols-6 gap-space-xs">
+<!-- Metric 1 -->
+<div class="bg-surface-container-low p-space-sm rounded-lg flex flex-col">
+<span class="font-label-sm text-label-sm text-outline truncate" title="Tổng phiên chat reply">Tổng chat reply</span>
+<span class="font-headline-sm text-headline-sm text-on-surface font-bold mt-1">21,724</span>
+<span class="font-code-sm text-code-sm text-secondary mt-0.5 font-medium">100%</span>
+</div>
+<!-- Metric 2 -->
+<div class="bg-surface-container-low p-space-sm rounded-lg flex flex-col">
+<span class="font-label-sm text-label-sm text-outline truncate" title="Phiên chat xử lý hoàn tất">Phiên chat xử lý</span>
+<span class="font-headline-sm text-headline-sm text-on-surface font-bold mt-1">11,833</span>
+<span class="font-code-sm text-code-sm text-primary mt-0.5 font-medium">54.4%</span>
+</div>
+<!-- Metric 3 -->
+<div class="bg-surface-container-low p-space-sm rounded-lg flex flex-col">
+<span class="font-label-sm text-label-sm text-outline truncate" title="Trung bình phiên chat / ngày">TB phiên chat</span>
+<span class="font-headline-sm text-headline-sm text-on-surface font-bold mt-1">1,034</span>
+<span class="font-code-sm text-code-sm text-outline mt-0.5">phiên/ngày</span>
+</div>
+<!-- Metric 4 -->
+<div class="bg-surface-container-low p-space-sm rounded-lg flex flex-col">
+<span class="font-label-sm text-label-sm text-outline truncate" title="Số lượng phiên chat phản hồi dưới 1 phút">SL reply &lt; 1p</span>
+<span class="font-headline-sm text-headline-sm text-on-surface font-bold mt-1">18,647</span>
+<span class="font-code-sm text-code-sm text-secondary mt-0.5 font-semibold">85.84%</span>
+</div>
+<!-- Metric 5 -->
+<div class="bg-surface-container-low p-space-sm rounded-lg flex flex-col">
+<span class="font-label-sm text-label-sm text-outline truncate" title="Reply time trung bình toàn hệ thống">Reply time TB</span>
+<span class="font-headline-sm text-headline-sm text-on-surface font-bold mt-1">51.75s</span>
+<span class="font-code-sm text-code-sm text-outline mt-0.5">Tiêu chuẩn 50s</span>
+</div>
+<!-- Metric 6: KPI 4.1 -->
+<div class="bg-secondary-container/30 p-space-sm rounded-lg flex flex-col">
+<span class="font-label-sm text-label-sm text-on-secondary-container truncate font-semibold" title="Tỷ lệ phiên chat có reply &lt; 1 phút (KPI 4.1)">Tỉ lệ &lt; 1p (KPI 4.1)</span>
+<span class="font-headline-sm text-headline-sm text-secondary font-bold mt-1">85.84%</span>
+<span class="font-code-sm text-code-sm text-secondary font-semibold mt-0.5">Mục tiêu &gt;= 75%</span>
+</div>
+</div>
+</div>
+<!-- Reply Time & SLA Group -->
+<div class="bg-surface-container-lowest rounded-xl p-space-md shadow-sm flex flex-col gap-space-sm">
+<div class="flex items-center justify-between pb-space-xs">
+<div class="flex items-center gap-space-xs">
+<span class="material-symbols-outlined text-secondary text-[20px]">timer</span>
+<h2 class="font-headline-sm text-headline-sm text-on-surface">Reply time &amp; Hiệu suất Phản hồi Chi tiết</h2>
+</div>
+<span class="font-label-sm text-label-sm px-2 py-0.5 rounded-full bg-secondary-container text-on-secondary-container font-semibold">Trọng số KPI: 15%</span>
+</div>
+<div class="grid grid-cols-3 sm:grid-cols-6 gap-space-xs">
+<!-- Sub Metric 1 -->
+<div class="bg-surface-container-low p-space-sm rounded-lg flex flex-col">
+<span class="font-label-sm text-label-sm text-outline truncate" title="Trung vị thời gian phản hồi đầu tiên">Med first time</span>
+<span class="font-headline-sm text-headline-sm text-on-surface font-bold mt-1">19s</span>
+<span class="font-code-sm text-code-sm text-secondary mt-0.5 font-medium">Rất nhanh</span>
+</div>
+<!-- Sub Metric 2 -->
+<div class="bg-surface-container-low p-space-sm rounded-lg flex flex-col">
+<span class="font-label-sm text-label-sm text-outline truncate" title="Thời gian phản hồi đầu tiên trung bình">Avg first time</span>
+<span class="font-headline-sm text-headline-sm text-on-surface font-bold mt-1">93.40s</span>
+<span class="font-code-sm text-code-sm text-outline mt-0.5">Bao gồm chờ</span>
+</div>
+<!-- Sub Metric 3: KPI 4.2 -->
+<div class="bg-secondary-container/30 p-space-sm rounded-lg flex flex-col">
+<span class="font-label-sm text-label-sm text-on-secondary-container truncate font-semibold" title="AVG response time các tin nhắn kế tiếp (KPI 4.2)">AVG response (4.2)</span>
+<span class="font-headline-sm text-headline-sm text-secondary font-bold mt-1">43.29s</span>
+<span class="font-code-sm text-code-sm text-secondary font-semibold mt-0.5">≤ 50s (-6.71s)</span>
+</div>
+<!-- Sub Metric 4 -->
+<div class="bg-surface-container-low p-space-sm rounded-lg flex flex-col">
+<span class="font-label-sm text-label-sm text-outline truncate" title="Số lượng chat chuyển line nhân sự">Số chuyển line</span>
+<span class="font-headline-sm text-headline-sm text-on-surface font-bold mt-1">2,823</span>
+<span class="font-code-sm text-code-sm text-outline mt-0.5">phiên</span>
+</div>
+<!-- Sub Metric 5 -->
+<div class="bg-surface-container-low p-space-sm rounded-lg flex flex-col">
+<span class="font-label-sm text-label-sm text-outline truncate" title="Tỷ lệ phiên chat chuyển line nhân sự">Tỉ lệ chuyển line</span>
+<span class="font-headline-sm text-headline-sm text-on-surface font-bold mt-1">23.86%</span>
+<span class="font-code-sm text-code-sm text-primary mt-0.5 font-medium">Tối ưu AI 76%</span>
+</div>
+<!-- Sub Metric 6 -->
+<div class="bg-surface-container-low p-space-sm rounded-lg flex flex-col">
+<span class="font-label-sm text-label-sm text-outline truncate" title="Tỉ lệ phiên có phản hồi dưới 1 phút">TL reply &lt; 1p</span>
+<span class="font-headline-sm text-headline-sm text-on-surface font-bold mt-1">91.95%</span>
+<span class="font-code-sm text-code-sm text-secondary font-medium mt-0.5">Vượt chuẩn</span>
+</div>
+</div>
+</div>
+</div>
+<!-- ================= SECTION 2: TRENDLINE CHART (MTD 01/10 - 22/10) ================= -->
+<div class="bg-surface-container-lowest p-space-md rounded-xl shadow-sm flex flex-col gap-space-sm">
+<div class="flex flex-col sm:flex-row sm:items-center justify-between gap-2 pb-space-xs">
+<div class="flex items-center gap-space-sm">
+<div class="w-8 h-8 rounded-lg bg-primary-container text-on-primary-container flex items-center justify-center">
+<span class="material-symbols-outlined text-[18px]">show_chart</span>
+</div>
+<div class="flex flex-col">
+<h2 class="font-headline-sm text-headline-sm text-on-surface">Biểu đồ Xu hướng Vận hành Freshchat &amp; % KPI MTD (01/10 - 22/10/2026)</h2>
+<span class="font-body-sm text-body-sm text-outline">Theo dõi liên tục tỷ lệ đáp ứng KPI phản hồi &lt;1p và tốc độ giải đáp</span>
+</div>
+</div>
+<!-- Legend Indicator -->
+<div class="flex flex-wrap items-center gap-space-md font-label-md text-label-md">
+<div class="flex items-center gap-1.5">
+<span class="w-3 h-3 rounded-full bg-[#e65100]"></span>
+<span class="text-on-surface font-medium">% KPI Tổng</span>
+</div>
+<div class="flex items-center gap-1.5">
+<span class="w-3 h-3 rounded-full bg-[#2e7d32]"></span>
+<span class="text-on-surface font-medium">% KPI Response time (≤50s)</span>
+</div>
+<div class="flex items-center gap-1.5">
+<span class="w-3 h-3 rounded-full bg-primary"></span>
+<span class="text-on-surface font-medium">% KPI Tỷ lệ reply (&gt;=75%)</span>
+</div>
+</div>
+</div>
+<!-- Chart Canvas Area (Inline Highly-Polished SVG) -->
+<div class="w-full bg-surface-container-low/60 rounded-xl p-space-md overflow-x-auto">
+<div class="min-w-[860px]">
+<svg class="w-full h-56 text-outline" fill="none" viewBox="0 0 1000 240">
+<!-- Horizontal Grid Lines -->
+<line stroke="currentColor" stroke-dasharray="4 4" stroke-opacity="0.15" x1="40" x2="980" y1="20" y2="20"></line>
+<text class="font-code-sm text-[10px] fill-outline" text-anchor="end" x="32" y="24">150%</text>
+<line stroke="currentColor" stroke-dasharray="4 4" stroke-opacity="0.15" x1="40" x2="980" y1="65" y2="65"></line>
+<text class="font-code-sm text-[10px] fill-outline" text-anchor="end" x="32" y="69">125%</text>
+<line stroke="currentColor" stroke-opacity="0.25" x1="40" x2="980" y1="110" y2="110"></line>
+<text class="font-code-sm text-[10px] fill-primary font-bold" text-anchor="end" x="32" y="114">100% (Chuẩn)</text>
+<line stroke="currentColor" stroke-dasharray="4 4" stroke-opacity="0.15" x1="40" x2="980" y1="160" y2="160"></line>
+<text class="font-code-sm text-[10px] fill-outline" text-anchor="end" x="32" y="164">75% (Min 4.1)</text>
+<line stroke="currentColor" stroke-opacity="0.15" x1="40" x2="980" y1="205" y2="205"></line>
+<text class="font-code-sm text-[10px] fill-outline" text-anchor="end" x="32" y="208">50%</text>
+<!-- KPI 4.1 Target Area Band -->
+<rect fill="currentColor" fill-opacity="0.04" height="50" width="940" x="40" y="110"></rect>
+<!-- Line 1: % KPI Tong (Orange Curve) -->
+<path d="M 60,32 L 105,36 L 150,56 L 195,33 L 240,48 L 285,68 L 330,52 L 375,54 L 420,62 L 465,78 L 510,73 L 555,59 L 600,67 L 645,88 L 690,69 L 735,46 L 780,47 L 825,41 L 870,42 L 915,40 L 960,50" stroke="#e65100" stroke-linecap="round" stroke-linejoin="round" stroke-width="3"></path>
+<!-- Line 2: % KPI Response Time (Green Line) -->
+<path d="M 60,78 L 105,82 L 150,86 L 195,76 L 240,79 L 285,89 L 330,81 L 375,80 L 420,84 L 465,88 L 510,87 L 555,83 L 600,85 L 645,92 L 690,82 L 735,74 L 780,75 L 825,72 L 870,71 L 915,70 L 960,74" stroke="#2e7d32" stroke-dasharray="3 3" stroke-linecap="round" stroke-width="2"></path>
+<!-- Line 3: % KPI Ty le Reply (Blue Line) -->
+<path d="M 60,135 L 105,138 L 150,145 L 195,136 L 240,140 L 285,148 L 330,139 L 375,142 L 420,145 L 465,152 L 510,149 L 555,144 L 600,146 L 645,154 L 690,145 L 735,138 L 780,139 L 825,136 L 870,135 L 915,134 L 960,137" stroke="#006195" stroke-linecap="round" stroke-width="2"></path>
+<!-- Data Points on KPI Tong -->
+<!-- 01/10 -->
+<circle cx="60" cy="32" fill="#e65100" r="4"></circle>
+<text class="font-code-sm text-[9px] fill-[#e65100] font-bold" text-anchor="middle" x="60" y="24">147.9%</text>
+<!-- 05/10 -->
+<circle cx="240" cy="48" fill="#e65100" r="3.5"></circle>
+<text class="font-code-sm text-[9px] fill-[#e65100] font-medium" text-anchor="middle" x="240" y="40">140.8%</text>
+<!-- 10/10 -->
+<circle cx="465" cy="78" fill="#e65100" r="3.5"></circle>
+<text class="font-code-sm text-[9px] fill-[#e65100] font-medium" text-anchor="middle" x="465" y="93">124.2%</text>
+<!-- 15/10 (Dip) -->
+<circle cx="645" cy="88" fill="#ba1a1a" r="4.5"></circle>
+<text class="font-code-sm text-[9px] fill-[#ba1a1a] font-bold" text-anchor="middle" x="645" y="103">115.0%</text>
+<!-- 18/10 -->
+<circle cx="780" cy="47" fill="#e65100" r="3.5"></circle>
+<text class="font-code-sm text-[9px] fill-[#e65100] font-medium" text-anchor="middle" x="780" y="38">140.9%</text>
+<!-- 21/10 -->
+<circle cx="915" cy="40" fill="#e65100" r="4"></circle>
+<text class="font-code-sm text-[9px] fill-[#e65100] font-bold" text-anchor="middle" x="915" y="30">143.6%</text>
+<!-- 22/10 T-1 Node (Highlighted) -->
+<circle cx="960" cy="50" fill="#006e2c" r="5" stroke="#ffffff" stroke-width="2"></circle>
+<text class="font-code-sm text-[10px] fill-[#006e2c] font-bold" text-anchor="middle" x="960" y="36">137.0% (T-1)</text>
+<!-- X-Axis Labels (Oct Days) -->
+<text class="font-code-sm text-[10px] fill-outline" text-anchor="middle" x="60" y="224">01/10</text>
+<text class="font-code-sm text-[10px] fill-outline" text-anchor="middle" x="150" y="224">03/10</text>
+<text class="font-code-sm text-[10px] fill-outline" text-anchor="middle" x="240" y="224">05/10</text>
+<text class="font-code-sm text-[10px] fill-outline" text-anchor="middle" x="330" y="224">07/10</text>
+<text class="font-code-sm text-[10px] fill-outline" text-anchor="middle" x="420" y="224">09/10</text>
+<text class="font-code-sm text-[10px] fill-outline" text-anchor="middle" x="510" y="224">11/10</text>
+<text class="font-code-sm text-[10px] fill-outline" text-anchor="middle" x="600" y="224">13/10</text>
+<text class="font-code-sm text-[10px] fill-outline" text-anchor="middle" x="690" y="224">15/10</text>
+<text class="font-code-sm text-[10px] fill-outline" text-anchor="middle" x="780" y="224">17/10</text>
+<text class="font-code-sm text-[10px] fill-outline" text-anchor="middle" x="870" y="224">19/10</text>
+<text class="font-code-sm text-[10px] fill-primary font-bold" text-anchor="middle" x="960" y="224">22/10 (T-1)</text>
+</svg>
+</div>
+</div>
+</div>
+<!-- ================= SECTION 3: DAILY INCOMING BY 5 CHANNELS TABLE WITH MTD TOTAL ROW ================= -->
+<!-- ================= SECTION 4A: BANG 1 - PERFORMANCE BY AI BOT & CHANNELS (FC01 - FC16) ================= -->
+<div class="bg-surface-container-lowest rounded-xl shadow-sm overflow-hidden flex flex-col">
+  <div class="p-space-md flex flex-col md:flex-row md:items-center justify-between gap-space-sm border-b border-surface-container-high/60">
+    <div class="flex items-center gap-space-sm">
+      <div class="w-8 h-8 rounded-lg bg-primary text-on-primary flex items-center justify-center">
+        <span class="material-symbols-outlined text-[20px]">smart_toy</span>
+      </div>
+      <div>
+        <div class="flex items-center gap-2">
+          <h2 class="font-headline-sm text-headline-sm text-on-surface">Hiệu suất 2 KPI theo Nhóm Trợ lý AI Bot &amp; Tài khoản Kênh (FC01 - FC16)</h2>
+          <span class="px-2 py-0.5 rounded-full bg-primary-fixed text-on-primary-fixed text-label-sm font-semibold uppercase">Bảng 1</span>
+        </div>
+        <span class="font-body-sm text-body-sm text-outline">Đối soát chỉ số phản hồi của Trợ lý AI và các kênh tiếp nhận phân bổ từ ZOA, Web, POS &amp; KAT</span>
+      </div>
+    </div>
+    <div class="flex items-center gap-space-xs">
+      <span class="flex items-center gap-1 font-label-sm text-label-sm text-secondary bg-secondary-container/40 px-2.5 py-1 rounded-full font-semibold">
+        <span class="material-symbols-outlined text-[16px]">check_circle</span> Đạt chuẩn KPI
+      </span>
+      <span class="flex items-center gap-1 font-label-sm text-label-sm text-[#b45309] bg-[#fffbeb] px-2.5 py-1 rounded-full font-semibold">
+        <span class="material-symbols-outlined text-[16px]">warning</span> Response &gt;50s
+      </span>
+      <span class="flex items-center gap-1 font-label-sm text-label-sm text-error bg-error-container/40 px-2.5 py-1 rounded-full font-semibold">
+        <span class="material-symbols-outlined text-[16px]">error</span> First &gt;60s
+      </span>
+    </div>
+  </div>
+  <div class="overflow-x-auto">
+    <table class="w-full text-left border-collapse">
+      <thead>
+        <tr class="bg-surface-container-high/60 font-label-sm text-label-sm text-on-surface uppercase tracking-wider">
+          <th class="py-2.5 px-4 font-semibold w-72">Tài khoản / Kênh tiếp nhận</th>
+          <th class="py-2.5 px-3 font-semibold text-right">Tỉ lệ chuyển line</th>
+          <th class="py-2.5 px-3 font-semibold text-right">Phiên chat response</th>
+          <th class="py-2.5 px-3 font-semibold text-right">Response time TB</th>
+          <th class="py-2.5 px-3 font-semibold text-right">First response time</th>
+          <th class="py-2.5 px-3 font-semibold text-right">Đạt KPI 4.1 (&lt; 1p)</th>
+          <th class="py-2.5 px-4 font-semibold text-center">Đánh giá chung</th>
+        </tr>
+      </thead>
+      <tbody class="font-body-sm text-body-sm divide-y-0">
+        <!-- TONG HOP AI BOT -->
+        <tr class="bg-surface-container-low font-semibold">
+          <td class="py-2 px-4 flex items-center gap-1.5 text-primary">
+            <span class="material-symbols-outlined text-[18px]">smart_toy</span>
+            <span class="font-label-md text-label-md">Đội ngũ AI Bot Tự động (3 Bots AI)</span>
+          </td>
+          <td class="py-2 px-3 text-right text-outline font-medium">14.20%</td>
+          <td class="py-2 px-3 text-right font-bold text-on-surface">6,120</td>
+          <td class="py-2 px-3 text-right text-secondary font-bold font-code-sm">5.20s</td>
+          <td class="py-2 px-3 text-right text-secondary font-bold font-code-sm">2.28s</td>
+          <td class="py-2 px-3 text-right text-secondary font-bold font-code-sm">99.10%</td>
+          <td class="py-2 px-4 text-center">
+            <span class="inline-flex items-center px-2 py-0.5 rounded-full bg-secondary-container text-on-secondary-container font-label-sm text-label-sm font-semibold">Tự động 100%</span>
+          </td>
+        </tr>
+        <tr class="hover:bg-surface-container-low/40">
+          <td class="py-1.5 px-4 pl-10 text-on-surface flex items-center gap-2">
+            <span class="w-1.5 h-1.5 rounded-full bg-primary"></span>
+            <span class="">AI Bot 01 - Phần Mềm (App &amp; Web Retail)</span>
+          </td>
+          <td class="py-1.5 px-3 text-right text-outline">12.40%</td>
+          <td class="py-1.5 px-3 text-right font-medium">3,840</td>
+          <td class="py-1.5 px-3 text-right font-code-sm text-secondary font-semibold">4.80s</td>
+          <td class="py-1.5 px-3 text-right bg-secondary-container/20 font-code-sm text-secondary font-semibold">2.10s</td>
+          <td class="py-1.5 px-3 text-right font-semibold text-secondary">99.20%</td>
+          <td class="py-1.5 px-4 text-center text-secondary font-label-sm text-label-sm">Đạt chuẩn</td>
+        </tr>
+        <tr class="hover:bg-surface-container-low/40">
+          <td class="py-1.5 px-4 pl-10 text-on-surface flex items-center gap-2">
+            <span class="w-1.5 h-1.5 rounded-full bg-primary"></span>
+            <span class="">AI Bot 02 - Kỹ Thuật (Phần cứng, POS &amp; Máy in)</span>
+          </td>
+          <td class="py-1.5 px-3 text-right text-outline">18.20%</td>
+          <td class="py-1.5 px-3 text-right font-medium">1,420</td>
+          <td class="py-1.5 px-3 text-right font-code-sm text-secondary font-semibold">6.20s</td>
+          <td class="py-1.5 px-3 text-right bg-secondary-container/20 font-code-sm text-secondary font-semibold">2.50s</td>
+          <td class="py-1.5 px-3 text-right font-semibold text-secondary">98.60%</td>
+          <td class="py-1.5 px-4 text-center text-secondary font-label-sm text-label-sm">Đạt chuẩn</td>
+        </tr>
+        <tr class="hover:bg-surface-container-low/40">
+          <td class="py-1.5 px-4 pl-10 text-on-surface flex items-center gap-2">
+            <span class="w-1.5 h-1.5 rounded-full bg-primary"></span>
+            <span class="">AI Bot 03 - KAT FnB (Menu điện tử, Order)</span>
+          </td>
+          <td class="py-1.5 px-3 text-right text-outline">15.00%</td>
+          <td class="py-1.5 px-3 text-right font-medium">860</td>
+          <td class="py-1.5 px-3 text-right font-code-sm text-secondary font-semibold">5.50s</td>
+          <td class="py-1.5 px-3 text-right bg-secondary-container/20 font-code-sm text-secondary font-semibold">2.30s</td>
+          <td class="py-1.5 px-3 text-right font-semibold text-secondary">99.00%</td>
+          <td class="py-1.5 px-4 text-center text-secondary font-label-sm text-label-sm">Đạt chuẩn</td>
+        </tr>
+        <!-- PHAN THE THEO TAI KHOAN KENH FC01 - FC16 -->
+        <tr class="bg-surface-container font-semibold text-on-surface border-t border-surface-container-high/60">
+          <td class="py-2 px-4 flex items-center gap-1.5 text-primary" colspan="7">
+            <span class="material-symbols-outlined text-[18px]">dialpad</span>
+            <span class="font-label-md text-label-md">Danh sách Kênh Tiếp Nhận Định Tuyến (FC01 - FC16)</span>
+          </td>
+        </tr>
+        <tr class="hover:bg-surface-container-low/40">
+          <td class="py-1.5 px-4 pl-10 text-on-surface font-medium">Kênh FC01 - Tuyến Tiếp Nhận 01 (ZOA VIP HN)</td>
+          <td class="py-1.5 px-3 text-right text-outline">16.50%</td>
+          <td class="py-1.5 px-3 text-right font-medium">1,140</td>
+          <td class="py-1.5 px-3 text-right font-code-sm text-secondary font-medium">41.80s</td>
+          <td class="py-1.5 px-3 text-right bg-secondary-container/20 font-code-sm text-secondary font-medium">24.15s</td>
+          <td class="py-1.5 px-3 text-right font-semibold text-secondary font-code-sm">91.20%</td>
+          <td class="py-1.5 px-4 text-center text-secondary font-label-sm">Đạt KPI</td>
+        </tr>
+        <tr class="hover:bg-surface-container-low/40">
+          <td class="py-1.5 px-4 pl-10 text-on-surface font-medium">Kênh FC02 - Tuyến Tiếp Nhận 02 (ZOA VIP HCM)</td>
+          <td class="py-1.5 px-3 text-right text-outline">18.20%</td>
+          <td class="py-1.5 px-3 text-right font-medium">1,085</td>
+          <td class="py-1.5 px-3 text-right font-code-sm text-secondary font-medium">44.20s</td>
+          <td class="py-1.5 px-3 text-right bg-secondary-container/20 font-code-sm text-secondary font-medium">26.30s</td>
+          <td class="py-1.5 px-3 text-right font-semibold text-secondary font-code-sm">89.50%</td>
+          <td class="py-1.5 px-4 text-center text-secondary font-label-sm">Đạt KPI</td>
+        </tr>
+        <tr class="hover:bg-surface-container-low/40">
+          <td class="py-1.5 px-4 pl-10 text-on-surface font-medium">Kênh FC03 - Tuyến Tiếp Nhận 03 (ZOA Miền Trung)</td>
+          <td class="py-1.5 px-3 text-right text-outline">14.10%</td>
+          <td class="py-1.5 px-3 text-right font-medium">920</td>
+          <td class="py-1.5 px-3 text-right font-code-sm text-secondary font-medium">38.90s</td>
+          <td class="py-1.5 px-3 text-right bg-secondary-container/20 font-code-sm text-secondary font-medium">21.40s</td>
+          <td class="py-1.5 px-3 text-right font-semibold text-secondary font-code-sm">93.10%</td>
+          <td class="py-1.5 px-4 text-center text-secondary font-label-sm">Đạt KPI</td>
+        </tr>
+        <tr class="hover:bg-surface-container-low/40">
+          <td class="py-1.5 px-4 pl-10 text-on-surface font-medium">Kênh FC04 - Tuyến Tiếp Nhận 04 (ZOA Đăng ký mới)</td>
+          <td class="py-1.5 px-3 text-right text-outline">22.40%</td>
+          <td class="py-1.5 px-3 text-right font-medium">865</td>
+          <td class="py-1.5 px-3 text-right font-code-sm text-[#b45309] font-medium"><span class="material-symbols-outlined text-[14px]">priority_high</span> 54.10s</td>
+          <td class="py-1.5 px-3 text-right bg-secondary-container/20 font-code-sm text-secondary font-medium">32.10s</td>
+          <td class="py-1.5 px-3 text-right font-semibold text-secondary font-code-sm">82.40%</td>
+          <td class="py-1.5 px-4 text-center text-[#b45309] font-label-sm">Cảnh báo</td>
+        </tr>
+        <tr class="hover:bg-surface-container-low/40">
+          <td class="py-1.5 px-4 pl-10 text-on-surface font-medium">Kênh FC05 - Tuyến Tiếp Nhận 05 (Website Webchat 1)</td>
+          <td class="py-1.5 px-3 text-right text-outline">19.50%</td>
+          <td class="py-1.5 px-3 text-right font-medium">980</td>
+          <td class="py-1.5 px-3 text-right font-code-sm text-secondary font-medium">43.15s</td>
+          <td class="py-1.5 px-3 text-right bg-secondary-container/20 font-code-sm text-secondary font-medium">28.70s</td>
+          <td class="py-1.5 px-3 text-right font-semibold text-secondary font-code-sm">87.60%</td>
+          <td class="py-1.5 px-4 text-center text-secondary font-label-sm">Đạt KPI</td>
+        </tr>
+        <tr class="hover:bg-surface-container-low/40">
+          <td class="py-1.5 px-4 pl-10 text-on-surface font-medium">Kênh FC06 - Tuyến Tiếp Nhận 06 (Website Webchat 2)</td>
+          <td class="py-1.5 px-3 text-right text-outline">21.00%</td>
+          <td class="py-1.5 px-3 text-right font-medium">890</td>
+          <td class="py-1.5 px-3 text-right font-code-sm text-secondary font-medium">46.30s</td>
+          <td class="py-1.5 px-3 text-right bg-secondary-container/20 font-code-sm text-secondary font-medium">29.80s</td>
+          <td class="py-1.5 px-3 text-right font-semibold text-secondary font-code-sm">85.90%</td>
+          <td class="py-1.5 px-4 text-center text-secondary font-label-sm">Đạt KPI</td>
+        </tr>
+        <tr class="hover:bg-surface-container-low/40">
+          <td class="py-1.5 px-4 pl-10 text-on-surface font-medium">Kênh FC07 - Tuyến Tiếp Nhận 07 (App Quản lý Retail)</td>
+          <td class="py-1.5 px-3 text-right text-outline">17.80%</td>
+          <td class="py-1.5 px-3 text-right font-medium">1,250</td>
+          <td class="py-1.5 px-3 text-right font-code-sm text-secondary font-medium">36.50s</td>
+          <td class="py-1.5 px-3 text-right bg-secondary-container/20 font-code-sm text-secondary font-medium">19.80s</td>
+          <td class="py-1.5 px-3 text-right font-semibold text-secondary font-code-sm">94.20%</td>
+          <td class="py-1.5 px-4 text-center text-secondary font-label-sm font-semibold">Xuất sắc</td>
+        </tr>
+        <tr class="hover:bg-surface-container-low/40">
+          <td class="py-1.5 px-4 pl-10 text-on-surface font-medium">Kênh FC08 - Tuyến Tiếp Nhận 08 (App Bán hàng Retail)</td>
+          <td class="py-1.5 px-3 text-right text-outline">18.40%</td>
+          <td class="py-1.5 px-3 text-right font-medium">1,410</td>
+          <td class="py-1.5 px-3 text-right font-code-sm text-secondary font-medium">39.40s</td>
+          <td class="py-1.5 px-3 text-right bg-secondary-container/20 font-code-sm text-secondary font-medium">22.10s</td>
+          <td class="py-1.5 px-3 text-right font-semibold text-secondary font-code-sm">92.80%</td>
+          <td class="py-1.5 px-4 text-center text-secondary font-label-sm">Đạt KPI</td>
+        </tr>
+        <tr class="hover:bg-surface-container-low/40">
+          <td class="py-1.5 px-4 pl-10 text-on-surface font-medium">Kênh FC09 - Tuyến Tiếp Nhận 09 (App FnB Bar/Bếp)</td>
+          <td class="py-1.5 px-3 text-right text-outline">15.60%</td>
+          <td class="py-1.5 px-3 text-right font-medium">670</td>
+          <td class="py-1.5 px-3 text-right font-code-sm text-secondary font-medium">37.10s</td>
+          <td class="py-1.5 px-3 text-right bg-secondary-container/20 font-code-sm text-secondary font-medium">20.50s</td>
+          <td class="py-1.5 px-3 text-right font-semibold text-secondary font-code-sm">93.40%</td>
+          <td class="py-1.5 px-4 text-center text-secondary font-label-sm">Đạt KPI</td>
+        </tr>
+        <tr class="hover:bg-surface-container-low/40">
+          <td class="py-1.5 px-4 pl-10 text-on-surface font-medium">Kênh FC10 - Tuyến Tiếp Nhận 10 (App KiotViet Salon)</td>
+          <td class="py-1.5 px-3 text-right text-outline">14.20%</td>
+          <td class="py-1.5 px-3 text-right font-medium">420</td>
+          <td class="py-1.5 px-3 text-right font-code-sm text-secondary font-medium">42.60s</td>
+          <td class="py-1.5 px-3 text-right bg-secondary-container/20 font-code-sm text-secondary font-medium">25.40s</td>
+          <td class="py-1.5 px-3 text-right font-semibold text-secondary font-code-sm">88.70%</td>
+          <td class="py-1.5 px-4 text-center text-secondary font-label-sm">Đạt KPI</td>
+        </tr>
+        <tr class="hover:bg-surface-container-low/40">
+          <td class="py-1.5 px-4 pl-10 text-on-surface font-medium">Kênh FC11 - Tuyến Tiếp Nhận 11 (Kỹ thuật Máy in Bill)</td>
+          <td class="py-1.5 px-3 text-right text-outline">26.30%</td>
+          <td class="py-1.5 px-3 text-right font-medium">880</td>
+          <td class="py-1.5 px-3 text-right font-code-sm text-[#b45309] font-medium"><span class="material-symbols-outlined text-[14px]">priority_high</span> 58.70s</td>
+          <td class="py-1.5 px-3 text-right bg-error-container/40 font-code-sm text-error font-bold">63.20s</td>
+          <td class="py-1.5 px-3 text-right font-semibold text-error font-code-sm">71.50%</td>
+          <td class="py-1.5 px-4 text-center"><span class="inline-flex items-center px-1.5 py-0.5 rounded bg-error-container text-on-error-container font-label-sm text-label-sm font-semibold">Vượt &gt;1p</span></td>
+        </tr>
+        <tr class="hover:bg-surface-container-low/40">
+          <td class="py-1.5 px-4 pl-10 text-on-surface font-medium">Kênh FC12 - Tuyến Tiếp Nhận 12 (Kỹ thuật Máy quét Mã)</td>
+          <td class="py-1.5 px-3 text-right text-outline">24.80%</td>
+          <td class="py-1.5 px-3 text-right font-medium">540</td>
+          <td class="py-1.5 px-3 text-right font-code-sm text-secondary font-medium">48.20s</td>
+          <td class="py-1.5 px-3 text-right bg-secondary-container/20 font-code-sm text-secondary font-medium">33.40s</td>
+          <td class="py-1.5 px-3 text-right font-semibold text-secondary font-code-sm">84.30%</td>
+          <td class="py-1.5 px-4 text-center text-secondary font-label-sm">Đạt KPI</td>
+        </tr>
+        <tr class="hover:bg-surface-container-low/40">
+          <td class="py-1.5 px-4 pl-10 text-on-surface font-medium">Kênh FC13 - Tuyến Tiếp Nhận 13 (Kỹ thuật Cân Điện Tử)</td>
+          <td class="py-1.5 px-3 text-right text-outline">23.10%</td>
+          <td class="py-1.5 px-3 text-right font-medium">390</td>
+          <td class="py-1.5 px-3 text-right font-code-sm text-secondary font-medium">45.90s</td>
+          <td class="py-1.5 px-3 text-right bg-secondary-container/20 font-code-sm text-secondary font-medium">30.10s</td>
+          <td class="py-1.5 px-3 text-right font-semibold text-secondary font-code-sm">86.50%</td>
+          <td class="py-1.5 px-4 text-center text-secondary font-label-sm">Đạt KPI</td>
+        </tr>
+        <tr class="hover:bg-surface-container-low/40">
+          <td class="py-1.5 px-4 pl-10 text-on-surface font-medium">Kênh FC14 - Tuyến Tiếp Nhận 14 (KAT - Tích hợp Sàn TMĐT)</td>
+          <td class="py-1.5 px-3 text-right text-outline">17.20%</td>
+          <td class="py-1.5 px-3 text-right font-medium">510</td>
+          <td class="py-1.5 px-3 text-right font-code-sm text-secondary font-medium">42.30s</td>
+          <td class="py-1.5 px-3 text-right bg-secondary-container/20 font-code-sm text-secondary font-medium">27.60s</td>
+          <td class="py-1.5 px-3 text-right font-semibold text-secondary font-code-sm">89.00%</td>
+          <td class="py-1.5 px-4 text-center text-secondary font-label-sm">Đạt KPI</td>
+        </tr>
+        <tr class="hover:bg-surface-container-low/40">
+          <td class="py-1.5 px-4 pl-10 text-on-surface font-medium">Kênh FC15 - Tuyến Tiếp Nhận 15 (KAT - Kết nối Ship &amp; Ví)</td>
+          <td class="py-1.5 px-3 text-right text-outline">16.90%</td>
+          <td class="py-1.5 px-3 text-right font-medium">480</td>
+          <td class="py-1.5 px-3 text-right font-code-sm text-secondary font-medium">40.80s</td>
+          <td class="py-1.5 px-3 text-right bg-secondary-container/20 font-code-sm text-secondary font-medium">24.90s</td>
+          <td class="py-1.5 px-3 text-right font-semibold text-secondary font-code-sm">90.40%</td>
+          <td class="py-1.5 px-4 text-center text-secondary font-label-sm">Đạt KPI</td>
+        </tr>
+        <tr class="hover:bg-surface-container-low/40">
+          <td class="py-1.5 px-4 pl-10 text-on-surface font-medium">Kênh FC16 - Tuyến Tiếp Nhận 16 (Hỗ trợ Sự cố Khẩn Cấp)</td>
+          <td class="py-1.5 px-3 text-right text-outline">28.50%</td>
+          <td class="py-1.5 px-3 text-right font-medium">320</td>
+          <td class="py-1.5 px-3 text-right font-code-sm text-secondary font-medium">35.20s</td>
+          <td class="py-1.5 px-3 text-right bg-secondary-container/20 font-code-sm text-secondary font-medium">16.80s</td>
+          <td class="py-1.5 px-3 text-right font-semibold text-secondary font-code-sm">95.10%</td>
+          <td class="py-1.5 px-4 text-center text-secondary font-label-sm font-semibold">Xuất sắc</td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+</div>
+
+<!-- ================= SECTION 4B: BANG 2 - CHI TIET THEO NHAN SU TRUC CA & PHAN THEO TEAM ================= -->
+<div class="bg-surface-container-lowest rounded-xl shadow-sm overflow-hidden flex flex-col">
+  <!-- Toolbar header for Table 2 -->
+  <div class="p-space-md flex flex-col lg:flex-row lg:items-center justify-between gap-space-sm border-b border-surface-container-high/60">
+    <div class="flex items-center gap-space-sm">
+      <div class="w-8 h-8 rounded-lg bg-secondary text-on-secondary flex items-center justify-center">
+        <span class="material-symbols-outlined text-[20px]">badge</span>
+      </div>
+      <div>
+        <div class="flex items-center gap-2">
+          <h2 class="font-headline-sm text-headline-sm text-on-surface">Phân tích Chi tiết Hiệu suất 2 KPI theo Nhân sự Trực ca (Phân theo Team)</h2>
+          <span class="px-2 py-0.5 rounded-full bg-secondary-container text-on-secondary-container text-label-sm font-semibold uppercase">Bảng 2</span>
+        </div>
+        <span class="font-body-sm text-body-sm text-outline">Báo cáo đối soát cá nhân phục vụ tính thưởng phạt KPI hàng tuần/tháng</span>
+      </div>
+    </div>
+    <!-- Filter & Search Controls inside Table 2 -->
+    <div class="flex flex-wrap items-center gap-space-xs">
+      <div class="relative flex items-center">
+        <input id="agent-search-input" class="w-56 bg-surface-container-low text-on-surface text-body-sm rounded-lg pl-8 pr-2.5 py-1.5 focus:outline-none focus:ring-2 focus:ring-primary/30" placeholder="Tìm kiếm nhân sự..." type="text">
+        <span class="material-symbols-outlined absolute left-2 text-outline text-[18px] pointer-events-none">search</span>
+      </div>
+      <select id="team-filter-select" class="bg-surface-container-low text-on-surface text-label-md rounded-lg px-2.5 py-1.5 focus:outline-none">
+        <option value="all">Tất cả các Team</option>
+        <option value="team-1">Team FC Inhouse 1 (CTO 1 / Hà Nội)</option>
+        <option value="team-2">Team FC Inhouse 2 (Team HN 1)</option>
+        <option value="team-bpo">Team FC Outsourced (Đối tác BPO)</option>
+      </select>
+      <button class="inline-flex items-center gap-1 bg-surface-container-low hover:bg-surface-container text-on-surface font-label-md text-label-md px-3 py-1.5 rounded-lg transition-colors" type="button">
+        <span class="material-symbols-outlined text-[16px]">download</span>
+        <span class="">Xuất bảng NS</span>
+      </button>
+    </div>
+  </div>
+  <!-- Agents Table -->
+  <div class="overflow-x-auto">
+    <table class="w-full text-left border-collapse">
+      <thead>
+        <tr class="bg-surface-container-high/60 font-label-sm text-label-sm text-on-surface uppercase tracking-wider">
+          <th class="py-2.5 px-4 font-semibold w-72">Nhân sự &amp; Mã NV</th>
+          <th class="py-2.5 px-3 font-semibold">Team phân công</th>
+          <th class="py-2.5 px-3 font-semibold text-right">Phiên chat xử lý</th>
+          <th class="py-2.5 px-3 font-semibold text-right">Response time TB (s)</th>
+          <th class="py-2.5 px-3 font-semibold text-right">First response time (s)</th>
+          <th class="py-2.5 px-3 font-semibold text-right">% Đạt KPI (&lt;1p)</th>
+          <th class="py-2.5 px-4 font-semibold text-center">Trạng thái đánh giá</th>
+        </tr>
+      </thead>
+      <tbody class="font-body-sm text-body-sm divide-y-0">
+        <!-- GROUP 1: TEAM FC INHOUSE 1 (CTO 1 / HA NOI) -->
+        <tr class="bg-surface-container-low font-semibold">
+          <td class="py-2.5 px-4 flex items-center gap-1.5 text-on-surface">
+            <span class="material-symbols-outlined text-[18px] text-primary">groups</span>
+            <span class="font-label-md text-label-md">Team FC Inhouse 1 (Team CTO 1 / Hà Nội)</span>
+          </td>
+          <td class="py-2.5 px-3 font-medium text-outline">9 Nhân sự</td>
+          <td class="py-2.5 px-3 text-right font-bold text-on-surface">1,171</td>
+          <td class="py-2.5 px-3 text-right font-bold text-on-surface font-code-sm">52.89s</td>
+          <td class="py-2.5 px-3 text-right font-bold text-secondary font-code-sm">30.54s</td>
+          <td class="py-2.5 px-3 text-right font-bold text-secondary font-code-sm">87.20%</td>
+          <td class="py-2.5 px-4 text-center">
+            <span class="inline-flex items-center px-2 py-0.5 rounded-full bg-secondary-container text-on-secondary-container font-label-sm text-label-sm font-semibold">Đạt 8/9 NS</span>
+          </td>
+        </tr>
+        <!-- Members of Team 1 -->
+        <tr class="hover:bg-surface-container-low/40">
+          <td class="py-1.5 px-4 pl-10 text-on-surface flex items-center gap-2">
+            <span class="font-medium">Hồ Hồng Nhi</span>
+            <span class="font-code-sm text-outline text-xs">[KV-1042]</span>
+          </td>
+          <td class="py-1.5 px-3 text-outline text-xs">CTO 1 Hà Nội</td>
+          <td class="py-1.5 px-3 text-right font-medium">235</td>
+          <td class="py-1.5 px-3 text-right font-code-sm text-secondary font-medium">52.56s</td>
+          <td class="py-1.5 px-3 text-right bg-secondary-container/20 font-code-sm text-secondary font-semibold">22.03s</td>
+          <td class="py-1.5 px-3 text-right font-semibold text-secondary font-code-sm">88.50%</td>
+          <td class="py-1.5 px-4 text-center text-secondary font-label-sm">Đạt KPI</td>
+        </tr>
+        <tr class="hover:bg-surface-container-low/40 bg-error-container/10">
+          <td class="py-1.5 px-4 pl-10 text-on-surface flex items-center gap-2">
+            <span class="font-medium text-error">Nguyễn Thị Ngọc Trâm</span>
+            <span class="font-code-sm text-outline text-xs">[KV-1108]</span>
+          </td>
+          <td class="py-1.5 px-3 text-outline text-xs">CTO 1 Hà Nội</td>
+          <td class="py-1.5 px-3 text-right font-medium">212</td>
+          <td class="py-1.5 px-3 text-right font-code-sm text-[#b45309] font-bold"><span class="material-symbols-outlined text-[14px]">priority_high</span> 102.92s</td>
+          <td class="py-1.5 px-3 text-right bg-error-container/30 font-code-sm text-error font-bold">56.02s</td>
+          <td class="py-1.5 px-3 text-right font-semibold text-error font-code-sm">72.10%</td>
+          <td class="py-1.5 px-4 text-center">
+            <span class="inline-flex items-center px-1.5 py-0.5 rounded bg-error-container text-on-error-container font-label-sm font-semibold">Nhắc nhở</span>
+          </td>
+        </tr>
+        <tr class="hover:bg-surface-container-low/40">
+          <td class="py-1.5 px-4 pl-10 text-on-surface flex items-center gap-2">
+            <span class="font-medium">Lưu Cẩm Tú</span>
+            <span class="font-code-sm text-outline text-xs">[KV-1150]</span>
+          </td>
+          <td class="py-1.5 px-3 text-outline text-xs">CTO 1 Hà Nội</td>
+          <td class="py-1.5 px-3 text-right font-medium">207</td>
+          <td class="py-1.5 px-3 text-right font-code-sm text-secondary font-semibold">26.12s</td>
+          <td class="py-1.5 px-3 text-right bg-secondary-container/20 font-code-sm text-secondary font-semibold">18.23s</td>
+          <td class="py-1.5 px-3 text-right font-semibold text-secondary font-code-sm">94.20%</td>
+          <td class="py-1.5 px-4 text-center text-secondary font-label-sm font-semibold">Xuất sắc</td>
+        </tr>
+        <tr class="hover:bg-surface-container-low/40">
+          <td class="py-1.5 px-4 pl-10 text-on-surface flex items-center gap-2">
+            <span class="font-medium">Nguyễn Thanh Tố Trân</span>
+            <span class="font-code-sm text-outline text-xs">[KV-1188]</span>
+          </td>
+          <td class="py-1.5 px-3 text-outline text-xs">CTO 1 Hà Nội</td>
+          <td class="py-1.5 px-3 text-right font-medium">161</td>
+          <td class="py-1.5 px-3 text-right font-code-sm text-[#b45309] font-medium"><span class="material-symbols-outlined text-[14px]">priority_high</span> 68.54s</td>
+          <td class="py-1.5 px-3 text-right bg-secondary-container/20 font-code-sm text-secondary font-medium">22.93s</td>
+          <td class="py-1.5 px-3 text-right font-semibold text-secondary font-code-sm">86.40%</td>
+          <td class="py-1.5 px-4 text-center text-secondary font-label-sm">Đạt KPI</td>
+        </tr>
+        <tr class="hover:bg-surface-container-low/40">
+          <td class="py-1.5 px-4 pl-10 text-on-surface flex items-center gap-2">
+            <span class="font-medium">Lê Nhựt Toàn</span>
+            <span class="font-code-sm text-outline text-xs">[KV-1205]</span>
+          </td>
+          <td class="py-1.5 px-3 text-outline text-xs">CTO 1 Hà Nội</td>
+          <td class="py-1.5 px-3 text-right font-medium">99</td>
+          <td class="py-1.5 px-3 text-right font-code-sm text-secondary font-semibold">28.74s</td>
+          <td class="py-1.5 px-3 text-right bg-secondary-container/20 font-code-sm text-secondary font-medium">34.43s</td>
+          <td class="py-1.5 px-3 text-right font-semibold text-secondary font-code-sm">89.10%</td>
+          <td class="py-1.5 px-4 text-center text-secondary font-label-sm">Đạt KPI</td>
+        </tr>
+        <tr class="hover:bg-surface-container-low/40">
+          <td class="py-1.5 px-4 pl-10 text-on-surface flex items-center gap-2">
+            <span class="font-medium">Trương Thiết Long</span>
+            <span class="font-code-sm text-outline text-xs">[KV-1224]</span>
+          </td>
+          <td class="py-1.5 px-3 text-outline text-xs">CTO 1 Hà Nội</td>
+          <td class="py-1.5 px-3 text-right font-medium">91</td>
+          <td class="py-1.5 px-3 text-right font-code-sm text-secondary font-semibold">22.09s</td>
+          <td class="py-1.5 px-3 text-right bg-secondary-container/20 font-code-sm text-secondary font-medium">21.15s</td>
+          <td class="py-1.5 px-3 text-right font-semibold text-secondary font-code-sm">92.30%</td>
+          <td class="py-1.5 px-4 text-center text-secondary font-label-sm font-semibold">Tốt</td>
+        </tr>
+        <tr class="hover:bg-surface-container-low/40">
+          <td class="py-1.5 px-4 pl-10 text-on-surface flex items-center gap-2">
+            <span class="font-medium">Đoàn Thị Ngọc Duyên</span>
+            <span class="font-code-sm text-outline text-xs">[KV-1260]</span>
+          </td>
+          <td class="py-1.5 px-3 text-outline text-xs">CTO 1 Hà Nội</td>
+          <td class="py-1.5 px-3 text-right font-medium">69</td>
+          <td class="py-1.5 px-3 text-right font-code-sm text-[#b45309] font-medium"><span class="material-symbols-outlined text-[14px]">priority_high</span> 86.20s</td>
+          <td class="py-1.5 px-3 text-right bg-error-container/20 font-code-sm text-on-surface font-medium">47.21s</td>
+          <td class="py-1.5 px-3 text-right font-semibold text-secondary font-code-sm">82.10%</td>
+          <td class="py-1.5 px-4 text-center text-secondary font-label-sm">Đạt KPI</td>
+        </tr>
+        <tr class="hover:bg-surface-container-low/40">
+          <td class="py-1.5 px-4 pl-10 text-on-surface flex items-center gap-2">
+            <span class="font-medium">Nguyễn Hữu Thuận</span>
+            <span class="font-code-sm text-outline text-xs">[KV-1288]</span>
+          </td>
+          <td class="py-1.5 px-3 text-outline text-xs">CTO 1 Hà Nội</td>
+          <td class="py-1.5 px-3 text-right font-medium">67</td>
+          <td class="py-1.5 px-3 text-right font-code-sm text-secondary font-semibold">49.16s</td>
+          <td class="py-1.5 px-3 text-right bg-secondary-container/20 font-code-sm text-secondary font-medium">31.14s</td>
+          <td class="py-1.5 px-3 text-right font-semibold text-secondary font-code-sm">85.00%</td>
+          <td class="py-1.5 px-4 text-center text-secondary font-label-sm">Đạt KPI</td>
+        </tr>
+        <tr class="hover:bg-surface-container-low/40">
+          <td class="py-1.5 px-4 pl-10 text-on-surface flex items-center gap-2">
+            <span class="font-medium">Lê Thị Trúc Linh</span>
+            <span class="font-code-sm text-outline text-xs">[KV-1310]</span>
+          </td>
+          <td class="py-1.5 px-3 text-outline text-xs">CTO 1 Hà Nội</td>
+          <td class="py-1.5 px-3 text-right font-medium">39</td>
+          <td class="py-1.5 px-3 text-right font-code-sm text-[#b45309] font-medium"><span class="material-symbols-outlined text-[14px]">priority_high</span> 71.95s</td>
+          <td class="py-1.5 px-3 text-right bg-secondary-container/20 font-code-sm text-secondary font-medium">18.50s</td>
+          <td class="py-1.5 px-3 text-right font-semibold text-secondary font-code-sm">84.60%</td>
+          <td class="py-1.5 px-4 text-center text-secondary font-label-sm">Đạt KPI</td>
+        </tr>
+
+        <!-- GROUP 2: TEAM FC INHOUSE 2 (TEAM HN 1) -->
+        <tr class="bg-surface-container-low font-semibold border-t border-surface-container-high/60">
+          <td class="py-2.5 px-4 flex items-center gap-1.5 text-on-surface">
+            <span class="material-symbols-outlined text-[18px] text-primary">groups</span>
+            <span class="font-label-md text-label-md">Team FC Inhouse 2 (Team HN 1)</span>
+          </td>
+          <td class="py-2.5 px-3 font-medium text-outline">9 Nhân sự</td>
+          <td class="py-2.5 px-3 text-right font-bold text-on-surface">985</td>
+          <td class="py-2.5 px-3 text-right font-bold text-on-surface font-code-sm">52.65s</td>
+          <td class="py-2.5 px-3 text-right font-bold text-secondary font-code-sm">41.39s</td>
+          <td class="py-2.5 px-3 text-right font-bold text-secondary font-code-sm">85.90%</td>
+          <td class="py-2.5 px-4 text-center">
+            <span class="inline-flex items-center px-2 py-0.5 rounded-full bg-secondary-container text-on-secondary-container font-label-sm text-label-sm font-semibold">Đạt 8/9 NS</span>
+          </td>
+        </tr>
+        <!-- Members of Team 2 -->
+        <tr class="hover:bg-surface-container-low/40">
+          <td class="py-1.5 px-4 pl-10 text-on-surface flex items-center gap-2">
+            <span class="font-medium">Cao Thu Hương</span>
+            <span class="font-code-sm text-outline text-xs">[KV-2015]</span>
+          </td>
+          <td class="py-1.5 px-3 text-outline text-xs">Team HN 1</td>
+          <td class="py-1.5 px-3 text-right font-medium">261</td>
+          <td class="py-1.5 px-3 text-right font-code-sm text-secondary font-medium">55.60s</td>
+          <td class="py-1.5 px-3 text-right bg-error-container/30 font-code-sm text-error font-medium">53.35s</td>
+          <td class="py-1.5 px-3 text-right font-semibold text-secondary font-code-sm">82.30%</td>
+          <td class="py-1.5 px-4 text-center text-secondary font-label-sm">Đạt KPI</td>
+        </tr>
+        <tr class="hover:bg-surface-container-low/40">
+          <td class="py-1.5 px-4 pl-10 text-on-surface flex items-center gap-2">
+            <span class="font-medium">Nguyễn Thị Thu Hòa</span>
+            <span class="font-code-sm text-outline text-xs">[KV-2044]</span>
+          </td>
+          <td class="py-1.5 px-3 text-outline text-xs">Team HN 1</td>
+          <td class="py-1.5 px-3 text-right font-medium">135</td>
+          <td class="py-1.5 px-3 text-right font-code-sm text-[#b45309] font-medium"><span class="material-symbols-outlined text-[14px]">priority_high</span> 67.88s</td>
+          <td class="py-1.5 px-3 text-right bg-secondary-container/20 font-code-sm text-secondary font-medium">30.05s</td>
+          <td class="py-1.5 px-3 text-right font-semibold text-secondary font-code-sm">87.50%</td>
+          <td class="py-1.5 px-4 text-center text-secondary font-label-sm">Đạt KPI</td>
+        </tr>
+        <tr class="hover:bg-surface-container-low/40 bg-error-container/10">
+          <td class="py-1.5 px-4 pl-10 text-on-surface flex items-center gap-2">
+            <span class="font-medium text-error">Diên Thùy Linh</span>
+            <span class="font-code-sm text-outline text-xs">[KV-2092]</span>
+          </td>
+          <td class="py-1.5 px-3 text-outline text-xs">Team HN 1</td>
+          <td class="py-1.5 px-3 text-right font-medium">129</td>
+          <td class="py-1.5 px-3 text-right font-code-sm text-[#b45309] font-medium"><span class="material-symbols-outlined text-[14px]">priority_high</span> 62.27s</td>
+          <td class="py-1.5 px-3 text-right bg-error-container/40 font-code-sm text-error font-bold">64.42s</td>
+          <td class="py-1.5 px-3 text-right font-semibold text-error font-code-sm">68.20%</td>
+          <td class="py-1.5 px-4 text-center">
+            <span class="inline-flex items-center px-1.5 py-0.5 rounded bg-error-container text-on-error-container font-label-sm font-semibold">Vượt &gt;1p</span>
+          </td>
+        </tr>
+        <tr class="hover:bg-surface-container-low/40">
+          <td class="py-1.5 px-4 pl-10 text-on-surface flex items-center gap-2">
+            <span class="font-medium">Nguyễn Trường Sinh</span>
+            <span class="font-code-sm text-outline text-xs">[KV-2115]</span>
+          </td>
+          <td class="py-1.5 px-3 text-outline text-xs">Team HN 1</td>
+          <td class="py-1.5 px-3 text-right font-medium">102</td>
+          <td class="py-1.5 px-3 text-right font-code-sm text-secondary font-semibold">31.16s</td>
+          <td class="py-1.5 px-3 text-right bg-secondary-container/20 font-code-sm text-secondary font-medium">38.15s</td>
+          <td class="py-1.5 px-3 text-right font-semibold text-secondary font-code-sm">88.40%</td>
+          <td class="py-1.5 px-4 text-center text-secondary font-label-sm">Đạt KPI</td>
+        </tr>
+        <tr class="hover:bg-surface-container-low/40">
+          <td class="py-1.5 px-4 pl-10 text-on-surface flex items-center gap-2">
+            <span class="font-medium">Phạm Trung Hiếu</span>
+            <span class="font-code-sm text-outline text-xs">[KV-2140]</span>
+          </td>
+          <td class="py-1.5 px-3 text-outline text-xs">Team HN 1</td>
+          <td class="py-1.5 px-3 text-right font-medium">99</td>
+          <td class="py-1.5 px-3 text-right font-code-sm text-secondary font-semibold">21.52s</td>
+          <td class="py-1.5 px-3 text-right bg-secondary-container/20 font-code-sm text-secondary font-medium">31.09s</td>
+          <td class="py-1.5 px-3 text-right font-semibold text-secondary font-code-sm">91.80%</td>
+          <td class="py-1.5 px-4 text-center text-secondary font-label-sm font-semibold">Tốt</td>
+        </tr>
+        <tr class="hover:bg-surface-container-low/40">
+          <td class="py-1.5 px-4 pl-10 text-on-surface flex items-center gap-2">
+            <span class="font-medium">Nguyễn Thùy Dương</span>
+            <span class="font-code-sm text-outline text-xs">[KV-2182]</span>
+          </td>
+          <td class="py-1.5 px-3 text-outline text-xs">Team HN 1</td>
+          <td class="py-1.5 px-3 text-right font-medium">82</td>
+          <td class="py-1.5 px-3 text-right font-code-sm text-[#b45309] font-medium"><span class="material-symbols-outlined text-[14px]">priority_high</span> 109.55s</td>
+          <td class="py-1.5 px-3 text-right bg-secondary-container/20 font-code-sm text-secondary font-medium">27.31s</td>
+          <td class="py-1.5 px-3 text-right font-semibold text-secondary font-code-sm">81.70%</td>
+          <td class="py-1.5 px-4 text-center text-secondary font-label-sm">Đạt KPI</td>
+        </tr>
+
+        <!-- GROUP 3: TEAM FC OUTSOURCED (BPO) -->
+        <tr class="bg-surface-container-low font-semibold border-t border-surface-container-high/60">
+          <td class="py-2.5 px-4 flex items-center gap-1.5 text-on-surface">
+            <span class="material-symbols-outlined text-[18px] text-primary">support_agent</span>
+            <span class="font-label-md text-label-md">Team FC Outsourced (Đối tác BPO Call &amp; Chat)</span>
+          </td>
+          <td class="py-2.5 px-3 font-medium text-outline">12 Nhân sự BPO</td>
+          <td class="py-2.5 px-3 text-right font-bold text-on-surface">7,871</td>
+          <td class="py-2.5 px-3 text-right font-bold text-secondary font-code-sm">51.76s</td>
+          <td class="py-2.5 px-3 text-right font-medium text-outline font-code-sm">120.26s</td>
+          <td class="py-2.5 px-3 text-right font-bold text-secondary font-code-sm">84.90%</td>
+          <td class="py-2.5 px-4 text-center">
+            <span class="inline-flex items-center px-2 py-0.5 rounded-full bg-surface-container text-on-surface-variant font-label-sm text-label-sm font-semibold">12 Nhân sự</span>
+          </td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+  <!-- Table Footer Note -->
+  <div class="p-space-md bg-surface-container-low/50 flex flex-col md:flex-row items-center justify-between gap-space-sm">
+    <div class="flex items-center gap-space-sm">
+      <span class="material-symbols-outlined text-primary text-[20px]">info</span>
+      <span class="font-body-sm text-body-sm text-on-surface">
+        Quy chuẩn đánh giá thưởng/phạt KPI: Tỉ lệ đạt phản hồi dưới 1 phút ≥ 75% và thời gian phản hồi tin nhắn kế tiếp ≤ 50s.
+      </span>
+    </div>
+    <div class="flex items-center gap-space-xs font-label-md text-label-md">
+      <button class="px-3 py-1 rounded bg-surface-container-lowest hover:bg-surface-container text-on-surface shadow-xs transition-colors">
+        Xem nhật ký chat lỗi
+      </button>
+      <button class="px-3 py-1 rounded bg-primary text-on-primary hover:bg-primary-container shadow-xs transition-colors">
+        Gửi cảnh báo qua Slack/Zalo
+      </button>
+    </div>
+  </div>
+</div>
+<!-- ================= SECTION 4: HIERARCHICAL MATRIX: PERFORMANCE BY AGENT & AI BOT ================= -->
+<div class="bg-surface-container-lowest rounded-xl shadow-sm overflow-hidden flex flex-col">
+<!-- Header with KPI benchmark notice -->
+<div class="p-space-md flex flex-col lg:flex-row lg:items-center justify-between gap-space-sm">
+<div class="flex items-center gap-space-sm">
+<div class="w-8 h-8 rounded-lg bg-secondary-container text-on-secondary-container flex items-center justify-center">
+<span class="material-symbols-outlined text-[20px]">account_tree</span>
+</div>
+<div>
+<h2 class="font-headline-sm text-headline-sm text-on-surface">Thời gian phản hồi &amp; Tỉ lệ Đáp ứng 2 KPI theo Tài khoản FC và AI Bot</h2>
+<div class="flex flex-wrap items-center gap-2 mt-0.5">
+<span class="font-body-sm text-body-sm text-outline">Chuẩn mực đối soát:</span>
+<span class="font-label-sm text-label-sm px-2 py-0.5 rounded bg-surface-container font-semibold text-primary">(1) KPI 4.1: Phản hồi đầu &lt;1p (&gt;=75%)</span>
+<span class="font-label-sm text-label-sm px-2 py-0.5 rounded bg-surface-container font-semibold text-secondary">(2) KPI 4.2: Response time TB (≤50s)</span>
+</div>
+</div>
+</div>
+<div class="flex items-center gap-space-xs">
+<span class="flex items-center gap-1 font-label-sm text-label-sm text-secondary bg-secondary-container/40 px-2.5 py-1 rounded-full font-semibold">
+<span class="material-symbols-outlined text-[16px]">check_circle</span> Đạt KPI
+        </span>
+<span class="flex items-center gap-1 font-label-sm text-label-sm text-[#b45309] bg-[#fffbeb] px-2.5 py-1 rounded-full font-semibold">
+<span class="material-symbols-outlined text-[16px]">warning</span> &gt;50s (Cảnh báo)
+        </span>
+<span class="flex items-center gap-1 font-label-sm text-label-sm text-error bg-error-container/40 px-2.5 py-1 rounded-full font-semibold">
+<span class="material-symbols-outlined text-[16px]">error</span> First &gt;60s
+        </span>
+</div>
+</div>
+<!-- Tree Matrix Table -->
+<div class="overflow-x-auto">
+<table class="w-full text-left border-collapse">
+<thead>
+<tr class="bg-surface-container-high/60 font-label-sm text-label-sm text-on-surface uppercase tracking-wider">
+<th class="py-2.5 px-4 font-semibold w-72">Nhóm / Tài khoản FC &amp; Bot</th>
+<th class="py-2.5 px-3 font-semibold text-right">Tỉ lệ chuyển line</th>
+<th class="py-2.5 px-3 font-semibold text-right">Phiên chat response</th>
+<th class="py-2.5 px-3 font-semibold text-center">Số NS</th>
+<th class="py-2.5 px-3 font-semibold text-right">Response time TB</th>
+<th class="py-2.5 px-3 font-semibold text-right">First response time</th>
+<th class="py-2.5 px-3 font-semibold text-right">Đạt KPI 4.1 (&lt;1p)</th>
+<th class="py-2.5 px-4 font-semibold text-center">Đánh giá chung</th>
+</tr>
+</thead>
+<tbody class="font-body-sm text-body-sm divide-y-0">
+<!-- MATRIX GRAND TOTAL ROW -->
+<tr class="bg-surface-container font-semibold text-on-surface">
+<td class="py-2.5 px-4 flex items-center gap-2">
+<span class="material-symbols-outlined text-primary text-[20px]">domain</span>
+<span class="font-headline-sm text-headline-sm text-on-surface">Toàn khối CSKH &amp; Freshchat</span>
+</td>
+<td class="py-2.5 px-3 text-right font-bold text-on-surface">16.32%</td>
+<td class="py-2.5 px-3 text-right font-bold text-primary">12,177</td>
+<td class="py-2.5 px-3 text-center font-bold">54</td>
+<td class="py-2.5 px-3 text-right text-secondary font-bold">47.09s</td>
+<td class="py-2.5 px-3 text-right font-bold">77.49s</td>
+<td class="py-2.5 px-3 text-right font-bold text-secondary">86.40%</td>
+<td class="py-2.5 px-4 text-center">
+<span class="inline-flex items-center px-2 py-0.5 rounded-full bg-secondary-container text-on-secondary-container font-label-sm text-label-sm font-bold">Xuất sắc</span>
+</td>
+</tr>
+<!-- GROUP 1: AI VIRTUAL BOT -->
+<tr class="bg-surface-container-low font-semibold cursor-pointer hover:bg-surface-container transition-colors">
+<td class="py-2 px-4 flex items-center gap-1.5 text-primary">
+<span class="material-symbols-outlined text-[18px]">indeterminate_check_box</span>
+<span class="font-label-md text-label-md">Đội ngũ AI Bot Tự động (AI Virtual Assistant)</span>
+</td>
+<td class="py-2 px-3 text-right text-outline">14.20%</td>
+<td class="py-2 px-3 text-right font-bold text-on-surface">6,120</td>
+<td class="py-2 px-3 text-center text-outline">3 Bots</td>
+<td class="py-2 px-3 text-right text-secondary font-bold">5.20s</td>
+<td class="py-2 px-3 text-right text-secondary font-bold">2.28s</td>
+<td class="py-2 px-3 text-right text-secondary font-bold">99.10%</td>
+<td class="py-2 px-4 text-center">
+<span class="inline-flex items-center px-2 py-0.5 rounded-full bg-secondary-container text-on-secondary-container font-label-sm text-label-sm font-semibold">Tự động 100%</span>
+</td>
+</tr>
+<!-- Group 1 Rows -->
+<tr class="hover:bg-surface-container-low/40">
+<td class="py-1.5 px-4 pl-10 text-on-surface flex items-center gap-2">
+<span class="w-1.5 h-1.5 rounded-full bg-primary"></span>
+<span class="">AI Phần Mềm (App &amp; Web Retail)</span>
+</td>
+<td class="py-1.5 px-3 text-right text-outline">12.40%</td>
+<td class="py-1.5 px-3 text-right font-medium">3,840</td>
+<td class="py-1.5 px-3 text-center text-outline">1</td>
+<td class="py-1.5 px-3 text-right">
+<span class="inline-flex items-center gap-1 text-secondary font-semibold font-code-sm">
+<span class="material-symbols-outlined text-[14px]">check</span> 4.80s
+              </span>
+</td>
+<td class="py-1.5 px-3 text-right bg-secondary-container/20 font-code-sm text-secondary font-semibold">2.10s</td>
+<td class="py-1.5 px-3 text-right font-semibold text-secondary">99.20%</td>
+<td class="py-1.5 px-4 text-center text-secondary font-label-sm text-label-sm">Đạt chuẩn</td>
+</tr>
+<tr class="hover:bg-surface-container-low/40">
+<td class="py-1.5 px-4 pl-10 text-on-surface flex items-center gap-2">
+<span class="w-1.5 h-1.5 rounded-full bg-primary"></span>
+<span class="">AI Kỹ Thuật (Phần cứng, Máy in, POS)</span>
+</td>
+<td class="py-1.5 px-3 text-right text-outline">18.20%</td>
+<td class="py-1.5 px-3 text-right font-medium">1,420</td>
+<td class="py-1.5 px-3 text-center text-outline">1</td>
+<td class="py-1.5 px-3 text-right">
+<span class="inline-flex items-center gap-1 text-secondary font-semibold font-code-sm">
+<span class="material-symbols-outlined text-[14px]">check</span> 6.20s
+              </span>
+</td>
+<td class="py-1.5 px-3 text-right bg-secondary-container/20 font-code-sm text-secondary font-semibold">2.50s</td>
+<td class="py-1.5 px-3 text-right font-semibold text-secondary">98.60%</td>
+<td class="py-1.5 px-4 text-center text-secondary font-label-sm text-label-sm">Đạt chuẩn</td>
+</tr>
+<tr class="hover:bg-surface-container-low/40">
+<td class="py-1.5 px-4 pl-10 text-on-surface flex items-center gap-2">
+<span class="w-1.5 h-1.5 rounded-full bg-primary"></span>
+<span class="">AI KAT (FnB/Bar, Menu điện tử)</span>
+</td>
+<td class="py-1.5 px-3 text-right text-outline">15.00%</td>
+<td class="py-1.5 px-3 text-right font-medium">860</td>
+<td class="py-1.5 px-3 text-center text-outline">1</td>
+<td class="py-1.5 px-3 text-right">
+<span class="inline-flex items-center gap-1 text-secondary font-semibold font-code-sm">
+<span class="material-symbols-outlined text-[14px]">check</span> 5.50s
+              </span>
+</td>
+<td class="py-1.5 px-3 text-right bg-secondary-container/20 font-code-sm text-secondary font-semibold">2.30s</td>
+<td class="py-1.5 px-3 text-right font-semibold text-secondary">99.00%</td>
+<td class="py-1.5 px-4 text-center text-secondary font-label-sm text-label-sm">Đạt chuẩn</td>
+</tr>
+<!-- GROUP 2: TEAM FC INHOUSE 1 (CTO 1) -->
+<tr class="bg-surface-container-low font-semibold cursor-pointer hover:bg-surface-container transition-colors">
+<td class="py-2 px-4 flex items-center gap-1.5 text-on-surface">
+<span class="material-symbols-outlined text-[18px] text-outline">indeterminate_check_box</span>
+<span class="font-label-md text-label-md">Team FC Inhouse 1 (Team CTO 1 / Hà Nội)</span>
+</td>
+<td class="py-2 px-3 text-right font-bold text-on-surface">32.54%</td>
+<td class="py-2 px-3 text-right font-bold text-on-surface">1,171</td>
+<td class="py-2 px-3 text-center font-bold">9</td>
+<td class="py-2 px-3 text-right font-bold text-on-surface">52.89s</td>
+<td class="py-2 px-3 text-right font-bold text-secondary">30.54s</td>
+<td class="py-2 px-3 text-right font-bold text-secondary">87.20%</td>
+<td class="py-2 px-4 text-center">
+<span class="inline-flex items-center px-2 py-0.5 rounded-full bg-secondary-container text-on-secondary-container font-label-sm text-label-sm font-semibold">Đạt 8/9 NS</span>
+</td>
+</tr>
+<!-- Members of Team CTO 1 -->
+<tr class="hover:bg-surface-container-low/40">
+<td class="py-1.5 px-4 pl-10 text-on-surface">Hồ Hồng Nhi</td>
+<td class="py-1.5 px-3 text-right text-outline">30.64%</td>
+<td class="py-1.5 px-3 text-right font-medium">235</td>
+<td class="py-1.5 px-3 text-center text-outline">1</td>
+<td class="py-1.5 px-3 text-right">
+<span class="inline-flex items-center gap-1 text-secondary font-semibold font-code-sm">
+<span class="material-symbols-outlined text-[14px]">check</span> 52.56s
+              </span>
+</td>
+<td class="py-1.5 px-3 text-right bg-secondary-container/20 font-code-sm text-secondary font-semibold">22.03s</td>
+<td class="py-1.5 px-3 text-right font-semibold text-secondary">88.50%</td>
+<td class="py-1.5 px-4 text-center font-label-sm text-label-sm text-secondary font-medium">Đạt KPI</td>
+</tr>
+<!-- Canh bao >50s and sát ngưỡng -->
+<tr class="hover:bg-surface-container-low/40">
+<td class="py-1.5 px-4 pl-10 text-on-surface">Nguyễn Thị Ngọc Trâm</td>
+<td class="py-1.5 px-3 text-right text-outline">37.74%</td>
+<td class="py-1.5 px-3 text-right font-medium">212</td>
+<td class="py-1.5 px-3 text-center text-outline">1</td>
+<td class="py-1.5 px-3 text-right">
+<span class="inline-flex items-center gap-1 text-[#b45309] font-bold font-code-sm">
+<span class="material-symbols-outlined text-[14px]">priority_high</span> 102.92s
+              </span>
+</td>
+<td class="py-1.5 px-3 text-right bg-error-container/30 font-code-sm text-error font-semibold">56.02s</td>
+<td class="py-1.5 px-3 text-right font-semibold text-error">72.10%</td>
+<td class="py-1.5 px-4 text-center">
+<span class="inline-flex items-center px-1.5 py-0.5 rounded bg-error-container text-on-error-container font-label-sm text-label-sm font-semibold">Nhắc nhở</span>
+</td>
+</tr>
+<tr class="hover:bg-surface-container-low/40">
+<td class="py-1.5 px-4 pl-10 text-on-surface">Lưu Cẩm Tú</td>
+<td class="py-1.5 px-3 text-right text-outline">32.37%</td>
+<td class="py-1.5 px-3 text-right font-medium">207</td>
+<td class="py-1.5 px-3 text-center text-outline">1</td>
+<td class="py-1.5 px-3 text-right">
+<span class="inline-flex items-center gap-1 text-secondary font-semibold font-code-sm">
+<span class="material-symbols-outlined text-[14px]">check</span> 26.12s
+              </span>
+</td>
+<td class="py-1.5 px-3 text-right bg-secondary-container/20 font-code-sm text-secondary font-semibold">18.23s</td>
+<td class="py-1.5 px-3 text-right font-semibold text-secondary">94.20%</td>
+<td class="py-1.5 px-4 text-center font-label-sm text-label-sm text-secondary font-semibold">Xuất sắc</td>
+</tr>
+<tr class="hover:bg-surface-container-low/40">
+<td class="py-1.5 px-4 pl-10 text-on-surface">Nguyễn Thanh Tố Trân</td>
+<td class="py-1.5 px-3 text-right text-outline">29.81%</td>
+<td class="py-1.5 px-3 text-right font-medium">161</td>
+<td class="py-1.5 px-3 text-center text-outline">1</td>
+<td class="py-1.5 px-3 text-right">
+<span class="inline-flex items-center gap-1 text-[#b45309] font-medium font-code-sm">
+<span class="material-symbols-outlined text-[14px]">priority_high</span> 68.54s
+              </span>
+</td>
+<td class="py-1.5 px-3 text-right bg-secondary-container/20 font-code-sm text-secondary font-medium">22.93s</td>
+<td class="py-1.5 px-3 text-right font-semibold text-secondary">86.40%</td>
+<td class="py-1.5 px-4 text-center font-label-sm text-label-sm text-secondary font-medium">Đạt KPI</td>
+</tr>
+<tr class="hover:bg-surface-container-low/40">
+<td class="py-1.5 px-4 pl-10 text-on-surface">Lê Nhựt Toàn</td>
+<td class="py-1.5 px-3 text-right text-outline">39.39%</td>
+<td class="py-1.5 px-3 text-right font-medium">99</td>
+<td class="py-1.5 px-3 text-center text-outline">1</td>
+<td class="py-1.5 px-3 text-right">
+<span class="inline-flex items-center gap-1 text-secondary font-semibold font-code-sm">
+<span class="material-symbols-outlined text-[14px]">check</span> 28.74s
+              </span>
+</td>
+<td class="py-1.5 px-3 text-right bg-secondary-container/20 font-code-sm text-secondary font-medium">34.43s</td>
+<td class="py-1.5 px-3 text-right font-semibold text-secondary">89.10%</td>
+<td class="py-1.5 px-4 text-center font-label-sm text-label-sm text-secondary font-medium">Đạt KPI</td>
+</tr>
+<tr class="hover:bg-surface-container-low/40">
+<td class="py-1.5 px-4 pl-10 text-on-surface">Trương Thiết Long</td>
+<td class="py-1.5 px-3 text-right text-outline">41.76%</td>
+<td class="py-1.5 px-3 text-right font-medium">91</td>
+<td class="py-1.5 px-3 text-center text-outline">1</td>
+<td class="py-1.5 px-3 text-right">
+<span class="inline-flex items-center gap-1 text-secondary font-semibold font-code-sm">
+<span class="material-symbols-outlined text-[14px]">check</span> 22.09s
+              </span>
+</td>
+<td class="py-1.5 px-3 text-right bg-secondary-container/20 font-code-sm text-secondary font-medium">21.15s</td>
+<td class="py-1.5 px-3 text-right font-semibold text-secondary">92.30%</td>
+<td class="py-1.5 px-4 text-center font-label-sm text-label-sm text-secondary font-semibold">Tốt</td>
+</tr>
+<tr class="hover:bg-surface-container-low/40">
+<td class="py-1.5 px-4 pl-10 text-on-surface">Đoàn Thị Ngọc Duyên</td>
+<td class="py-1.5 px-3 text-right text-outline">18.84%</td>
+<td class="py-1.5 px-3 text-right font-medium">69</td>
+<td class="py-1.5 px-3 text-center text-outline">1</td>
+<td class="py-1.5 px-3 text-right">
+<span class="inline-flex items-center gap-1 text-[#b45309] font-medium font-code-sm">
+<span class="material-symbols-outlined text-[14px]">priority_high</span> 86.20s
+              </span>
+</td>
+<td class="py-1.5 px-3 text-right bg-error-container/20 font-code-sm text-on-surface font-medium">47.21s</td>
+<td class="py-1.5 px-3 text-right font-semibold text-secondary">82.10%</td>
+<td class="py-1.5 px-4 text-center font-label-sm text-label-sm text-secondary font-medium">Đạt KPI</td>
+</tr>
+<tr class="hover:bg-surface-container-low/40">
+<td class="py-1.5 px-4 pl-10 text-on-surface">Nguyễn Hữu Thuận</td>
+<td class="py-1.5 px-3 text-right text-outline">26.87%</td>
+<td class="py-1.5 px-3 text-right font-medium">67</td>
+<td class="py-1.5 px-3 text-center text-outline">1</td>
+<td class="py-1.5 px-3 text-right">
+<span class="inline-flex items-center gap-1 text-secondary font-semibold font-code-sm">
+<span class="material-symbols-outlined text-[14px]">check</span> 49.16s
+              </span>
+</td>
+<td class="py-1.5 px-3 text-right bg-secondary-container/20 font-code-sm text-secondary font-medium">31.14s</td>
+<td class="py-1.5 px-3 text-right font-semibold text-secondary">85.00%</td>
+<td class="py-1.5 px-4 text-center font-label-sm text-label-sm text-secondary font-medium">Đạt KPI</td>
+</tr>
+<tr class="hover:bg-surface-container-low/40">
+<td class="py-1.5 px-4 pl-10 text-on-surface">Lê Thị Trúc Linh</td>
+<td class="py-1.5 px-3 text-right text-outline">33.33%</td>
+<td class="py-1.5 px-3 text-right font-medium">39</td>
+<td class="py-1.5 px-3 text-center text-outline">1</td>
+<td class="py-1.5 px-3 text-right">
+<span class="inline-flex items-center gap-1 text-[#b45309] font-medium font-code-sm">
+<span class="material-symbols-outlined text-[14px]">priority_high</span> 71.95s
+              </span>
+</td>
+<td class="py-1.5 px-3 text-right bg-secondary-container/20 font-code-sm text-secondary font-medium">18.50s</td>
+<td class="py-1.5 px-3 text-right font-semibold text-secondary">84.60%</td>
+<td class="py-1.5 px-4 text-center font-label-sm text-label-sm text-secondary font-medium">Đạt KPI</td>
+</tr>
+<!-- GROUP 3: TEAM FC INHOUSE 2 (TEAM HN 1) -->
+<tr class="bg-surface-container-low font-semibold cursor-pointer hover:bg-surface-container transition-colors">
+<td class="py-2 px-4 flex items-center gap-1.5 text-on-surface">
+<span class="material-symbols-outlined text-[18px] text-outline">indeterminate_check_box</span>
+<span class="font-label-md text-label-md">Team FC Inhouse 2 (Team HN 1)</span>
+</td>
+<td class="py-2 px-3 text-right font-bold text-on-surface">29.34%</td>
+<td class="py-2 px-3 text-right font-bold text-on-surface">985</td>
+<td class="py-2 px-3 text-center font-bold">9</td>
+<td class="py-2 px-3 text-right font-bold text-on-surface">52.65s</td>
+<td class="py-2 px-3 text-right font-bold text-secondary">41.39s</td>
+<td class="py-2 px-3 text-right font-bold text-secondary">85.90%</td>
+<td class="py-2 px-4 text-center">
+<span class="inline-flex items-center px-2 py-0.5 rounded-full bg-secondary-container text-on-secondary-container font-label-sm text-label-sm font-semibold">Đạt 8/9 NS</span>
+</td>
+</tr>
+<!-- Members of Team HN 1 -->
+<tr class="hover:bg-surface-container-low/40">
+<td class="py-1.5 px-4 pl-10 text-on-surface">Cao Thu Hương</td>
+<td class="py-1.5 px-3 text-right text-outline">27.20%</td>
+<td class="py-1.5 px-3 text-right font-medium">261</td>
+<td class="py-1.5 px-3 text-center text-outline">1</td>
+<td class="py-1.5 px-3 text-right">
+<span class="inline-flex items-center gap-1 text-secondary font-semibold font-code-sm">
+<span class="material-symbols-outlined text-[14px]">check</span> 55.60s
+              </span>
+</td>
+<td class="py-1.5 px-3 text-right bg-error-container/30 font-code-sm text-error font-medium">53.35s</td>
+<td class="py-1.5 px-3 text-right font-semibold text-secondary">82.30%</td>
+<td class="py-1.5 px-4 text-center font-label-sm text-label-sm text-secondary font-medium">Đạt KPI</td>
+</tr>
+<tr class="hover:bg-surface-container-low/40">
+<td class="py-1.5 px-4 pl-10 text-on-surface">Nguyễn Thị Thu Hòa</td>
+<td class="py-1.5 px-3 text-right text-outline">26.67%</td>
+<td class="py-1.5 px-3 text-right font-medium">135</td>
+<td class="py-1.5 px-3 text-center text-outline">1</td>
+<td class="py-1.5 px-3 text-right">
+<span class="inline-flex items-center gap-1 text-[#b45309] font-medium font-code-sm">
+<span class="material-symbols-outlined text-[14px]">priority_high</span> 67.88s
+              </span>
+</td>
+<td class="py-1.5 px-3 text-right bg-secondary-container/20 font-code-sm text-secondary font-medium">30.05s</td>
+<td class="py-1.5 px-3 text-right font-semibold text-secondary">87.50%</td>
+<td class="py-1.5 px-4 text-center font-label-sm text-label-sm text-secondary font-medium">Đạt KPI</td>
+</tr>
+<!-- Canh bao do: First Response > 60s -->
+<tr class="hover:bg-surface-container-low/40">
+<td class="py-1.5 px-4 pl-10 text-on-surface">Diên Thùy Linh</td>
+<td class="py-1.5 px-3 text-right text-outline">27.91%</td>
+<td class="py-1.5 px-3 text-right font-medium">129</td>
+<td class="py-1.5 px-3 text-center text-outline">1</td>
+<td class="py-1.5 px-3 text-right">
+<span class="inline-flex items-center gap-1 text-[#b45309] font-medium font-code-sm">
+<span class="material-symbols-outlined text-[14px]">priority_high</span> 62.27s
+              </span>
+</td>
+<td class="py-1.5 px-3 text-right bg-error-container/40 font-code-sm text-error font-bold">64.42s</td>
+<td class="py-1.5 px-3 text-right font-semibold text-error">68.20%</td>
+<td class="py-1.5 px-4 text-center">
+<span class="inline-flex items-center px-1.5 py-0.5 rounded bg-error-container text-on-error-container font-label-sm text-label-sm font-semibold">Vượt &gt;1p</span>
+</td>
+</tr>
+<tr class="hover:bg-surface-container-low/40">
+<td class="py-1.5 px-4 pl-10 text-on-surface">Nguyễn Trường Sinh</td>
+<td class="py-1.5 px-3 text-right text-outline">37.25%</td>
+<td class="py-1.5 px-3 text-right font-medium">102</td>
+<td class="py-1.5 px-3 text-center text-outline">1</td>
+<td class="py-1.5 px-3 text-right">
+<span class="inline-flex items-center gap-1 text-secondary font-semibold font-code-sm">
+<span class="material-symbols-outlined text-[14px]">check</span> 31.16s
+              </span>
+</td>
+<td class="py-1.5 px-3 text-right bg-secondary-container/20 font-code-sm text-secondary font-medium">38.15s</td>
+<td class="py-1.5 px-3 text-right font-semibold text-secondary">88.40%</td>
+<td class="py-1.5 px-4 text-center font-label-sm text-label-sm text-secondary font-medium">Đạt KPI</td>
+</tr>
+<tr class="hover:bg-surface-container-low/40">
+<td class="py-1.5 px-4 pl-10 text-on-surface">Phạm Trung Hiếu</td>
+<td class="py-1.5 px-3 text-right text-outline">31.31%</td>
+<td class="py-1.5 px-3 text-right font-medium">99</td>
+<td class="py-1.5 px-3 text-center text-outline">1</td>
+<td class="py-1.5 px-3 text-right">
+<span class="inline-flex items-center gap-1 text-secondary font-semibold font-code-sm">
+<span class="material-symbols-outlined text-[14px]">check</span> 21.52s
+              </span>
+</td>
+<td class="py-1.5 px-3 text-right bg-secondary-container/20 font-code-sm text-secondary font-medium">31.09s</td>
+<td class="py-1.5 px-3 text-right font-semibold text-secondary">91.80%</td>
+<td class="py-1.5 px-4 text-center font-label-sm text-label-sm text-secondary font-semibold">Tốt</td>
+</tr>
+<tr class="hover:bg-surface-container-low/40">
+<td class="py-1.5 px-4 pl-10 text-on-surface">Nguyễn Thùy Dương</td>
+<td class="py-1.5 px-3 text-right text-outline">31.71%</td>
+<td class="py-1.5 px-3 text-right font-medium">82</td>
+<td class="py-1.5 px-3 text-center text-outline">1</td>
+<td class="py-1.5 px-3 text-right">
+<span class="inline-flex items-center gap-1 text-[#b45309] font-medium font-code-sm">
+<span class="material-symbols-outlined text-[14px]">priority_high</span> 109.55s
+              </span>
+</td>
+<td class="py-1.5 px-3 text-right bg-secondary-container/20 font-code-sm text-secondary font-medium">27.31s</td>
+<td class="py-1.5 px-3 text-right font-semibold text-secondary">81.70%</td>
+<td class="py-1.5 px-4 text-center font-label-sm text-label-sm text-secondary font-medium">Đạt KPI</td>
+</tr>
+<!-- GROUP 4: COLLAPSIBLE OUTSOURCED BPO TEAM -->
+<tr class="bg-surface-container-low/80 font-semibold cursor-pointer hover:bg-surface-container transition-colors">
+<td class="py-2 px-4 flex items-center gap-1.5 text-on-surface">
+<span class="material-symbols-outlined text-[18px] text-outline">add_box</span>
+<span class="font-label-md text-label-md">Team FC Outsourced (Đối tác BPO Call &amp; Chat)</span>
+</td>
+<td class="py-2 px-3 text-right text-outline">11.10%</td>
+<td class="py-2 px-3 text-right font-bold text-on-surface">7,871</td>
+<td class="py-2 px-3 text-center font-bold">12 NS</td>
+<td class="py-2 px-3 text-right text-secondary font-bold">51.76s</td>
+<td class="py-2 px-3 text-right text-outline">120.26s</td>
+<td class="py-2 px-3 text-right font-bold text-secondary">84.90%</td>
+<td class="py-2 px-4 text-center">
+<span class="inline-flex items-center px-2 py-0.5 rounded-full bg-surface-container text-on-surface-variant font-label-sm text-label-sm font-semibold">12 Nhân sự</span>
+</td>
+</tr>
+</tbody>
+</table>
+</div>
+<!-- Tree Matrix Bottom SLA Summary Notes -->
+<div class="p-space-md bg-surface-container-low/50 flex flex-col md:flex-row items-center justify-between gap-space-sm">
+<div class="flex items-center gap-space-sm">
+<span class="material-symbols-outlined text-primary text-[20px]">info</span>
+<span class="font-body-sm text-body-sm text-on-surface">
+          Quy chuẩn đánh giá thưởng/phạt KPI: Tỉ lệ đạt phản hồi dưới 1 phút ≥ 75% và thời gian phản hồi tin nhắn kế tiếp ≤ 50s.
+        </span>
+</div>
+<div class="flex items-center gap-space-xs font-label-md text-label-md">
+<button class="px-3 py-1 rounded bg-surface-container-lowest hover:bg-surface-container text-on-surface shadow-xs transition-colors">
+          Xem nhật ký chat lỗi
+        </button>
+<button class="px-3 py-1 rounded bg-primary text-on-primary hover:bg-primary-container shadow-xs transition-colors">
+          Gửi cảnh báo qua Slack/Zalo
+        </button>
+</div>
+</div>
+</div>
+</div>
+<!-- Inline JavaScript for micro-interactions & filter handling -->
+<script>
+  // Simple interaction handler for row inspection
+  document.addEventListener('DOMContentLoaded', () => {
+    const tableRows = document.querySelectorAll('tbody tr');
+    tableRows.forEach(row => {
+      row.addEventListener('click', (e) => {
+        // Toggle selected state visually if needed
+        if (e.target.closest('button') || e.target.closest('select')) return;
+      });
+    });
+  });
+</script></main></div>
+
+</body></html>

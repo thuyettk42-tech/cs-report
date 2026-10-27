@@ -1,0 +1,32 @@
+HỖ TRỢ KHÁCH HÀNG (SUPPORT) — BÁO CÁO TIẾP NHẬN ĐA KÊNH,,,,,,,,,,,,,,
+"Người phụ trách cập nhật: Yến, Lâm, Thuyết (Manager CS) • Chu kỳ: 2 tuần/lần • Năm 2026",,,,,,,,,,,,,,
+"Ô vàng chữ xanh = nhập số liệu  •  Ô xám = tự tính, không sửa  •  Mỗi cột là một tháng",,,,,,,,,,,,,,
+,,,,,,,,,,,,,,
+Kênh,Chỉ số,Tháng 1,Tháng 2,Tháng 3,Tháng 4,Tháng 5,Tháng 6,Tháng 7,Tháng 8,Tháng 9,Tháng 10,Tháng 11,Tháng 12,Định nghĩa / cách tính
+Call,Call in,133.882,61.099,99.977,104.475,72.671,75.074,93.785,67.534,50.350,,,,Tổng cuộc gọi khách hàng gọi vào tổng đài
+,Miss call,12.935,1.727,3.822,13.003,1.297,1.531,4.345,2.313,511,,,,Cuộc gọi nhỡ chưa kịp tiếp nhận
+,Deduction,0,13,69,89,0,129,299,96,0,,,,"Cuộc gọi loại trừ (spam, gọi nhầm…)"
+,Total call,146.817,62.839,103.868,117.567,73.968,76.734,98.429,69.943,50.861,,,,Call in + Miss call + Deduction
+,Miss call rate,"8,81%","2,75%","3,68%","11,06%","1,75%","2,00%","4,41%","3,31%","1,00%",,,,Miss call / Total call — mục tiêu ≤ 3%
+FreshChat,Total software business chat,21.784,9.789,18.855,20.442,15.170,15.816,18.387,22.109,20.818,15.993,,,Phiên chat nghiệp vụ phần mềm
+,Total technicality chat,12.645,7.064,11.553,11.482,9.060,10.101,10.501,9.648,7.838,5.731,,,Phiên chat kỹ thuật
+,Total chat,34.429,16.853,30.408,31.924,24.230,25.917,28.888,31.757,28.656,21.724,,,Chat nghiệp vụ + chat kỹ thuật
+,First chat response rate (minute),"87,09%","86,17%","87,65%","85,96%","90,49%","85,53%","85,84%","77,60%","77,98%","85,84%",,,Tỷ lệ phiên được phản hồi trong phút đầu — mục tiêu ≥ 85%
+,Average response time in chat (Sec),"183,34","44,21","52,94","59,00","38,00","41,00","47,67","43,18","43,26","44,49",,,Thời gian phản hồi trung bình (giây) — mục tiêu ≤ 45s
+FanPage KV,Interactive,19.334,14.924,15.521,12.673,12.881,10.858,10.650,9.722,9.585,6.441,,,Lượt tương tác Fanpage KiotViet
+,Lead,13.006,8.561,12.538,10.774,11.133,9.447,9.470,8.453,8.348,5.629,,,Lead thu được
+,Lead conversion rate,"84,75%","83,49%","84,20%","85,02%","86,43%","87,00%","88,92%","86,95%","87,09%","87,39%",,,Lead / Interactive
+Fanpage FnB,Interactive,4.092,2.838,3.592,2.447,2.182,2.161,1.495,1.382,1.429,785,,,Lượt tương tác Fanpage FnB
+,Lead,3.360,2.335,3.025,1.966,1.837,1.883,1.316,1.204,1.226,662,,,Lead thu được
+,Lead conversion rate,"82,11%","77,48%","84,21%","80,34%","84,19%","87,14%","88,03%","87,12%","85,79%","84,33%",,,Lead / Interactive
+CRM,Ticket Sales,12.005,6.445,12.250,11.270,8.457,9.676,11.551,9.275,8.677,,,,Ticket nhóm Sales
+,Ticket Customer service,16.598,8.479,12.511,14.313,9.922,14.269,21.853,12.419,9.029,,,,Ticket nhóm Customer service
+,Tổng ticket,28.603,14.924,24.761,25.583,18.379,23.945,33.404,21.694,17.706,,,,Ticket Sales + Ticket Customer service
+Email,Total,395,246,407,553,510,564,696,630,687,,,,Email tiếp nhận
+Chất lượng,Tỷ lệ đạt SLA,,,,,,,,"95,60%","96,80%",,,,Yêu cầu xử lý đúng hạn cam kết — mục tiêu ≥ 95%
+,FCR (xử lý ngay lần đầu),,,,,,,,"85,20%","86,40%",,,,Giải quyết dứt điểm trong 1 lần tương tác — mục tiêu ≥ 83%
+,Backlog ticket quá 48h,,,,,,,,215,175,,,,Ticket quá 48h chưa đóng tại cuối kỳ — mục tiêu ≤ 250
+,CSAT,,,,,,,,"94,60%","95,20%",,,,Điểm hài lòng sau cuộc gọi/chat — mục tiêu ≥ 92%
+Tổng hợp,Total jobs to handle,217.072,104.132,165.977,176.345,122.228,125.781,151.410,122.613,99.843,,,,Tổng việc xử lý (Call + Chat + Fanpage + Ticket + Email) theo báo cáo tổng đài
+,Total employees by month,113,111,111,112,110,109,102,104,103,,,,Nhân sự trực trong tháng
+,Number of jobs / personnel,1.921,938,1.495,1.575,1.111,1.154,1.484,1.179,969,,,,Tổng việc / nhân sự

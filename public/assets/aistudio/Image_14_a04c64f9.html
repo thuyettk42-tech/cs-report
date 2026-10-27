@@ -1,0 +1,1076 @@
+<!DOCTYPE html><html lang="vi" style=""><head>
+  <meta charset="utf-8">
+  <meta content="width=device-width, initial-scale=1.0" name="viewport">
+  <title>Chi tiết Báo cáo Vận hành Ticket Support (KPI &amp; SLA) - KiotViet CSKH</title>
+  <link href="https://fonts.googleapis.com" rel="preconnect">
+  <link crossorigin="" href="https://fonts.gstatic.com" rel="preconnect">
+  <link href="https://fonts.googleapis.com/css2?family=Be+Vietnam+Pro:wght@400;500;600;700&amp;family=Inter:wght@400;500;600;700&amp;display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200" rel="stylesheet">
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          colors: {
+            brand: '#0090da',
+            'brand-dark': '#007aba',
+            'brand-light': '#e0f2fe'
+          },
+          fontFamily: {
+            sans: ['"Be Vietnam Pro"', 'sans-serif'],
+            mono: ['Inter', 'monospace']
+          }
+        }
+      }
+    };
+  </script>
+  <style>
+    body { font-family: 'Be Vietnam Pro', sans-serif; }
+    .font-mono { font-family: 'Inter', monospace; }
+    ::-webkit-scrollbar { width: 5px; height: 5px; }
+    ::-webkit-scrollbar-track { background: #f1f5f9; }
+    ::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 4px; }
+    .sidebar-expanded { width: 16rem; }
+    .sidebar-collapsed { width: 4.5rem; }
+    .content-expanded { padding-left: 16rem; }
+    .content-collapsed { padding-left: 4.5rem; }
+    .header-expanded { left: 16rem; }
+    .header-collapsed { left: 4.5rem; }
+  </style>
+</head>
+<body class="bg-[#f8f9ff] text-slate-800 antialiased min-h-screen flex flex-col">
+
+  <!-- COLLAPSIBLE SIDEBAR -->
+  <aside id="mainSidebar" class="sidebar-expanded fixed left-0 top-0 h-screen bg-white z-50 flex flex-col border-r border-slate-200 shadow-sm transition-all duration-300">
+    <div class="h-16 px-4 flex items-center justify-between border-b border-slate-100 shrink-0">
+      <div id="brandContainer" class="flex items-center gap-2 overflow-hidden">
+        <img src="https://lh3.googleusercontent.com/aida-public/AB6AXuD8uMm0c6uYCGiesQp4zKNvBESw2X4rqlA38H51chdPGZRT_ZJIDIltRE6YZSYOcbGBBiNHPVYcYDES_K_QAt5ud0HyKAN1Si11RSiXgaSrDibLevXyO6YEGta3hush1RNU0Q-IMv7fOI0TlNCDo0_XgE2tKyxjt8ogtOyxdxrNvs9HcNs-dvd1arYDn-IK1OrGO8T9T4FIC9uO1WeOlgLwhrFm-0acJK_kHAuYX1ODndKC6lg9wSpygIA8dXSkN__OfGs" alt="KiotViet Logo" class="h-7 w-auto object-contain shrink-0">
+        <span class="sidebar-label px-1.5 py-0.5 rounded text-[10px] font-bold bg-sky-100 text-brand uppercase tracking-wider whitespace-nowrap">CSKH</span>
+      </div>
+      <button id="sidebarToggleBtn" aria-label="Thu gọn hoặc mở rộng menu" class="text-slate-500 hover:text-brand p-1.5 rounded-lg hover:bg-slate-100 transition-colors shrink-0">
+        <span id="sidebarToggleIcon" class="material-symbols-outlined text-[20px]">menu_open</span>
+      </button>
+    </div>
+
+    <!-- Navigation List (Clean single label, no ghost text) -->
+    <div class="flex-1 overflow-y-auto px-3 py-3 overflow-x-hidden space-y-4 text-xs font-medium">
+      <div>
+        <a href="#" class="sidebar-item flex items-center gap-3 px-3 py-2 rounded-lg text-slate-700 hover:bg-slate-100 transition-colors" title="Tổng quan">
+          <span class="material-symbols-outlined text-[20px] text-slate-500 shrink-0">dashboard</span>
+          <span class="sidebar-label whitespace-nowrap">Tổng quan</span>
+        </a>
+      </div>
+
+      <div>
+        <div class="sidebar-section-title px-3 py-1 text-[11px] font-bold text-slate-400 uppercase tracking-wider whitespace-nowrap">Kênh Vận Hành</div>
+        <div class="sidebar-divider hidden border-t border-slate-200 my-1"></div>
+        <div class="mt-1 space-y-1">
+          <a href="#" class="sidebar-item flex items-center gap-3 px-3 py-2 rounded-lg text-slate-700 hover:bg-slate-100 transition-colors" title="Call Center (1900 6522)">
+            <span class="material-symbols-outlined text-[20px] text-slate-500 shrink-0">headset_mic</span>
+            <span class="sidebar-label whitespace-nowrap">Call Center</span>
+          </a>
+          <a href="#" class="sidebar-item flex items-center gap-3 px-3 py-2 rounded-lg text-slate-700 hover:bg-slate-100 transition-colors" title="Chat (Freshchat)">
+            <span class="material-symbols-outlined text-[20px] text-slate-500 shrink-0">forum</span>
+            <span class="sidebar-label whitespace-nowrap">Chat (Freshchat)</span>
+          </a>
+          <a href="#" class="sidebar-item flex items-center justify-between px-3 py-2 rounded-lg bg-brand text-white shadow-sm font-semibold" title="Ticket Hỗ trợ">
+            <div class="flex items-center gap-3 min-w-0">
+              <span class="material-symbols-outlined text-[20px] text-white shrink-0">confirmation_number</span>
+              <span class="sidebar-label whitespace-nowrap">Ticket Hỗ trợ</span>
+            </div>
+            <span class="sidebar-label text-[9px] bg-white/20 text-white px-1.5 py-0.5 rounded font-bold uppercase tracking-wider">Active</span>
+          </a>
+        </div>
+      </div>
+
+      <div>
+        <div class="sidebar-section-title px-3 py-1 text-[11px] font-bold text-slate-400 uppercase tracking-wider whitespace-nowrap">Lực Lượng Nhân Sự</div>
+        <div class="sidebar-divider hidden border-t border-slate-200 my-1"></div>
+        <div class="mt-1 space-y-1">
+          <a href="#" class="sidebar-item flex items-center gap-3 px-3 py-2 rounded-lg text-slate-700 hover:bg-slate-100 transition-colors" title="Nhân sự Inhouse">
+            <span class="material-symbols-outlined text-[20px] text-slate-500 shrink-0">badge</span>
+            <span class="sidebar-label whitespace-nowrap">Nhân sự Inhouse</span>
+          </a>
+          <a href="#" class="sidebar-item flex items-center gap-3 px-3 py-2 rounded-lg text-slate-700 hover:bg-slate-100 transition-colors" title="Nhân sự Outsourced">
+            <span class="material-symbols-outlined text-[20px] text-slate-500 shrink-0">supervised_user_circle</span>
+            <span class="sidebar-label whitespace-nowrap">Nhân sự Outsourced</span>
+          </a>
+          <a href="#" class="sidebar-item flex items-center gap-3 px-3 py-2 rounded-lg text-slate-700 hover:bg-slate-100 transition-colors" title="Đánh giá KPI">
+            <span class="material-symbols-outlined text-[20px] text-slate-500 shrink-0">monitoring</span>
+            <span class="sidebar-label whitespace-nowrap">Đánh giá KPI</span>
+          </a>
+        </div>
+      </div>
+
+      <div>
+        <div class="sidebar-section-title px-3 py-1 text-[11px] font-bold text-slate-400 uppercase tracking-wider whitespace-nowrap">Phân Hệ Dự Án</div>
+        <div class="sidebar-divider hidden border-t border-slate-200 my-1"></div>
+        <div class="mt-1 space-y-1">
+          <a href="#" class="sidebar-item flex items-center gap-3 px-3 py-2 rounded-lg text-slate-700 hover:bg-slate-100 transition-colors" title="KiotViet Retail">
+            <span class="material-symbols-outlined text-[20px] text-slate-500 shrink-0">store</span>
+            <span class="sidebar-label whitespace-nowrap">KiotViet Retail</span>
+          </a>
+          <a href="#" class="sidebar-item flex items-center gap-3 px-3 py-2 rounded-lg text-slate-700 hover:bg-slate-100 transition-colors" title="KiotViet FnB">
+            <span class="material-symbols-outlined text-[20px] text-slate-500 shrink-0">restaurant</span>
+            <span class="sidebar-label whitespace-nowrap">KiotViet FnB</span>
+          </a>
+          <a href="#" class="sidebar-item flex items-center gap-3 px-3 py-2 rounded-lg text-slate-700 hover:bg-slate-100 transition-colors" title="KAT (FnB/Bar)">
+            <span class="material-symbols-outlined text-[20px] text-slate-500 shrink-0">local_bar</span>
+            <span class="sidebar-label whitespace-nowrap">KAT (FnB/Bar)</span>
+          </a>
+          <a href="#" class="sidebar-item flex items-center gap-3 px-3 py-2 rounded-lg text-slate-700 hover:bg-slate-100 transition-colors" title="KiotViet Booking">
+            <span class="material-symbols-outlined text-[20px] text-slate-500 shrink-0">hotel</span>
+            <span class="sidebar-label whitespace-nowrap">KiotViet Booking</span>
+          </a>
+          <a href="#" class="sidebar-item flex items-center gap-3 px-3 py-2 rounded-lg text-slate-700 hover:bg-slate-100 transition-colors" title="KiotViet Employ">
+            <span class="material-symbols-outlined text-[20px] text-slate-500 shrink-0">groups</span>
+            <span class="sidebar-label whitespace-nowrap">KiotViet Employ</span>
+          </a>
+        </div>
+      </div>
+
+      <div>
+        <div class="sidebar-section-title px-3 py-1 text-[11px] font-bold text-slate-400 uppercase tracking-wider whitespace-nowrap">Cấu Hình &amp; Báo Cáo</div>
+        <div class="sidebar-divider hidden border-t border-slate-200 my-1"></div>
+        <div class="mt-1 space-y-1">
+          <a href="#" class="sidebar-item flex items-center gap-3 px-3 py-2 rounded-lg text-slate-700 hover:bg-slate-100 transition-colors" title="Cấu hình mục tiêu KPI">
+            <span class="material-symbols-outlined text-[20px] text-slate-500 shrink-0">tune</span>
+            <span class="sidebar-label whitespace-nowrap">Cấu hình mục tiêu KPI</span>
+          </a>
+          <a href="#" class="sidebar-item flex items-center gap-3 px-3 py-2 rounded-lg text-slate-700 hover:bg-slate-100 transition-colors" title="Báo cáo xuất khẩu">
+            <span class="material-symbols-outlined text-[20px] text-slate-500 shrink-0">ios_share</span>
+            <span class="sidebar-label whitespace-nowrap">Báo cáo xuất khẩu</span>
+          </a>
+          <a href="#" class="sidebar-item flex items-center gap-3 px-3 py-2 rounded-lg text-slate-700 hover:bg-slate-100 transition-colors" title="Nhật ký đồng bộ">
+            <span class="material-symbols-outlined text-[20px] text-slate-500 shrink-0">history_toggle_off</span>
+            <span class="sidebar-label whitespace-nowrap">Nhật ký đồng bộ</span>
+          </a>
+        </div>
+      </div>
+    </div>
+
+    <!-- Sidebar footer -->
+    <div class="p-3 border-t border-slate-100 bg-slate-50/70 shrink-0 text-xs">
+      <div class="sidebar-footer-full flex items-center justify-between text-slate-500">
+        <span class="flex items-center gap-1.5 text-emerald-600 font-medium text-[11px]">
+          <span class="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
+          <span class="sidebar-label whitespace-nowrap">Hệ thống online</span>
+        </span>
+        <span class="sidebar-label text-[10px] text-slate-400 font-mono">v2.6.4</span>
+      </div>
+    </div>
+  </aside>
+
+  <!-- CONTENT WRAPPER -->
+  <div id="contentWrapper" class="content-expanded transition-all duration-300 min-h-screen flex flex-col">
+    <!-- TOP HEADER -->
+    <header id="mainHeader" class="header-expanded fixed top-0 right-0 h-16 bg-white/95 backdrop-blur-md shadow-sm z-40 px-6 flex items-center justify-between gap-4 border-b border-slate-200 transition-all duration-300">
+      <div class="flex items-center gap-3 min-w-0">
+        <button id="headerToggleBtn" class="p-1.5 rounded-lg text-slate-600 hover:text-brand hover:bg-slate-100 transition-colors" title="Thu gọn / Mở rộng Sidebar">
+          <span class="material-symbols-outlined text-[20px]">view_sidebar</span>
+        </button>
+        <div class="hidden sm:flex items-center gap-2 bg-slate-100 px-3 py-1.5 rounded-lg border border-slate-200 text-xs text-slate-700">
+          <span class="material-symbols-outlined text-[16px] text-brand">calendar_clock</span>
+          <span class="">Dữ liệu chốt đến: <strong class="text-slate-900 font-mono font-semibold">Hết ngày hôm qua (T-1) · 23:59:59 - 22/10/2026</strong></span>
+        </div>
+        <span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-sky-50 text-brand text-xs font-medium border border-sky-200 shrink-0">
+          <span class="material-symbols-outlined text-[14px]">history</span>
+          <span class="">Snapshot T-1</span>
+        </span>
+      </div>
+
+      <div class="flex items-center gap-3 shrink-0">
+        <button class="relative p-2 rounded-lg text-slate-500 hover:bg-slate-100 hover:text-slate-700 transition-colors">
+          <span class="material-symbols-outlined text-[20px]">notifications</span>
+          <span class="absolute top-1 right-1 w-4 h-4 rounded-full bg-rose-600 text-white text-[10px] font-bold flex items-center justify-center">2</span>
+        </button>
+        <div class="flex items-center gap-2 pl-2 border-l border-slate-200">
+          <div class="w-8 h-8 rounded-full bg-brand text-white flex items-center justify-center font-bold text-xs">TL</div>
+          <div class="hidden md:block text-left text-xs leading-tight">
+            <div class="font-semibold text-slate-800">Trần Lâm</div>
+            <div class="text-slate-400">Quản lý CSKH</div>
+          </div>
+        </div>
+      </div>
+    </header>
+
+    <!-- MAIN BODY -->
+    <main class="w-full pt-16 px-6 py-6 bg-[#f8f9ff] min-h-screen flex-1 space-y-6">
+      
+      <!-- TOP CONTEXT & FILTER BAR -->
+      <div class="bg-white rounded-xl p-5 shadow-sm border border-slate-200 space-y-4">
+        <div class="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
+          <div>
+            <div class="flex items-center gap-2 text-brand text-xs font-bold uppercase tracking-wider">
+              <span class="material-symbols-outlined text-[16px]">confirmation_number</span>
+              <span class="">Báo Cáo Vận Hành Kênh Hỗ Trợ · Support Ticketing System</span>
+            </div>
+            <h1 class="text-xl md:text-2xl font-bold text-slate-900 mt-1">
+              Chi tiết Báo cáo Vận hành Ticket &amp; SLA Hỗ trợ - KiotViet CSKH
+            </h1>
+            <p class="text-xs text-slate-500 mt-0.5">
+              Theo dõi thời gian xử lý, tốc độ phân phối (Assign 45p), tỷ lệ tuân thủ cam kết chất lượng SLA 4h và phân loại nguồn phát sinh.
+            </p>
+          </div>
+          <div class="flex items-center gap-2.5 shrink-0 flex-wrap">
+            <div class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-slate-100 text-slate-700 text-xs font-mono">
+              <span class="w-2 h-2 rounded-full bg-emerald-500"></span>
+              <span class="">Chốt T-1: 22/10/2026</span>
+            </div>
+            <button type="button" class="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-lg bg-slate-100 hover:bg-slate-200 text-slate-700 font-medium text-xs transition-colors border border-slate-200 shadow-sm">
+              <span class="material-symbols-outlined text-[18px]">file_download</span>
+              <span class="">Xuất Excel</span>
+            </button>
+            <button type="button" class="inline-flex items-center gap-1.5 px-4 py-2 rounded-lg bg-brand hover:bg-brand-dark text-white font-medium text-xs transition-colors shadow-sm">
+              <span class="material-symbols-outlined text-[18px]">sync</span>
+              <span class="">Đồng bộ Dữ liệu T-1</span>
+            </button>
+          </div>
+        </div>
+
+        <!-- Filter Grid -->
+        <div class="bg-slate-50 rounded-lg p-3.5 border border-slate-200">
+          <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-3 text-xs">
+            <div>
+              <label class="block text-slate-500 font-medium mb-1">Từ ngày (00:00:00)</label>
+              <div class="relative">
+                <input type="text" value="01/10/2026" readonly="" class="w-full h-8 pl-7 pr-2 rounded bg-white border border-slate-200 text-slate-800 font-mono text-xs focus:outline-none">
+                <span class="material-symbols-outlined absolute left-2 top-2 text-[15px] text-slate-400">calendar_today</span>
+              </div>
+            </div>
+            <div>
+              <label class="block text-slate-500 font-medium mb-1">Đến ngày (T-1 Snapshot)</label>
+              <div class="relative">
+                <input type="text" value="22/10/2026" readonly="" class="w-full h-8 pl-7 pr-2 rounded bg-white border border-slate-200 text-slate-800 font-mono text-xs focus:outline-none">
+                <span class="material-symbols-outlined absolute left-2 top-2 text-[15px] text-slate-400">event_available</span>
+              </div>
+            </div>
+            <div>
+              <label class="block text-slate-500 font-medium mb-1">Loại Ticket</label>
+              <select class="w-full h-8 px-2 rounded bg-white border border-slate-200 text-slate-800 text-xs focus:outline-none">
+                <option selected="">Tất cả loại ticket (3 nhóm)</option>
+                <option>Hỗ trợ HĐĐT - CKS</option>
+                <option>Hỗ trợ kỹ thuật</option>
+                <option>Hỗ trợ phần mềm</option>
+              </select>
+            </div>
+            <div>
+              <label class="block text-slate-500 font-medium mb-1">Nguồn tạo (Channel)</label>
+              <select class="w-full h-8 px-2 rounded bg-white border border-slate-200 text-slate-800 text-xs focus:outline-none">
+                <option selected="">Tất cả nguồn (9 nhóm)</option>
+                <option>Administr...</option>
+                <option>AI ElevenLabs</option>
+                <option>CTV</option>
+                <option>Nguồn D...</option>
+                <option>Nguồn S...</option>
+                <option>Others</option>
+                <option>Outsourci...</option>
+                <option>PTSP</option>
+                <option>Renewal...</option>
+              </select>
+            </div>
+            <div>
+              <label class="block text-slate-500 font-medium mb-1">Phân hệ dịch vụ</label>
+              <select class="w-full h-8 px-2 rounded bg-white border border-slate-200 text-slate-800 text-xs focus:outline-none">
+                <option selected="">Toàn bộ phân hệ</option>
+                <option>KiotViet Retail</option>
+                <option>KiotViet FnB</option>
+                <option>KAT (FnB/Bar)</option>
+                <option>KiotViet Booking</option>
+              </select>
+            </div>
+            <div>
+              <label class="block text-slate-500 font-medium mb-1">Trạng thái SLA 4h</label>
+              <select class="w-full h-8 px-2 rounded bg-white border border-slate-200 text-slate-800 text-xs focus:outline-none">
+                <option selected="">Tất cả trạng thái</option>
+                <option>Đạt SLA 4h (≤ 4h)</option>
+                <option>Quá hạn SLA 4h (&gt; 4h)</option>
+              </select>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- 4 KPI SUMMARY SCORECARDS -->
+      <div class="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4"><!-- Card 1: Sản lượng lũy kế tháng (Moved to #1 with prominent Đạt KPI tháng 96.57% highlight) -->
+<div class="bg-white rounded-xl p-4 shadow-sm border border-slate-200 flex flex-col justify-between">
+  <div class="flex items-start justify-between">
+    <div>
+      <div class="flex items-center gap-1.5 text-sky-600 text-[11px] font-bold uppercase tracking-wider">
+        <span class="w-2 h-2 rounded-full bg-sky-600"></span>
+        <span class="">Sản lượng lũy kế tháng</span>
+      </div>
+      <div class="text-sm font-bold text-slate-900 mt-1">Tổng Ticket Trong Tháng</div>
+    </div>
+    <span class="material-symbols-outlined text-brand text-[24px] p-2 bg-sky-50 rounded-lg">query_stats</span>
+  </div>
+
+  <div class="my-2">
+    <div class="flex items-baseline gap-2">
+      <span class="text-3xl font-extrabold text-slate-900 font-mono tracking-tight">16,170</span>
+      <span class="text-xs font-semibold text-slate-500">ticket</span>
+      <span class="text-xs font-semibold text-sky-700 ml-1 inline-flex items-center bg-sky-50 px-2 py-0.5 rounded">
+        <span class="material-symbols-outlined text-[14px] mr-0.5">event_note</span> MTD 10/2026
+      </span>
+    </div>
+    <div class="w-full bg-slate-100 h-2 rounded-full mt-2 overflow-hidden">
+      <div class="bg-brand h-full rounded-full" style="width: 100%"></div>
+    </div>
+  </div>
+
+  <!-- Nổi bật: Khối Đạt KPI Tháng 96.57% to rõ, thu hút ánh nhìn -->
+  <div class="p-2.5 rounded-lg bg-blue-50 border border-sky-200 flex items-center justify-between shadow-sm mb-2">
+    <div class="flex items-center gap-2">
+      <span class="material-symbols-outlined text-brand text-[20px]">verified</span>
+      <div class="flex flex-col">
+        <span class="text-[11px] font-bold text-slate-700 uppercase tracking-tight">Đạt KPI tháng</span>
+        <span class="text-[10px] text-emerald-700 font-semibold inline-flex items-center">
+          <span class="material-symbols-outlined text-[12px] mr-0.5">check_circle</span> Đạt mục tiêu
+        </span>
+      </div>
+    </div>
+    <div class="text-right">
+      <span class="text-xl md:text-2xl font-black text-brand font-mono leading-none">96.57%</span>
+    </div>
+  </div>
+
+  <div class="pt-2 border-t border-slate-100 flex items-center justify-between text-xs text-slate-500">
+    <span class="">Trung bình ngày: <strong class="text-slate-800 font-semibold font-mono">770 TK/ngày</strong></span>
+    <span class="text-slate-400 font-mono text-[11px]">Chốt MTD</span>
+  </div>
+</div>
+
+<!-- Card 2: SLA 4h (Position #2) -->
+<div class="bg-white rounded-xl p-4 shadow-sm border border-slate-200 flex flex-col justify-between">
+  <div class="flex items-start justify-between">
+    <div>
+      <div class="flex items-center gap-1.5 text-rose-600 text-[11px] font-bold uppercase tracking-wider">
+        <span class="w-2 h-2 rounded-full bg-rose-600"></span>
+        <span class="">KPI 5.1 · Trọng số 20%</span>
+      </div>
+      <div class="text-sm font-bold text-slate-900 mt-1">Tỉ lệ Xử lý Đúng SLA (4h)</div>
+    </div>
+    <span class="material-symbols-outlined text-brand text-[24px] p-2 bg-sky-50 rounded-lg">timer</span>
+  </div>
+  <div class="my-3">
+    <div class="flex items-baseline gap-2">
+      <span class="text-3xl font-extrabold text-slate-900 font-mono tracking-tight">96.57%</span>
+      <span class="text-xs font-semibold text-rose-600 inline-flex items-center">
+        <span class="material-symbols-outlined text-[14px]">trending_down</span> -1.93%
+      </span>
+    </div>
+    <div class="w-full bg-slate-100 h-2 rounded-full mt-2 overflow-hidden">
+      <div class="bg-brand h-full rounded-full" style="width: 96.57%"></div>
+    </div>
+  </div>
+  <div class="pt-2 border-t border-slate-100 flex items-center justify-between text-xs text-slate-500">
+    <span class="">Target: <strong class="text-slate-800 font-semibold font-mono">98.50%</strong></span>
+    <span class="px-2 py-0.5 rounded-full bg-rose-50 text-rose-700 font-medium">Cần chú ý (-1.93%)</span>
+  </div>
+</div>
+
+<!-- Card 3: TB Xử lý Ticket (Phút) (Position #3) -->
+<div class="bg-white rounded-xl p-4 shadow-sm border border-slate-200 flex flex-col justify-between">
+  <div class="flex items-start justify-between">
+    <div>
+      <div class="flex items-center gap-1.5 text-emerald-600 text-[11px] font-bold uppercase tracking-wider">
+        <span class="w-2 h-2 rounded-full bg-emerald-600"></span>
+        <span class="">KPI 5.2 · Thời gian xử lý</span>
+      </div>
+      <div class="text-sm font-bold text-slate-900 mt-1">TB Xử Lý Ticket (Phút)</div>
+    </div>
+    <span class="material-symbols-outlined text-emerald-600 text-[24px] p-2 bg-emerald-50 rounded-lg">speed</span>
+  </div>
+  <div class="my-3">
+    <div class="flex items-baseline gap-2">
+      <span class="text-3xl font-extrabold text-emerald-600 font-mono tracking-tight">41</span>
+      <span class="text-sm font-semibold text-slate-500">phút</span>
+      <span class="text-xs font-semibold text-emerald-700 ml-1 inline-flex items-center bg-emerald-50 px-1.5 py-0.5 rounded">
+        <span class="material-symbols-outlined text-[14px] mr-0.5">check_circle</span> Đạt chuẩn
+      </span>
+    </div>
+    <div class="w-full bg-slate-100 h-2 rounded-full mt-2 overflow-hidden">
+      <div class="bg-emerald-600 h-full rounded-full" style="width: 22.8%"></div>
+    </div>
+  </div>
+  <div class="pt-2 border-t border-slate-100 flex items-center justify-between text-xs text-slate-500">
+    <span class="">Mục tiêu: <strong class="text-slate-800 font-semibold font-mono">≤ 180 phút (3h)</strong></span>
+    <span class="px-2 py-0.5 rounded-full bg-emerald-50 text-emerald-700 font-medium">Tối ưu 139 phút</span>
+  </div>
+</div>
+
+<!-- Card 4: Điều phối Dispatching (Position #4) -->
+<div class="bg-white rounded-xl p-4 shadow-sm border border-slate-200 flex flex-col justify-between">
+  <div class="flex items-start justify-between">
+    <div>
+      <div class="flex items-center gap-1.5 text-blue-600 text-[11px] font-bold uppercase tracking-wider">
+        <span class="w-2 h-2 rounded-full bg-blue-600"></span>
+        <span class="">Điều phối · Dispatching</span>
+      </div>
+      <div class="text-sm font-bold text-slate-900 mt-1">Tỷ lệ Assign Trong 45p</div>
+    </div>
+    <span class="material-symbols-outlined text-blue-600 text-[24px] p-2 bg-blue-50 rounded-lg">assignment_ind</span>
+  </div>
+  <div class="my-3">
+    <div class="flex items-baseline gap-2">
+      <span class="text-3xl font-extrabold text-slate-900 font-mono tracking-tight">71.43%</span>
+      <span class="text-xs font-semibold text-rose-600 inline-flex items-center">
+        <span class="material-symbols-outlined text-[14px]">arrow_downward</span> -8.57%
+      </span>
+    </div>
+    <div class="w-full bg-slate-100 h-2 rounded-full mt-2 overflow-hidden">
+      <div class="bg-blue-600 h-full rounded-full" style="width: 71.43%"></div>
+    </div>
+  </div>
+  <div class="pt-2 border-t border-slate-100 flex items-center justify-between text-xs text-slate-500">
+    <span class="">Target: <strong class="text-slate-800 font-semibold font-mono">80.00%</strong></span>
+    <span class="">TB Assign: <strong class="text-slate-800 font-mono font-semibold">76 phút</strong></span>
+  </div>
+</div></div>
+
+      <!-- BẢNG 1: THEO DÕI VẬN HÀNH TỪNG NGÀY (THÁNG 10/2026) -->
+      <!-- Hoàn toàn render HTML/CSS sạch đẹp, KHÔNG có ảnh chụp tham khảo -->
+      <div class="bg-white rounded-xl p-5 shadow-sm border border-slate-200 space-y-4">
+        <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-2 border-b border-slate-100">
+          <div>
+            <div class="flex items-center gap-2">
+              <span class="material-symbols-outlined text-brand text-[20px]">calendar_view_month</span>
+              <h2 class="text-base md:text-lg font-bold text-slate-900">Bảng Chi tiết Theo Dõi Vận Hành Ticket Từng Ngày (Tháng 10/2026)</h2>
+            </div>
+            <p class="text-xs text-slate-500 mt-0.5">Số liệu thực tế ghi nhận từ ngày 1 đến ngày 21/10/2026 (Chốt T-1 lúc 23:59:59)</p>
+          </div>
+          <span class="inline-flex items-center px-2.5 py-1 rounded-full bg-sky-50 text-sky-800 text-xs font-medium border border-sky-200">
+            21 ngày báo cáo hoàn chỉnh
+          </span>
+        </div>
+
+        <div class="overflow-x-auto rounded-lg border border-slate-200">
+          <table class="w-full text-left text-xs">
+            <thead class="bg-slate-50 text-slate-700 font-semibold uppercase tracking-wider border-b border-slate-200">
+              <tr>
+                <th class="py-2.5 px-3 text-center">Thứ</th>
+                <th class="py-2.5 px-3 text-center">Ngày</th>
+                <th class="py-2.5 px-3 text-right">TK Tạo</th>
+                <th class="py-2.5 px-3 text-right">TK Xử lý</th>
+                <th class="py-2.5 px-3 text-center">Tỉ lệ xử lý</th>
+                <th class="py-2.5 px-3 text-center">Tỉ lệ Assign 45p</th>
+                <th class="py-2.5 px-3 text-right">Thời gian Assign (phút)</th>
+                <th class="py-2.5 px-3 text-center">Tỉ lệ xử lý trong vòng 4h</th>
+                <th class="py-2.5 px-3 text-right">Thời gian xử lý (Phút)</th>
+              </tr>
+            </thead>
+            <tbody class="divide-y divide-slate-100 font-mono text-slate-700 text-xs">
+              <tr class="hover:bg-slate-50"><td class="py-2 px-3 text-center font-sans">Thứ 4</td><td class="py-2 px-3 text-center font-bold">1</td><td class="py-2 px-3 text-right">1,208</td><td class="py-2 px-3 text-right">629</td><td class="py-2 px-3 text-center">52%</td><td class="py-2 px-3 text-center text-rose-600 font-bold">48.86%</td><td class="py-2 px-3 text-right text-rose-600 font-bold">396</td><td class="py-2 px-3 text-center text-rose-600 font-bold">90.66%</td><td class="py-2 px-3 text-right">126</td></tr>
+              <tr class="hover:bg-slate-50"><td class="py-2 px-3 text-center font-sans">Thứ 5</td><td class="py-2 px-3 text-center font-bold">2</td><td class="py-2 px-3 text-right">1,095</td><td class="py-2 px-3 text-right">585</td><td class="py-2 px-3 text-center">53%</td><td class="py-2 px-3 text-center text-rose-600 font-bold">47.15%</td><td class="py-2 px-3 text-right text-rose-600 font-bold">238</td><td class="py-2 px-3 text-center text-rose-600 font-bold">91.58%</td><td class="py-2 px-3 text-right">94</td></tr>
+              <tr class="hover:bg-slate-50"><td class="py-2 px-3 text-center font-sans">Thứ 6</td><td class="py-2 px-3 text-center font-bold">3</td><td class="py-2 px-3 text-right">690</td><td class="py-2 px-3 text-right">420</td><td class="py-2 px-3 text-center">61%</td><td class="py-2 px-3 text-center text-rose-600 font-bold">61.18%</td><td class="py-2 px-3 text-right text-rose-600 font-bold">180</td><td class="py-2 px-3 text-center">94.87%</td><td class="py-2 px-3 text-right">66</td></tr>
+              <tr class="hover:bg-slate-50 bg-slate-50/50"><td class="py-2 px-3 text-center font-sans font-semibold text-blue-700">Thứ 7</td><td class="py-2 px-3 text-center font-bold">4</td><td class="py-2 px-3 text-right">317</td><td class="py-2 px-3 text-right">218</td><td class="py-2 px-3 text-center">69%</td><td class="py-2 px-3 text-center">66.67%</td><td class="py-2 px-3 text-right">69</td><td class="py-2 px-3 text-center text-emerald-600 font-semibold">97.35%</td><td class="py-2 px-3 text-right">27</td></tr>
+              <tr class="hover:bg-slate-50 bg-slate-50/50"><td class="py-2 px-3 text-center font-sans font-semibold text-rose-600">CN</td><td class="py-2 px-3 text-center font-bold">5</td><td class="py-2 px-3 text-right">815</td><td class="py-2 px-3 text-right">557</td><td class="py-2 px-3 text-center">68%</td><td class="py-2 px-3 text-center">72.91%</td><td class="py-2 px-3 text-right">78</td><td class="py-2 px-3 text-center text-emerald-600 font-semibold">96.41%</td><td class="py-2 px-3 text-right">36</td></tr>
+              <tr class="hover:bg-slate-50"><td class="py-2 px-3 text-center font-sans">Thứ 2</td><td class="py-2 px-3 text-center font-bold">6</td><td class="py-2 px-3 text-right">838</td><td class="py-2 px-3 text-right">642</td><td class="py-2 px-3 text-center text-emerald-600 font-semibold">77%</td><td class="py-2 px-3 text-center">63.54%</td><td class="py-2 px-3 text-right">76</td><td class="py-2 px-3 text-center text-emerald-600 font-semibold">95.98%</td><td class="py-2 px-3 text-right">57</td></tr>
+              <tr class="hover:bg-slate-50"><td class="py-2 px-3 text-center font-sans">Thứ 3</td><td class="py-2 px-3 text-center font-bold">7</td><td class="py-2 px-3 text-right">788</td><td class="py-2 px-3 text-right">589</td><td class="py-2 px-3 text-center text-emerald-600 font-semibold">75%</td><td class="py-2 px-3 text-center text-emerald-600 font-semibold">83.25%</td><td class="py-2 px-3 text-right">47</td><td class="py-2 px-3 text-center text-emerald-600 font-semibold">97.37%</td><td class="py-2 px-3 text-right">30</td></tr>
+              <tr class="hover:bg-slate-50"><td class="py-2 px-3 text-center font-sans">Thứ 4</td><td class="py-2 px-3 text-center font-bold">8</td><td class="py-2 px-3 text-right">727</td><td class="py-2 px-3 text-right">528</td><td class="py-2 px-3 text-center">73%</td><td class="py-2 px-3 text-center">76.64%</td><td class="py-2 px-3 text-right">44</td><td class="py-2 px-3 text-center text-emerald-600 font-semibold">97.08%</td><td class="py-2 px-3 text-right">31</td></tr>
+              <tr class="hover:bg-slate-50"><td class="py-2 px-3 text-center font-sans">Thứ 5</td><td class="py-2 px-3 text-center font-bold">9</td><td class="py-2 px-3 text-right">715</td><td class="py-2 px-3 text-right">544</td><td class="py-2 px-3 text-center text-emerald-600 font-semibold">76%</td><td class="py-2 px-3 text-center text-emerald-600 font-semibold">81.05%</td><td class="py-2 px-3 text-right">73</td><td class="py-2 px-3 text-center text-emerald-600 font-semibold">96.95%</td><td class="py-2 px-3 text-right">37</td></tr>
+              <tr class="hover:bg-slate-50"><td class="py-2 px-3 text-center font-sans">Thứ 6</td><td class="py-2 px-3 text-center font-bold">10</td><td class="py-2 px-3 text-right">581</td><td class="py-2 px-3 text-right">441</td><td class="py-2 px-3 text-center text-emerald-600 font-semibold">76%</td><td class="py-2 px-3 text-center">79.71%</td><td class="py-2 px-3 text-right">40</td><td class="py-2 px-3 text-center text-emerald-600 font-bold">98.32%</td><td class="py-2 px-3 text-right">30</td></tr>
+              <tr class="hover:bg-slate-50 bg-slate-50/50"><td class="py-2 px-3 text-center font-sans font-semibold text-blue-700">Thứ 7</td><td class="py-2 px-3 text-center font-bold">11</td><td class="py-2 px-3 text-right">390</td><td class="py-2 px-3 text-right">284</td><td class="py-2 px-3 text-center">73%</td><td class="py-2 px-3 text-center">72.02%</td><td class="py-2 px-3 text-right">46</td><td class="py-2 px-3 text-center text-emerald-600 font-bold">98.27%</td><td class="py-2 px-3 text-right">23</td></tr>
+              <tr class="hover:bg-slate-50"><td class="py-2 px-3 text-center font-sans">Thứ 2</td><td class="py-2 px-3 text-center font-bold">12</td><td class="py-2 px-3 text-right">974</td><td class="py-2 px-3 text-right">631</td><td class="py-2 px-3 text-center">65%</td><td class="py-2 px-3 text-center">73.82%</td><td class="py-2 px-3 text-right">71</td><td class="py-2 px-3 text-center text-emerald-600 font-semibold">96.32%</td><td class="py-2 px-3 text-right">36</td></tr>
+              <tr class="hover:bg-slate-50"><td class="py-2 px-3 text-center font-sans">Thứ 3</td><td class="py-2 px-3 text-center font-bold">13</td><td class="py-2 px-3 text-right">893</td><td class="py-2 px-3 text-right">632</td><td class="py-2 px-3 text-center">71%</td><td class="py-2 px-3 text-center text-rose-600 font-bold">56.75%</td><td class="py-2 px-3 text-right text-rose-600 font-bold">105</td><td class="py-2 px-3 text-center text-emerald-600 font-semibold">95.46%</td><td class="py-2 px-3 text-right">35</td></tr>
+              <tr class="hover:bg-slate-50"><td class="py-2 px-3 text-center font-sans">Thứ 4</td><td class="py-2 px-3 text-center font-bold">14</td><td class="py-2 px-3 text-right">969</td><td class="py-2 px-3 text-right">716</td><td class="py-2 px-3 text-center">74%</td><td class="py-2 px-3 text-center">65.54%</td><td class="py-2 px-3 text-right">72</td><td class="py-2 px-3 text-center text-emerald-600 font-semibold">95.61%</td><td class="py-2 px-3 text-right">37</td></tr>
+              <tr class="hover:bg-slate-50"><td class="py-2 px-3 text-center font-sans">Thứ 5</td><td class="py-2 px-3 text-center font-bold">15</td><td class="py-2 px-3 text-right">997</td><td class="py-2 px-3 text-right">642</td><td class="py-2 px-3 text-center">64%</td><td class="py-2 px-3 text-center">66.83%</td><td class="py-2 px-3 text-right text-rose-600 font-bold">100</td><td class="py-2 px-3 text-center">94.80%</td><td class="py-2 px-3 text-right">54</td></tr>
+              <tr class="hover:bg-slate-50"><td class="py-2 px-3 text-center font-sans">Thứ 6</td><td class="py-2 px-3 text-center font-bold">16</td><td class="py-2 px-3 text-right">896</td><td class="py-2 px-3 text-right">612</td><td class="py-2 px-3 text-center">68%</td><td class="py-2 px-3 text-center text-rose-600 font-bold">60.41%</td><td class="py-2 px-3 text-right text-rose-600 font-bold">100</td><td class="py-2 px-3 text-center">94.50%</td><td class="py-2 px-3 text-right">36</td></tr>
+              <tr class="hover:bg-slate-50 bg-slate-50/50"><td class="py-2 px-3 text-center font-sans font-semibold text-blue-700">Thứ 7</td><td class="py-2 px-3 text-center font-bold">17</td><td class="py-2 px-3 text-right">639</td><td class="py-2 px-3 text-right">468</td><td class="py-2 px-3 text-center">73%</td><td class="py-2 px-3 text-center text-emerald-600 font-semibold">85.82%</td><td class="py-2 px-3 text-right text-emerald-600 font-bold">20</td><td class="py-2 px-3 text-center text-emerald-600 font-bold">98.47%</td><td class="py-2 px-3 text-right">19</td></tr>
+              <tr class="hover:bg-slate-50 bg-slate-50/50"><td class="py-2 px-3 text-center font-sans font-semibold text-rose-600">CN</td><td class="py-2 px-3 text-center font-bold">18</td><td class="py-2 px-3 text-right">437</td><td class="py-2 px-3 text-right">327</td><td class="py-2 px-3 text-center text-emerald-600 font-semibold">75%</td><td class="py-2 px-3 text-center">77.10%</td><td class="py-2 px-3 text-right text-emerald-600 font-bold">35</td><td class="py-2 px-3 text-center text-emerald-600 font-bold">98.67%</td><td class="py-2 px-3 text-right">15</td></tr>
+              <tr class="hover:bg-slate-50"><td class="py-2 px-3 text-center font-sans">Thứ 2</td><td class="py-2 px-3 text-center font-bold">19</td><td class="py-2 px-3 text-right">1,001</td><td class="py-2 px-3 text-right">694</td><td class="py-2 px-3 text-center">69%</td><td class="py-2 px-3 text-center">70.35%</td><td class="py-2 px-3 text-right">60</td><td class="py-2 px-3 text-center text-emerald-600 font-semibold">96.26%</td><td class="py-2 px-3 text-right">24</td></tr>
+              <tr class="hover:bg-slate-50"><td class="py-2 px-3 text-center font-sans">Thứ 3</td><td class="py-2 px-3 text-center font-bold">20</td><td class="py-2 px-3 text-right">700</td><td class="py-2 px-3 text-right">510</td><td class="py-2 px-3 text-center">73%</td><td class="py-2 px-3 text-center">79.37%</td><td class="py-2 px-3 text-right">36</td><td class="py-2 px-3 text-center text-emerald-600 font-semibold">97.97%</td><td class="py-2 px-3 text-right">15</td></tr>
+              <tr class="hover:bg-slate-50"><td class="py-2 px-3 text-center font-sans">Thứ 4</td><td class="py-2 px-3 text-center font-bold">21</td><td class="py-2 px-3 text-right">938</td><td class="py-2 px-3 text-right">631</td><td class="py-2 px-3 text-center">67%</td><td class="py-2 px-3 text-center text-emerald-600 font-bold">88.42%</td><td class="py-2 px-3 text-right text-emerald-600 font-bold">15</td><td class="py-2 px-3 text-center text-emerald-600 font-bold">99.08%</td><td class="py-2 px-3 text-right">12</td></tr>
+            </tbody>
+            <tfoot class="bg-brand text-white font-bold font-mono">
+              <tr>
+                <td class="py-2.5 px-3 text-center font-sans" colspan="2">TOTAL (MTD)</td>
+                <td class="py-2.5 px-3 text-right">TB 770</td>
+                <td class="py-2.5 px-3 text-right">TB 534</td>
+                <td class="py-2.5 px-3 text-center">69.99%</td>
+                <td class="py-2.5 px-3 text-center">71.43%</td>
+                <td class="py-2.5 px-3 text-right">TB 76</td>
+                <td class="py-2.5 px-3 text-center">96.57%</td>
+                <td class="py-2.5 px-3 text-right">TB 41</td>
+              </tr>
+            </tfoot>
+          </table>
+        </div>
+      </div>
+
+      <!-- BẢNG 2: PHÂN BỔ THEO NGUỒN TICKET (RÕ RÀNG 1 BÊN SỐ LƯỢNG, 1 BÊN TỶ LỆ %) -->
+      <div class="bg-white rounded-xl p-5 shadow-sm border border-slate-200 space-y-5">
+        <div class="flex flex-col lg:flex-row lg:items-center justify-between gap-3 pb-3 border-b border-slate-100">
+          <div>
+            <div class="flex items-center gap-2">
+              <span class="material-symbols-outlined text-brand text-[22px]">stacked_bar_chart</span>
+              <h2 class="text-base md:text-lg font-bold text-slate-900">Phân Phối &amp; Biến Động Công Việc Ticket Theo Nguồn Tạo</h2>
+            </div>
+            <p class="text-xs text-slate-500 mt-0.5">Tách biệt rõ ràng 2 góc nhìn: <strong>Bên Trái = SỐ LƯỢNG (Count)</strong> vs <strong>Bên Phải = CƠ CẤU TỶ LỆ (%)</strong></p>
+          </div>
+          <!-- Legend Color Palette for 9 Channels -->
+          <div class="flex flex-wrap items-center gap-2 text-[11px]">
+            <span class="inline-flex items-center gap-1.5 px-2 py-0.5 rounded bg-slate-100 text-slate-700"><span class="w-2.5 h-2.5 rounded-sm bg-[#e11d48]"></span>Administr...</span>
+            <span class="inline-flex items-center gap-1.5 px-2 py-0.5 rounded bg-slate-100 text-slate-700"><span class="w-2.5 h-2.5 rounded-sm bg-[#0284c7]"></span>AI ElevenLabs</span>
+            <span class="inline-flex items-center gap-1.5 px-2 py-0.5 rounded bg-slate-100 text-slate-700"><span class="w-2.5 h-2.5 rounded-sm bg-[#0891b2]"></span>CTV</span>
+            <span class="inline-flex items-center gap-1.5 px-2 py-0.5 rounded bg-slate-100 text-slate-700"><span class="w-2.5 h-2.5 rounded-sm bg-[#059669]"></span>Nguồn D...</span>
+            <span class="inline-flex items-center gap-1.5 px-2 py-0.5 rounded bg-slate-100 text-slate-700"><span class="w-2.5 h-2.5 rounded-sm bg-[#f59e0b]"></span>Nguồn S...</span>
+            <span class="inline-flex items-center gap-1.5 px-2 py-0.5 rounded bg-slate-100 text-slate-700"><span class="w-2.5 h-2.5 rounded-sm bg-[#64748b]"></span>Others</span>
+            <span class="inline-flex items-center gap-1.5 px-2 py-0.5 rounded bg-slate-100 text-slate-700"><span class="w-2.5 h-2.5 rounded-sm bg-[#ca8a04]"></span>Outsourci...</span>
+            <span class="inline-flex items-center gap-1.5 px-2 py-0.5 rounded bg-slate-100 text-slate-700"><span class="w-2.5 h-2.5 rounded-sm bg-[#db2777]"></span>PTSP</span>
+            <span class="inline-flex items-center gap-1.5 px-2 py-0.5 rounded bg-slate-100 text-slate-700"><span class="w-2.5 h-2.5 rounded-sm bg-[#581c87]"></span>Renewal...</span>
+          </div>
+        </div>
+
+        <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+          
+          <!-- BÊN TRÁI: SỐ LƯỢNG TICKET (VOLUME & TABLE) -->
+          <div class="bg-slate-50/80 rounded-xl p-4 border border-slate-200 flex flex-col justify-between space-y-4">
+            <div>
+              <div class="flex items-center justify-between">
+                <div class="flex items-center gap-2">
+                  <span class="w-2.5 h-2.5 rounded bg-brand"></span>
+                  <h3 class="text-sm font-bold text-slate-900">BÊN TRÁI: SỐ LƯỢNG TICKET TẠO (COUNT)</h3>
+                </div>
+                <span class="px-2 py-0.5 rounded bg-sky-100 text-brand font-mono font-bold text-xs">Tổng 5 tháng: 114,694</span>
+              </div>
+              <p class="text-xs text-slate-500 mt-1">Biểu đồ thể hiện quy mô ticket thực tế (Đỉnh tháng 7: 33,388 ticket)</p>
+            </div>
+
+            <!-- CSS Stacked Bar: Volume Height Scaled Relative to Peak 33,388 -->
+            <div class="h-56 bg-white rounded-lg p-3 border border-slate-200 flex items-end justify-between gap-2">
+              <!-- Jun 2026: 23,931 -->
+              <div class="flex-1 flex flex-col items-center">
+                <span class="text-[11px] font-bold font-mono text-slate-700 mb-1">23,931</span>
+                <div class="w-full max-w-[48px] rounded-t overflow-hidden flex flex-col-reverse shadow-sm" style="height: 144px;">
+                  <div class="w-full bg-[#e11d48]" style="height: 12.3%"></div>
+                  <div class="w-full bg-[#0284c7]" style="height: 21.4%"></div>
+                  <div class="w-full bg-[#0891b2]" style="height: 8.2%"></div>
+                  <div class="w-full bg-[#059669]" style="height: 14.8%"></div>
+                  <div class="w-full bg-[#f59e0b]" style="height: 17.5%"></div>
+                  <div class="w-full bg-[#64748b]" style="height: 5.6%"></div>
+                  <div class="w-full bg-[#ca8a04]" style="height: 10.9%"></div>
+                  <div class="w-full bg-[#db2777]" style="height: 5.1%"></div>
+                  <div class="w-full bg-[#581c87]" style="height: 4.2%"></div>
+                </div>
+                <span class="text-[11px] text-slate-600 mt-2 font-medium">Jun 2026</span>
+              </div>
+
+              <!-- Jul 2026: 33,388 (Peak) -->
+              <div class="flex-1 flex flex-col items-center">
+                <span class="text-[11px] font-bold font-mono text-brand mb-1">33,388</span>
+                <div class="w-full max-w-[48px] rounded-t overflow-hidden flex flex-col-reverse ring-2 ring-brand/40 shadow-md" style="height: 200px;">
+                  <div class="w-full bg-[#e11d48]" style="height: 10.5%"></div>
+                  <div class="w-full bg-[#0284c7]" style="height: 24.2%"></div>
+                  <div class="w-full bg-[#0891b2]" style="height: 7.4%"></div>
+                  <div class="w-full bg-[#059669]" style="height: 15.2%"></div>
+                  <div class="w-full bg-[#f59e0b]" style="height: 18.9%"></div>
+                  <div class="w-full bg-[#64748b]" style="height: 4.8%"></div>
+                  <div class="w-full bg-[#ca8a04]" style="height: 9.8%"></div>
+                  <div class="w-full bg-[#db2777]" style="height: 5.5%"></div>
+                  <div class="w-full bg-[#581c87]" style="height: 3.7%"></div>
+                </div>
+                <span class="text-[11px] text-brand mt-2 font-bold">Jul 2026</span>
+              </div>
+
+              <!-- Aug 2026: 21,664 -->
+              <div class="flex-1 flex flex-col items-center">
+                <span class="text-[11px] font-bold font-mono text-slate-700 mb-1">21,664</span>
+                <div class="w-full max-w-[48px] rounded-t overflow-hidden flex flex-col-reverse shadow-sm" style="height: 130px;">
+                  <div class="w-full bg-[#e11d48]" style="height: 11.2%"></div>
+                  <div class="w-full bg-[#0284c7]" style="height: 22.8%"></div>
+                  <div class="w-full bg-[#0891b2]" style="height: 8.6%"></div>
+                  <div class="w-full bg-[#059669]" style="height: 16.1%"></div>
+                  <div class="w-full bg-[#f59e0b]" style="height: 16.9%"></div>
+                  <div class="w-full bg-[#64748b]" style="height: 5.1%"></div>
+                  <div class="w-full bg-[#ca8a04]" style="height: 10.5%"></div>
+                  <div class="w-full bg-[#db2777]" style="height: 4.9%"></div>
+                  <div class="w-full bg-[#581c87]" style="height: 3.9%"></div>
+                </div>
+                <span class="text-[11px] text-slate-600 mt-2 font-medium">Aug 2026</span>
+              </div>
+
+              <!-- Sep 2026: 18,072 -->
+              <div class="flex-1 flex flex-col items-center">
+                <span class="text-[11px] font-bold font-mono text-slate-700 mb-1">18,072</span>
+                <div class="w-full max-w-[48px] rounded-t overflow-hidden flex flex-col-reverse shadow-sm" style="height: 108px;">
+                  <div class="w-full bg-[#e11d48]" style="height: 12.1%"></div>
+                  <div class="w-full bg-[#0284c7]" style="height: 21.6%"></div>
+                  <div class="w-full bg-[#0891b2]" style="height: 9.1%"></div>
+                  <div class="w-full bg-[#059669]" style="height: 17.3%"></div>
+                  <div class="w-full bg-[#f59e0b]" style="height: 15.8%"></div>
+                  <div class="w-full bg-[#64748b]" style="height: 5.7%"></div>
+                  <div class="w-full bg-[#ca8a04]" style="height: 9.9%"></div>
+                  <div class="w-full bg-[#db2777]" style="height: 4.8%"></div>
+                  <div class="w-full bg-[#581c87]" style="height: 3.7%"></div>
+                </div>
+                <span class="text-[11px] text-slate-600 mt-2 font-medium">Sep 2026</span>
+              </div>
+
+              <!-- Oct 2026: 17,639 -->
+              <div class="flex-1 flex flex-col items-center">
+                <span class="text-[11px] font-bold font-mono text-slate-800 mb-1">17,639</span>
+                <div class="w-full max-w-[48px] rounded-t overflow-hidden flex flex-col-reverse shadow-sm" style="height: 106px;">
+                  <div class="w-full bg-[#e11d48]" style="height: 13.0%"></div>
+                  <div class="w-full bg-[#0284c7]" style="height: 22.3%"></div>
+                  <div class="w-full bg-[#0891b2]" style="height: 8.5%"></div>
+                  <div class="w-full bg-[#059669]" style="height: 18.0%"></div>
+                  <div class="w-full bg-[#f59e0b]" style="height: 14.9%"></div>
+                  <div class="w-full bg-[#64748b]" style="height: 5.2%"></div>
+                  <div class="w-full bg-[#ca8a04]" style="height: 9.6%"></div>
+                  <div class="w-full bg-[#db2777]" style="height: 4.7%"></div>
+                  <div class="w-full bg-[#581c87]" style="height: 3.8%"></div>
+                </div>
+                <span class="text-[11px] text-slate-800 mt-2 font-bold">Oct 2026</span>
+              </div>
+            </div>
+
+            <!-- Bảng chi tiết SỐ LƯỢNG từng nguồn -->
+            <div class="overflow-x-auto rounded-lg border border-slate-200 bg-white">
+              <table class="w-full text-left text-[11px]">
+                <thead class="bg-slate-100 text-slate-700 font-semibold uppercase">
+                  <tr>
+                    <th class="py-2 px-2.5">Nguồn tạo (Số lượng)</th>
+                    <th class="py-2 px-2 text-right">Jun</th>
+                    <th class="py-2 px-2 text-right">Jul</th>
+                    <th class="py-2 px-2 text-right">Aug</th>
+                    <th class="py-2 px-2 text-right">Sep</th>
+                    <th class="py-2 px-2 text-right">Oct</th>
+                    <th class="py-2 px-2 text-right font-bold text-brand">Tổng</th>
+                  </tr>
+                </thead>
+                <tbody class="divide-y divide-slate-100 font-mono text-slate-700">
+                  <tr class="hover:bg-slate-50"><td class="py-1.5 px-2.5 font-sans flex items-center gap-1.5"><span class="w-2 h-2 rounded bg-[#e11d48]"></span>Administr...</td><td class="py-1.5 px-2 text-right">2,943</td><td class="py-1.5 px-2 text-right">3,506</td><td class="py-1.5 px-2 text-right">2,426</td><td class="py-1.5 px-2 text-right">2,187</td><td class="py-1.5 px-2 text-right">2,293</td><td class="py-1.5 px-2 text-right font-semibold">13,355</td></tr>
+                  <tr class="hover:bg-slate-50"><td class="py-1.5 px-2.5 font-sans flex items-center gap-1.5"><span class="w-2 h-2 rounded bg-[#0284c7]"></span>AI ElevenLabs</td><td class="py-1.5 px-2 text-right font-medium text-sky-700">5,121</td><td class="py-1.5 px-2 text-right font-bold text-sky-700">8,080</td><td class="py-1.5 px-2 text-right font-medium text-sky-700">4,939</td><td class="py-1.5 px-2 text-right font-medium text-sky-700">3,904</td><td class="py-1.5 px-2 text-right font-medium text-sky-700">3,934</td><td class="py-1.5 px-2 text-right font-bold text-sky-700">25,978</td></tr>
+                  <tr class="hover:bg-slate-50"><td class="py-1.5 px-2.5 font-sans flex items-center gap-1.5"><span class="w-2 h-2 rounded bg-[#0891b2]"></span>CTV</td><td class="py-1.5 px-2 text-right">1,962</td><td class="py-1.5 px-2 text-right">2,471</td><td class="py-1.5 px-2 text-right">1,863</td><td class="py-1.5 px-2 text-right">1,645</td><td class="py-1.5 px-2 text-right">1,499</td><td class="py-1.5 px-2 text-right font-semibold">9,440</td></tr>
+                  <tr class="hover:bg-slate-50"><td class="py-1.5 px-2.5 font-sans flex items-center gap-1.5"><span class="w-2 h-2 rounded bg-[#059669]"></span>Nguồn D...</td><td class="py-1.5 px-2 text-right">3,542</td><td class="py-1.5 px-2 text-right">5,075</td><td class="py-1.5 px-2 text-right">3,488</td><td class="py-1.5 px-2 text-right">3,126</td><td class="py-1.5 px-2 text-right">3,175</td><td class="py-1.5 px-2 text-right font-semibold">18,406</td></tr>
+                  <tr class="hover:bg-slate-50"><td class="py-1.5 px-2.5 font-sans flex items-center gap-1.5"><span class="w-2 h-2 rounded bg-[#f59e0b]"></span>Nguồn S...</td><td class="py-1.5 px-2 text-right">4,188</td><td class="py-1.5 px-2 text-right">6,310</td><td class="py-1.5 px-2 text-right">3,661</td><td class="py-1.5 px-2 text-right">2,855</td><td class="py-1.5 px-2 text-right">2,628</td><td class="py-1.5 px-2 text-right font-semibold">19,642</td></tr>
+                  <tr class="hover:bg-slate-50"><td class="py-1.5 px-2.5 font-sans flex items-center gap-1.5"><span class="w-2 h-2 rounded bg-[#64748b]"></span>Others</td><td class="py-1.5 px-2 text-right">1,340</td><td class="py-1.5 px-2 text-right">1,603</td><td class="py-1.5 px-2 text-right">1,105</td><td class="py-1.5 px-2 text-right">1,030</td><td class="py-1.5 px-2 text-right">917</td><td class="py-1.5 px-2 text-right font-semibold">5,995</td></tr>
+                  <tr class="hover:bg-slate-50"><td class="py-1.5 px-2.5 font-sans flex items-center gap-1.5"><span class="w-2 h-2 rounded bg-[#ca8a04]"></span>Outsourci...</td><td class="py-1.5 px-2 text-right">2,609</td><td class="py-1.5 px-2 text-right">3,272</td><td class="py-1.5 px-2 text-right">2,275</td><td class="py-1.5 px-2 text-right">1,789</td><td class="py-1.5 px-2 text-right">1,693</td><td class="py-1.5 px-2 text-right font-semibold">11,638</td></tr>
+                  <tr class="hover:bg-slate-50"><td class="py-1.5 px-2.5 font-sans flex items-center gap-1.5"><span class="w-2 h-2 rounded bg-[#db2777]"></span>PTSP</td><td class="py-1.5 px-2 text-right">1,220</td><td class="py-1.5 px-2 text-right">1,836</td><td class="py-1.5 px-2 text-right">1,062</td><td class="py-1.5 px-2 text-right">867</td><td class="py-1.5 px-2 text-right">829</td><td class="py-1.5 px-2 text-right font-semibold">5,814</td></tr>
+                  <tr class="hover:bg-slate-50"><td class="py-1.5 px-2.5 font-sans flex items-center gap-1.5"><span class="w-2 h-2 rounded bg-[#581c87]"></span>Renewal...</td><td class="py-1.5 px-2 text-right">1,006</td><td class="py-1.5 px-2 text-right">1,235</td><td class="py-1.5 px-2 text-right">845</td><td class="py-1.5 px-2 text-right">669</td><td class="py-1.5 px-2 text-right">670</td><td class="py-1.5 px-2 text-right font-semibold">4,425</td></tr>
+                </tbody>
+                <tfoot class="bg-slate-100 font-bold font-mono text-slate-900 border-t border-slate-200">
+                  <tr>
+                    <td class="py-1.5 px-2.5 font-sans">Tổng số lượng (Count)</td>
+                    <td class="py-1.5 px-2 text-right">23,931</td>
+                    <td class="py-1.5 px-2 text-right text-brand">33,388</td>
+                    <td class="py-1.5 px-2 text-right">21,664</td>
+                    <td class="py-1.5 px-2 text-right">18,072</td>
+                    <td class="py-1.5 px-2 text-right">17,639</td>
+                    <td class="py-1.5 px-2 text-right text-brand">114,694</td>
+                  </tr>
+                </tfoot>
+              </table>
+            </div>
+          </div>
+
+          <!-- BÊN PHẢI: CƠ CẤU TỶ LỆ % (100% STACKED & PERCENTAGE TABLE) -->
+          <div class="bg-slate-50/80 rounded-xl p-4 border border-slate-200 flex flex-col justify-between space-y-4">
+            <div>
+              <div class="flex items-center justify-between">
+                <div class="flex items-center gap-2">
+                  <span class="w-2.5 h-2.5 rounded bg-emerald-600"></span>
+                  <h3 class="text-sm font-bold text-slate-900">BÊN PHẢI: TỶ TRỌNG CÔNG VIỆC THEO NGUỒN (%)</h3>
+                </div>
+                <span class="px-2 py-0.5 rounded bg-emerald-100 text-emerald-800 font-mono font-bold text-xs">Cơ cấu chuẩn hóa 100%</span>
+              </div>
+              <p class="text-xs text-slate-500 mt-1">Biểu đồ 100% Stacked Bar thể hiện tỷ lệ % dịch chuyển tỷ trọng các kênh</p>
+            </div>
+
+            <!-- CSS 100% Stacked Bars (Uniform 200px Height) -->
+            <div class="h-56 bg-white rounded-lg p-3 border border-slate-200 flex items-end justify-between gap-2">
+              <!-- Jun 2026 -->
+              <div class="flex-1 flex flex-col items-center">
+                <span class="text-[11px] font-bold font-mono text-slate-500 mb-1">100%</span>
+                <div class="w-full max-w-[48px] rounded-t overflow-hidden flex flex-col-reverse shadow-sm h-[200px]">
+                  <div class="w-full bg-[#e11d48]" style="height: 12.30%"></div>
+                  <div class="w-full bg-[#0284c7]" style="height: 21.40%"></div>
+                  <div class="w-full bg-[#0891b2]" style="height: 8.20%"></div>
+                  <div class="w-full bg-[#059669]" style="height: 14.80%"></div>
+                  <div class="w-full bg-[#f59e0b]" style="height: 17.50%"></div>
+                  <div class="w-full bg-[#64748b]" style="height: 5.60%"></div>
+                  <div class="w-full bg-[#ca8a04]" style="height: 10.90%"></div>
+                  <div class="w-full bg-[#db2777]" style="height: 5.10%"></div>
+                  <div class="w-full bg-[#581c87]" style="height: 4.20%"></div>
+                </div>
+                <span class="text-[11px] text-slate-600 mt-2 font-medium">Jun 2026</span>
+              </div>
+
+              <!-- Jul 2026 -->
+              <div class="flex-1 flex flex-col items-center">
+                <span class="text-[11px] font-bold font-mono text-brand mb-1">100%</span>
+                <div class="w-full max-w-[48px] rounded-t overflow-hidden flex flex-col-reverse shadow-sm h-[200px]">
+                  <div class="w-full bg-[#e11d48]" style="height: 10.50%"></div>
+                  <div class="w-full bg-[#0284c7]" style="height: 24.20%"></div>
+                  <div class="w-full bg-[#0891b2]" style="height: 7.40%"></div>
+                  <div class="w-full bg-[#059669]" style="height: 15.20%"></div>
+                  <div class="w-full bg-[#f59e0b]" style="height: 18.90%"></div>
+                  <div class="w-full bg-[#64748b]" style="height: 4.80%"></div>
+                  <div class="w-full bg-[#ca8a04]" style="height: 9.80%"></div>
+                  <div class="w-full bg-[#db2777]" style="height: 5.50%"></div>
+                  <div class="w-full bg-[#581c87]" style="height: 3.70%"></div>
+                </div>
+                <span class="text-[11px] text-brand mt-2 font-bold">Jul 2026</span>
+              </div>
+
+              <!-- Aug 2026 -->
+              <div class="flex-1 flex flex-col items-center">
+                <span class="text-[11px] font-bold font-mono text-slate-500 mb-1">100%</span>
+                <div class="w-full max-w-[48px] rounded-t overflow-hidden flex flex-col-reverse shadow-sm h-[200px]">
+                  <div class="w-full bg-[#e11d48]" style="height: 11.20%"></div>
+                  <div class="w-full bg-[#0284c7]" style="height: 22.80%"></div>
+                  <div class="w-full bg-[#0891b2]" style="height: 8.60%"></div>
+                  <div class="w-full bg-[#059669]" style="height: 16.10%"></div>
+                  <div class="w-full bg-[#f59e0b]" style="height: 16.90%"></div>
+                  <div class="w-full bg-[#64748b]" style="height: 5.10%"></div>
+                  <div class="w-full bg-[#ca8a04]" style="height: 10.50%"></div>
+                  <div class="w-full bg-[#db2777]" style="height: 4.90%"></div>
+                  <div class="w-full bg-[#581c87]" style="height: 3.90%"></div>
+                </div>
+                <span class="text-[11px] text-slate-600 mt-2 font-medium">Aug 2026</span>
+              </div>
+
+              <!-- Sep 2026 -->
+              <div class="flex-1 flex flex-col items-center">
+                <span class="text-[11px] font-bold font-mono text-slate-500 mb-1">100%</span>
+                <div class="w-full max-w-[48px] rounded-t overflow-hidden flex flex-col-reverse shadow-sm h-[200px]">
+                  <div class="w-full bg-[#e11d48]" style="height: 12.10%"></div>
+                  <div class="w-full bg-[#0284c7]" style="height: 21.60%"></div>
+                  <div class="w-full bg-[#0891b2]" style="height: 9.10%"></div>
+                  <div class="w-full bg-[#059669]" style="height: 17.30%"></div>
+                  <div class="w-full bg-[#f59e0b]" style="height: 15.80%"></div>
+                  <div class="w-full bg-[#64748b]" style="height: 5.70%"></div>
+                  <div class="w-full bg-[#ca8a04]" style="height: 9.90%"></div>
+                  <div class="w-full bg-[#db2777]" style="height: 4.80%"></div>
+                  <div class="w-full bg-[#581c87]" style="height: 3.70%"></div>
+                </div>
+                <span class="text-[11px] text-slate-600 mt-2 font-medium">Sep 2026</span>
+              </div>
+
+              <!-- Oct 2026 -->
+              <div class="flex-1 flex flex-col items-center">
+                <span class="text-[11px] font-bold font-mono text-slate-800 mb-1">100%</span>
+                <div class="w-full max-w-[48px] rounded-t overflow-hidden flex flex-col-reverse shadow-sm h-[200px]">
+                  <div class="w-full bg-[#e11d48]" style="height: 13.00%"></div>
+                  <div class="w-full bg-[#0284c7]" style="height: 22.30%"></div>
+                  <div class="w-full bg-[#0891b2]" style="height: 8.50%"></div>
+                  <div class="w-full bg-[#059669]" style="height: 18.00%"></div>
+                  <div class="w-full bg-[#f59e0b]" style="height: 14.90%"></div>
+                  <div class="w-full bg-[#64748b]" style="height: 5.20%"></div>
+                  <div class="w-full bg-[#ca8a04]" style="height: 9.60%"></div>
+                  <div class="w-full bg-[#db2777]" style="height: 4.70%"></div>
+                  <div class="w-full bg-[#581c87]" style="height: 3.80%"></div>
+                </div>
+                <span class="text-[11px] text-slate-800 mt-2 font-bold">Oct 2026</span>
+              </div>
+            </div>
+
+            <!-- Bảng chi tiết CƠ CẤU TỶ LỆ % -->
+            <div class="overflow-x-auto rounded-lg border border-slate-200 bg-white">
+              <table class="w-full text-left text-[11px]">
+                <thead class="bg-slate-100 text-slate-700 font-semibold uppercase">
+                  <tr>
+                    <th class="py-2 px-2.5">Nguồn tạo (% Tỷ trọng)</th>
+                    <th class="py-2 px-2 text-right">Jun</th>
+                    <th class="py-2 px-2 text-right">Jul</th>
+                    <th class="py-2 px-2 text-right">Aug</th>
+                    <th class="py-2 px-2 text-right">Sep</th>
+                    <th class="py-2 px-2 text-right">Oct</th>
+                    <th class="py-2 px-2 text-right font-bold text-emerald-700">TB (%)</th>
+                  </tr>
+                </thead>
+                <tbody class="divide-y divide-slate-100 font-mono text-slate-700">
+                  <tr class="hover:bg-slate-50"><td class="py-1.5 px-2.5 font-sans flex items-center gap-1.5"><span class="w-2 h-2 rounded bg-[#e11d48]"></span>Administr...</td><td class="py-1.5 px-2 text-right">12.30%</td><td class="py-1.5 px-2 text-right">10.50%</td><td class="py-1.5 px-2 text-right">11.20%</td><td class="py-1.5 px-2 text-right">12.10%</td><td class="py-1.5 px-2 text-right">13.00%</td><td class="py-1.5 px-2 text-right font-semibold">11.64%</td></tr>
+                  <tr class="hover:bg-slate-50"><td class="py-1.5 px-2.5 font-sans flex items-center gap-1.5"><span class="w-2 h-2 rounded bg-[#0284c7]"></span>AI ElevenLabs</td><td class="py-1.5 px-2 text-right font-medium text-sky-700">21.40%</td><td class="py-1.5 px-2 text-right font-bold text-sky-700">24.20%</td><td class="py-1.5 px-2 text-right font-medium text-sky-700">22.80%</td><td class="py-1.5 px-2 text-right font-medium text-sky-700">21.60%</td><td class="py-1.5 px-2 text-right font-medium text-sky-700">22.30%</td><td class="py-1.5 px-2 text-right font-bold text-sky-700">22.65%</td></tr>
+                  <tr class="hover:bg-slate-50"><td class="py-1.5 px-2.5 font-sans flex items-center gap-1.5"><span class="w-2 h-2 rounded bg-[#0891b2]"></span>CTV</td><td class="py-1.5 px-2 text-right">8.20%</td><td class="py-1.5 px-2 text-right">7.40%</td><td class="py-1.5 px-2 text-right">8.60%</td><td class="py-1.5 px-2 text-right">9.10%</td><td class="py-1.5 px-2 text-right">8.50%</td><td class="py-1.5 px-2 text-right font-semibold">8.23%</td></tr>
+                  <tr class="hover:bg-slate-50"><td class="py-1.5 px-2.5 font-sans flex items-center gap-1.5"><span class="w-2 h-2 rounded bg-[#059669]"></span>Nguồn D...</td><td class="py-1.5 px-2 text-right">14.80%</td><td class="py-1.5 px-2 text-right">15.20%</td><td class="py-1.5 px-2 text-right">16.10%</td><td class="py-1.5 px-2 text-right">17.30%</td><td class="py-1.5 px-2 text-right">18.00%</td><td class="py-1.5 px-2 text-right font-semibold">16.05%</td></tr>
+                  <tr class="hover:bg-slate-50"><td class="py-1.5 px-2.5 font-sans flex items-center gap-1.5"><span class="w-2 h-2 rounded bg-[#f59e0b]"></span>Nguồn S...</td><td class="py-1.5 px-2 text-right">17.50%</td><td class="py-1.5 px-2 text-right">18.90%</td><td class="py-1.5 px-2 text-right">16.90%</td><td class="py-1.5 px-2 text-right">15.80%</td><td class="py-1.5 px-2 text-right">14.90%</td><td class="py-1.5 px-2 text-right font-semibold">17.13%</td></tr>
+                  <tr class="hover:bg-slate-50"><td class="py-1.5 px-2.5 font-sans flex items-center gap-1.5"><span class="w-2 h-2 rounded bg-[#64748b]"></span>Others</td><td class="py-1.5 px-2 text-right">5.60%</td><td class="py-1.5 px-2 text-right">4.80%</td><td class="py-1.5 px-2 text-right">5.10%</td><td class="py-1.5 px-2 text-right">5.70%</td><td class="py-1.5 px-2 text-right">5.20%</td><td class="py-1.5 px-2 text-right font-semibold">5.23%</td></tr>
+                  <tr class="hover:bg-slate-50"><td class="py-1.5 px-2.5 font-sans flex items-center gap-1.5"><span class="w-2 h-2 rounded bg-[#ca8a04]"></span>Outsourci...</td><td class="py-1.5 px-2 text-right">10.90%</td><td class="py-1.5 px-2 text-right">9.80%</td><td class="py-1.5 px-2 text-right">10.50%</td><td class="py-1.5 px-2 text-right">9.90%</td><td class="py-1.5 px-2 text-right">9.60%</td><td class="py-1.5 px-2 text-right font-semibold">10.15%</td></tr>
+                  <tr class="hover:bg-slate-50"><td class="py-1.5 px-2.5 font-sans flex items-center gap-1.5"><span class="w-2 h-2 rounded bg-[#db2777]"></span>PTSP</td><td class="py-1.5 px-2 text-right">5.10%</td><td class="py-1.5 px-2 text-right">5.50%</td><td class="py-1.5 px-2 text-right">4.90%</td><td class="py-1.5 px-2 text-right">4.80%</td><td class="py-1.5 px-2 text-right">4.70%</td><td class="py-1.5 px-2 text-right font-semibold">5.07%</td></tr>
+                  <tr class="hover:bg-slate-50"><td class="py-1.5 px-2.5 font-sans flex items-center gap-1.5"><span class="w-2 h-2 rounded bg-[#581c87]"></span>Renewal...</td><td class="py-1.5 px-2 text-right">4.20%</td><td class="py-1.5 px-2 text-right">3.70%</td><td class="py-1.5 px-2 text-right">3.90%</td><td class="py-1.5 px-2 text-right">3.70%</td><td class="py-1.5 px-2 text-right">3.80%</td><td class="py-1.5 px-2 text-right font-semibold">3.86%</td></tr>
+                </tbody>
+                <tfoot class="bg-slate-100 font-bold font-mono text-slate-900 border-t border-slate-200">
+                  <tr>
+                    <td class="py-1.5 px-2.5 font-sans">Tổng tỷ trọng (%)</td>
+                    <td class="py-1.5 px-2 text-right">100.0%</td>
+                    <td class="py-1.5 px-2 text-right text-emerald-700">100.0%</td>
+                    <td class="py-1.5 px-2 text-right">100.0%</td>
+                    <td class="py-1.5 px-2 text-right">100.0%</td>
+                    <td class="py-1.5 px-2 text-right">100.0%</td>
+                    <td class="py-1.5 px-2 text-right text-emerald-700">100.0%</td>
+                  </tr>
+                </tfoot>
+              </table>
+            </div>
+          </div>
+
+        </div>
+      </div>
+
+      <!-- BẢNG 3: TỶ TRỌNG CÔNG VIỆC THEO LOẠI TICKET (Hoàn toàn bằng HTML/CSS sạch đẹp) -->
+      <div class="grid grid-cols-1 lg:grid-cols-12 gap-5">
+        <!-- Horizontal Stacked Bars -->
+        <div class="lg:col-span-7 bg-white rounded-xl p-5 shadow-sm border border-slate-200 flex flex-col justify-between space-y-4">
+          <div>
+            <div class="flex items-center gap-2">
+              <span class="material-symbols-outlined text-brand text-[20px]">pie_chart</span>
+              <h2 class="text-base md:text-lg font-bold text-slate-900">Tỷ Trọng Công Việc Ticket Theo Loại Ticket Theo Tháng</h2>
+            </div>
+            <p class="text-xs text-slate-500 mt-0.5">Cơ cấu 3 phân nhóm chức năng chính (Jun 2026 - Oct 2026)</p>
+            <div class="flex flex-wrap items-center gap-4 mt-3 pb-2 border-b border-slate-100 text-xs">
+              <div class="flex items-center gap-1.5">
+                <span class="w-3 h-3 rounded bg-[#0284c7]"></span>
+                <span class="font-medium text-slate-700">Hỗ trợ HĐĐT - CKS</span>
+              </div>
+              <div class="flex items-center gap-1.5">
+                <span class="w-3 h-3 rounded bg-[#1e3a8a]"></span>
+                <span class="font-medium text-slate-700">Hỗ trợ kỹ thuật</span>
+              </div>
+              <div class="flex items-center gap-1.5">
+                <span class="w-3 h-3 rounded bg-[#db2777]"></span>
+                <span class="font-medium text-slate-700">Hỗ trợ phần mềm</span>
+              </div>
+            </div>
+          </div>
+
+          <!-- Horizontal Bars -->
+          <div class="space-y-3.5 font-mono text-xs">
+            <div>
+              <div class="flex justify-between items-center text-xs mb-1 font-sans">
+                <span class="font-medium text-slate-700">Jun 2026 (23,931 tickets)</span>
+                <span class="text-slate-400 font-mono">100%</span>
+              </div>
+              <div class="w-full h-7 rounded-md overflow-hidden flex text-white font-semibold text-[11px] shadow-sm">
+                <div class="bg-[#0284c7] flex items-center justify-center" style="width: 16.96%">16.96%</div>
+                <div class="bg-[#1e3a8a] flex items-center justify-center" style="width: 41.34%">41.34%</div>
+                <div class="bg-[#db2777] flex items-center justify-center" style="width: 41.70%">41.70%</div>
+              </div>
+            </div>
+
+            <div>
+              <div class="flex justify-between items-center text-xs mb-1 font-sans">
+                <span class="font-bold text-brand">Jul 2026 (33,388 tickets - Đỉnh năm)</span>
+                <span class="text-slate-400 font-mono">100%</span>
+              </div>
+              <div class="w-full h-7 rounded-md overflow-hidden flex text-white font-semibold text-[11px] shadow-sm ring-1 ring-brand">
+                <div class="bg-[#0284c7] flex items-center justify-center font-bold" style="width: 22.15%">22.15%</div>
+                <div class="bg-[#1e3a8a] flex items-center justify-center" style="width: 35.05%">35.05%</div>
+                <div class="bg-[#db2777] flex items-center justify-center font-bold" style="width: 42.80%">42.80%</div>
+              </div>
+            </div>
+
+            <div>
+              <div class="flex justify-between items-center text-xs mb-1 font-sans">
+                <span class="font-medium text-slate-700">Aug 2026 (21,664 tickets)</span>
+                <span class="text-slate-400 font-mono">100%</span>
+              </div>
+              <div class="w-full h-7 rounded-md overflow-hidden flex text-white font-semibold text-[11px] shadow-sm">
+                <div class="bg-[#0284c7] flex items-center justify-center" style="width: 18.45%">18.45%</div>
+                <div class="bg-[#1e3a8a] flex items-center justify-center" style="width: 41.04%">41.04%</div>
+                <div class="bg-[#db2777] flex items-center justify-center" style="width: 40.51%">40.51%</div>
+              </div>
+            </div>
+
+            <div>
+              <div class="flex justify-between items-center text-xs mb-1 font-sans">
+                <span class="font-medium text-slate-700">Sep 2026 (18,072 tickets)</span>
+                <span class="text-slate-400 font-mono">100%</span>
+              </div>
+              <div class="w-full h-7 rounded-md overflow-hidden flex text-white font-semibold text-[11px] shadow-sm">
+                <div class="bg-[#0284c7] flex items-center justify-center" style="width: 15.95%">15.95%</div>
+                <div class="bg-[#1e3a8a] flex items-center justify-center" style="width: 41.81%">41.81%</div>
+                <div class="bg-[#db2777] flex items-center justify-center" style="width: 42.24%">42.24%</div>
+              </div>
+            </div>
+
+            <div>
+              <div class="flex justify-between items-center text-xs mb-1 font-sans">
+                <span class="font-bold text-slate-900">Oct 2026 (17,639 tickets - Hiện tại)</span>
+                <span class="text-slate-400 font-mono">100%</span>
+              </div>
+              <div class="w-full h-7 rounded-md overflow-hidden flex text-white font-semibold text-[11px] shadow-sm ring-1 ring-slate-400">
+                <div class="bg-[#0284c7] flex items-center justify-center font-bold" style="width: 22.02%">22.02%</div>
+                <div class="bg-[#1e3a8a] flex items-center justify-center" style="width: 37.25%">37.25%</div>
+                <div class="bg-[#db2777] flex items-center justify-center" style="width: 40.73%">40.73%</div>
+              </div>
+            </div>
+          </div>
+
+          <div class="p-3 bg-sky-50 rounded-lg text-xs flex items-center justify-between text-slate-700">
+            <span class="font-semibold text-brand">Điểm nhấn vận hành:</span>
+            <span class="">HĐĐT - CKS tăng vọt vào Tháng 7 và Tháng 10 (~22% toàn bộ khối lượng)</span>
+          </div>
+        </div>
+
+        <!-- Right: Breakdown Table -->
+        <div class="lg:col-span-5 bg-white rounded-xl p-5 shadow-sm border border-slate-200 flex flex-col justify-between space-y-4">
+          <div>
+            <div class="flex items-center justify-between">
+              <h3 class="text-sm font-bold text-slate-900">Bảng Đối Soát Tỷ Lệ Theo Loại Ticket</h3>
+              <span class="px-2 py-0.5 rounded bg-slate-100 text-slate-600 font-mono text-xs">5 kỳ đối soát</span>
+            </div>
+            <p class="text-xs text-slate-500 mt-1 mb-3">Tỷ lệ cơ cấu 3 nhóm nghiệp vụ kỹ thuật cốt lõi</p>
+            
+            <div class="overflow-x-auto rounded-lg border border-slate-200">
+              <table class="w-full text-left text-xs">
+                <thead class="bg-slate-50 text-slate-700 font-semibold uppercase">
+                  <tr>
+                    <th class="py-2.5 px-3">Tháng</th>
+                    <th class="py-2.5 px-2 text-right text-[#0284c7]">HĐĐT - CKS</th>
+                    <th class="py-2.5 px-2 text-right text-[#1e3a8a]">Kỹ Thuật</th>
+                    <th class="py-2.5 px-2 text-right text-[#db2777]">Phần Mềm</th>
+                  </tr>
+                </thead>
+                <tbody class="divide-y divide-slate-100 font-mono text-slate-700">
+                  <tr class="hover:bg-slate-50">
+                    <td class="py-2 px-3 font-sans font-medium text-slate-900">Jun 2026</td>
+                    <td class="py-2 px-2 text-right font-medium text-[#0284c7]">16.96%</td>
+                    <td class="py-2 px-2 text-right font-medium text-[#1e3a8a]">41.34%</td>
+                    <td class="py-2 px-2 text-right font-medium text-[#db2777]">41.70%</td>
+                  </tr>
+                  <tr class="hover:bg-slate-50 bg-sky-50/40">
+                    <td class="py-2 px-3 font-sans font-bold text-brand">Jul 2026</td>
+                    <td class="py-2 px-2 text-right font-bold text-[#0284c7]">22.15%</td>
+                    <td class="py-2 px-2 text-right font-medium text-[#1e3a8a]">35.05%</td>
+                    <td class="py-2 px-2 text-right font-bold text-[#db2777]">42.80%</td>
+                  </tr>
+                  <tr class="hover:bg-slate-50">
+                    <td class="py-2 px-3 font-sans font-medium text-slate-900">Aug 2026</td>
+                    <td class="py-2 px-2 text-right font-medium text-[#0284c7]">18.45%</td>
+                    <td class="py-2 px-2 text-right font-medium text-[#1e3a8a]">41.04%</td>
+                    <td class="py-2 px-2 text-right font-medium text-[#db2777]">40.51%</td>
+                  </tr>
+                  <tr class="hover:bg-slate-50">
+                    <td class="py-2 px-3 font-sans font-medium text-slate-900">Sep 2026</td>
+                    <td class="py-2 px-2 text-right font-medium text-[#0284c7]">15.95%</td>
+                    <td class="py-2 px-2 text-right font-medium text-[#1e3a8a]">41.81%</td>
+                    <td class="py-2 px-2 text-right font-medium text-[#db2777]">42.24%</td>
+                  </tr>
+                  <tr class="hover:bg-slate-50 bg-slate-100/50">
+                    <td class="py-2 px-3 font-sans font-bold text-slate-900">Oct 2026</td>
+                    <td class="py-2 px-2 text-right font-bold text-[#0284c7]">22.02%</td>
+                    <td class="py-2 px-2 text-right font-medium text-[#1e3a8a]">37.25%</td>
+                    <td class="py-2 px-2 text-right font-medium text-[#db2777]">40.73%</td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+
+          <div class="p-3 bg-slate-50 rounded-lg text-[11px] text-slate-600 space-y-1">
+            <div class="font-semibold text-slate-800">Ghi chú vận hành hệ thống:</div>
+            <div class="">• Ticket Phần mềm giữ mức ổn định cao nhất (40.5% - 42.8%).</div>
+            <div class="">• Ticket Kỹ thuật giảm nhẹ vào các tháng cao điểm hóa đơn điện tử.</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- RECOMMENDATIONS CARD -->
+      <div class="bg-white rounded-xl p-5 shadow-sm border border-slate-200">
+        <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-2 pb-3 mb-3 border-b border-slate-100">
+          <div class="flex items-center gap-2">
+            <span class="material-symbols-outlined text-brand text-[22px]">verified</span>
+            <h3 class="text-sm md:text-base font-bold text-slate-900">Kết Luận Vận Hành &amp; Khuyến Nghị Trực Ban Hỗ Trợ Ticket</h3>
+          </div>
+          <span class="text-xs text-slate-400 font-mono">SLA Monitor Alert · Dữ liệu tự động</span>
+        </div>
+        
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-4 text-xs">
+          <div class="p-3.5 rounded-lg bg-rose-50 border border-rose-100">
+            <div class="flex items-center gap-1.5 text-rose-700 font-bold mb-1">
+              <span class="material-symbols-outlined text-[18px]">warning</span>
+              <span class="">Cải thiện tốc độ Assign (Hiện tại: 71.43%)</span>
+            </div>
+            <p class="text-slate-600 leading-relaxed">
+              Các ngày đầu tuần (Thứ 2, Thứ 4) có số lượng ticket tạo đột biến &gt; 1,000 ticket/ngày khiến thời gian chờ assign kéo dài đến 396 phút. Cần bổ sung ca trực phân luồng tự động lúc 08:30 - 10:30.
+            </p>
+          </div>
+
+          <div class="p-3.5 rounded-lg bg-emerald-50 border border-emerald-100">
+            <div class="flex items-center gap-1.5 text-emerald-800 font-bold mb-1">
+              <span class="material-symbols-outlined text-[18px]">check_circle</span>
+              <span class="">Thời gian xử lý đạt chuẩn xuất sắc (41 phút)</span>
+            </div>
+            <p class="text-slate-600 leading-relaxed">
+              Mục tiêu cam kết ≤ 180 phút (3h). Kỹ thuật viên xử lý trung bình chỉ mất 41 phút/ticket, thể hiện chuyên môn và tài liệu hướng dẫn nghiệp vụ đang hỗ trợ rất tốt.
+            </p>
+          </div>
+
+          <div class="p-3.5 rounded-lg bg-sky-50 border border-sky-100">
+            <div class="flex items-center gap-1.5 text-brand font-bold mb-1">
+              <span class="material-symbols-outlined text-[18px]">tune</span>
+              <span class="">Dự phòng cao điểm HĐĐT - CKS</span>
+            </div>
+            <p class="text-slate-600 leading-relaxed">
+              Tỷ trọng ticket HĐĐT - CKS có chu kỳ tăng vọt lên 22% vào tháng giao thời nộp báo cáo quý. Khuyến nghị phối hợp đội PTSP chuẩn bị sẵn các kịch bản mẫu cho chatbot AI ElevenLabs.
+            </p>
+          </div>
+        </div>
+      </div>
+
+    </main>
+  </div>
+
+  <!-- INTERACTIVE JAVASCRIPT: SIDEBAR COLLAPSE / EXPAND -->
+  <script>
+    (function() {
+      const sidebar = document.getElementById('mainSidebar');
+      const content = document.getElementById('contentWrapper');
+      const header = document.getElementById('mainHeader');
+      const toggleBtn = document.getElementById('sidebarToggleBtn');
+      const headerBtn = document.getElementById('headerToggleBtn');
+      const toggleIcon = document.getElementById('sidebarToggleIcon');
+      const labels = document.querySelectorAll('.sidebar-label');
+      const titles = document.querySelectorAll('.sidebar-section-title');
+      const dividers = document.querySelectorAll('.sidebar-divider');
+      const items = document.querySelectorAll('.sidebar-item');
+
+      let isCollapsed = false;
+
+      function toggle() {
+        isCollapsed = !isCollapsed;
+        if (isCollapsed) {
+          sidebar.classList.remove('sidebar-expanded');
+          sidebar.classList.add('sidebar-collapsed');
+          content.classList.remove('content-expanded');
+          content.classList.add('content-collapsed');
+          header.classList.remove('header-expanded');
+          header.classList.add('header-collapsed');
+          if (toggleIcon) toggleIcon.textContent = 'menu';
+          labels.forEach(el => el.classList.add('hidden'));
+          titles.forEach(el => el.classList.add('hidden'));
+          dividers.forEach(el => el.classList.remove('hidden'));
+          items.forEach(el => {
+            el.classList.add('justify-center', 'px-2');
+            el.classList.remove('px-3');
+          });
+        } else {
+          sidebar.classList.remove('sidebar-collapsed');
+          sidebar.classList.add('sidebar-expanded');
+          content.classList.remove('content-collapsed');
+          content.classList.add('content-expanded');
+          header.classList.remove('header-collapsed');
+          header.classList.add('header-expanded');
+          if (toggleIcon) toggleIcon.textContent = 'menu_open';
+          labels.forEach(el => el.classList.remove('hidden'));
+          titles.forEach(el => el.classList.remove('hidden'));
+          dividers.forEach(el => el.classList.add('hidden'));
+          items.forEach(el => {
+            el.classList.remove('justify-center', 'px-2');
+            el.classList.add('px-3');
+          });
+        }
+      }
+
+      if (toggleBtn) toggleBtn.addEventListener('click', toggle);
+      if (headerBtn) headerBtn.addEventListener('click', toggle);
+    })();
+  </script>
+
+
+
+
+
+</body></html>

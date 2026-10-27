@@ -1,0 +1,764 @@
+<!DOCTYPE html>
+
+<html lang="vi"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<meta content="web_dashboard" name="shell-type"/>
+<title>KiotViet CSKH - Tổng quan Hiệu suất Vận hành &amp; Chỉ số KPI</title>
+<link href="https://fonts.googleapis.com" rel="preconnect"/>
+<link crossorigin="" href="https://fonts.gstatic.com" rel="preconnect"/>
+<link href="https://fonts.googleapis.com/css2?family=Be+Vietnam+Pro:wght@400;500;600;700&amp;family=Inter:wght@400;500;600;700&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200" rel="stylesheet"/>
+<style>
+    @layer base {
+      html, body {
+        margin: 0;
+        padding: 0;
+      }
+      body {
+        overscroll-behavior: none;
+      }
+    }
+    ::-webkit-scrollbar {
+      width: 6px;
+      height: 6px;
+    }
+    ::-webkit-scrollbar-track {
+      background: transparent;
+    }
+    ::-webkit-scrollbar-thumb {
+      background: #cbd5e1;
+      border-radius: 9999px;
+    }
+    ::-webkit-scrollbar-thumb:hover {
+      background: #94a3b8;
+    }
+    
+    /* Layout width controls */
+    .sidebar-expanded {
+      width: 268px;
+    }
+    .sidebar-collapsed {
+      width: 72px;
+    }
+    .content-expanded {
+      padding-left: 268px;
+    }
+    .content-collapsed {
+      padding-left: 72px;
+    }
+    .header-expanded {
+      left: 268px;
+    }
+    .header-collapsed {
+      left: 72px;
+    }
+  </style>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<script id="tailwind-config">
+    tailwind.config = {
+      darkMode: "class",
+      theme: {
+        extend: {
+          colors: {
+            primary: "#0090da",
+            "primary-dark": "#007aba",
+            "kiotviet": "#0090da",
+            "kiotgreen": "#20C65A",
+            secondary: "#006e2c",
+            "secondary-container": "#dcfce7",
+            "on-secondary-container": "#00722f",
+            error: "#ba1a1a",
+            "error-container": "#ffdad6",
+            "on-error-container": "#93000a",
+            tertiary: "#385e8c",
+            "tertiary-fixed": "#d3e3ff",
+            "on-tertiary-fixed-variant": "#204875",
+            surface: "#f8f9ff",
+            background: "#f8f9ff",
+            "on-surface": "#0b1c30",
+            "on-surface-variant": "#475569",
+            outline: "#64748b",
+            "outline-variant": "#e2e8f0",
+            "surface-container-lowest": "#ffffff",
+            "surface-container-low": "#eff4ff",
+            "surface-container": "#e2ecfa",
+            "surface-container-high": "#dbe7f7"
+          },
+          fontFamily: {
+            body: ["Be Vietnam Pro", "sans-serif"],
+            sans: ["Be Vietnam Pro", "sans-serif"],
+            code: ["Inter", "monospace"]
+          }
+        }
+      }
+    };
+  </script>
+</head>
+<body class="bg-background font-body text-on-surface antialiased selection:bg-primary/20 selection:text-primary">
+<!-- ==================== SIDEBAR ==================== -->
+<aside class="sidebar-expanded fixed left-0 top-0 h-screen bg-surface-container-lowest z-50 flex flex-col border-r border-slate-200 shadow-[2px_0_12px_rgba(11,28,48,0.04)] transition-all duration-300 ease-in-out" id="mainSidebar">
+<!-- Brand & Toggle Header -->
+<div class="h-16 px-4 flex items-center justify-between border-b border-slate-100 shrink-0">
+<div class="flex items-center gap-2.5 min-w-0 overflow-hidden" id="brandContainer">
+<div class="logo-full flex items-center gap-2">
+<img alt="KiotViet Logo" class="h-6 w-auto object-contain shrink-0" src="https://lh3.googleusercontent.com/aida-public/AB6AXuBnIJ4YU-wrAEwQjWidbL8LAvHVa6QOoc9Dtv33lz1xA2TdisUqSsBNb1UgGCbmyI7ogwPg1l9cPvyQgtX905RmYbEe2Gdx120nqeHFCGWjj7SzTZSexq0moBR6lEeCIquoeuepDzHxKU1aOlw-MAfeSt4uo_UlO8lCifxEIJAlDxh_en6gHFaK_xZjcd-uF0D7sofM2ozm8KqLv7K7g1OQ8Mz-YFwWgG-X2cjGpXrxCZssvfOaKSWojTuYKfh_HYNzPec"/>
+<span class="inline-flex items-center px-1.5 py-0.5 rounded text-[11px] font-bold bg-[#e0f2fe] text-[#0369a1] tracking-wide shrink-0">CSKH</span>
+</div>
+<div class="logo-compact hidden w-9 h-9 rounded-lg bg-primary text-white flex items-center justify-center font-bold text-lg shadow-sm shrink-0" title="KiotViet CSKH">
+          K
+        </div>
+</div>
+<button aria-label="Thu gọn / mở rộng menu" class="text-slate-400 hover:text-primary p-1.5 rounded-lg hover:bg-slate-100 transition-colors focus:outline-none shrink-0" id="sidebarToggleBtn" title="Thu gọn / Mở rộng menu (Phím tắt: Ctrl + B)" type="button">
+<span class="material-symbols-outlined text-[20px] transition-transform duration-300" id="sidebarToggleIcon">menu_open</span>
+</button>
+</div>
+<!-- Navigation Scrollable Area -->
+<div class="flex-1 overflow-y-auto px-3 py-3 overflow-x-hidden space-y-4">
+<!-- Top Primary Item: Tổng quan -->
+<div>
+<a class="sidebar-item flex items-center gap-3 px-3 py-2.5 rounded-lg bg-[#0090da] text-white font-semibold shadow-sm transition-all text-[13.5px]" href="#" title="Tổng quan">
+<span class="material-symbols-outlined text-[20px] shrink-0 text-white">dashboard</span>
+<span class="sidebar-text truncate">Tổng quan</span>
+</a>
+</div>
+<!-- Section: KÊNH VẬN HÀNH -->
+<div class="sidebar-section">
+<div class="sidebar-section-header px-3 pb-1.5 text-[11px] font-bold text-slate-400 uppercase tracking-wider select-none truncate">
+          Kênh Vận Hành
+        </div>
+<div class="space-y-0.5">
+<a class="sidebar-item flex items-center gap-3 px-3 py-2 rounded-lg text-slate-700 hover:text-[#0090da] hover:bg-slate-50 transition-colors text-[13px] font-medium" href="#" title="Call Center (1900 6522)">
+<span class="material-symbols-outlined text-[20px] text-slate-400 group-hover:text-[#0090da] shrink-0">headset_mic</span>
+<span class="sidebar-text truncate">Call Center</span>
+</a>
+<a class="sidebar-item flex items-center gap-3 px-3 py-2 rounded-lg text-slate-700 hover:text-[#0090da] hover:bg-slate-50 transition-colors text-[13px] font-medium" href="#" title="Chat (Freshchat)">
+<span class="material-symbols-outlined text-[20px] text-slate-400 shrink-0">forum</span>
+<span class="sidebar-text truncate">Chat (Freshchat)</span>
+</a>
+<a class="sidebar-item flex items-center gap-3 px-3 py-2 rounded-lg text-slate-700 hover:text-[#0090da] hover:bg-slate-50 transition-colors text-[13px] font-medium" href="#" title="Ticket Hỗ trợ">
+<span class="material-symbols-outlined text-[20px] text-slate-400 shrink-0">confirmation_number</span>
+<span class="sidebar-text truncate">Ticket Hỗ trợ</span>
+</a>
+</div>
+</div>
+<!-- Section: LỰC LƯỢNG NHÂN SỰ -->
+<div class="sidebar-section">
+<div class="sidebar-section-header px-3 pb-1.5 text-[11px] font-bold text-slate-400 uppercase tracking-wider select-none truncate">
+          Lực Lượng Nhân Sự
+        </div>
+<div class="space-y-0.5">
+<a class="sidebar-item flex items-center gap-3 px-3 py-2 rounded-lg text-slate-700 hover:text-[#0090da] hover:bg-slate-50 transition-colors text-[13px] font-medium" href="#" title="Nhân sự Inhouse">
+<span class="material-symbols-outlined text-[20px] text-slate-400 shrink-0">badge</span>
+<span class="sidebar-text truncate">Nhân sự Inhouse</span>
+</a>
+<a class="sidebar-item flex items-center gap-3 px-3 py-2 rounded-lg text-slate-700 hover:text-[#0090da] hover:bg-slate-50 transition-colors text-[13px] font-medium" href="#" title="Nhân sự Outsourced (OS)">
+<span class="material-symbols-outlined text-[20px] text-slate-400 shrink-0">supervised_user_circle</span>
+<span class="sidebar-text truncate">Nhân sự Outsourced (OS)</span>
+</a>
+<a class="sidebar-item flex items-center gap-3 px-3 py-2 rounded-lg text-slate-700 hover:text-[#0090da] hover:bg-slate-50 transition-colors text-[13px] font-medium" href="#" title="Đánh giá KPI">
+<span class="material-symbols-outlined text-[20px] text-slate-400 shrink-0">monitoring</span>
+<span class="sidebar-text truncate">Đánh giá KPI</span>
+</a>
+</div>
+</div>
+<!-- Section: PHÂN HỆ DỰ ÁN -->
+<div class="sidebar-section">
+<div class="sidebar-section-header px-3 pb-1.5 text-[11px] font-bold text-slate-400 uppercase tracking-wider select-none truncate">
+          Phân Hệ Dự Án
+        </div>
+<div class="space-y-0.5">
+<a class="sidebar-item flex items-center gap-3 px-3 py-2 rounded-lg text-slate-700 hover:text-[#0090da] hover:bg-slate-50 transition-colors text-[13px] font-medium" href="#" title="KiotViet Retail">
+<span class="material-symbols-outlined text-[20px] text-slate-400 shrink-0">storefront</span>
+<span class="sidebar-text truncate">KiotViet Retail</span>
+</a>
+<a class="sidebar-item flex items-center gap-3 px-3 py-2 rounded-lg text-slate-700 hover:text-[#0090da] hover:bg-slate-50 transition-colors text-[13px] font-medium" href="#" title="KiotViet FNB">
+<span class="material-symbols-outlined text-[20px] text-slate-400 shrink-0">restaurant</span>
+<span class="sidebar-text truncate">KiotViet FNB</span>
+</a>
+<a class="sidebar-item flex items-center gap-3 px-3 py-2 rounded-lg text-slate-700 hover:text-[#0090da] hover:bg-slate-50 transition-colors text-[13px] font-medium" href="#" title="KAT (FnB/Bar)">
+<span class="material-symbols-outlined text-[20px] text-slate-400 shrink-0">local_bar</span>
+<span class="sidebar-text truncate">KAT (FnB/Bar)</span>
+</a>
+<a class="sidebar-item flex items-center gap-3 px-3 py-2 rounded-lg text-slate-700 hover:text-[#0090da] hover:bg-slate-50 transition-colors text-[13px] font-medium" href="#" title="KiotViet Booking / Hotel">
+<span class="material-symbols-outlined text-[20px] text-slate-400 shrink-0">hotel</span>
+<span class="sidebar-text truncate">KiotViet Booking / Hotel</span>
+</a>
+<a class="sidebar-item flex items-center gap-3 px-3 py-2 rounded-lg text-slate-700 hover:text-[#0090da] hover:bg-slate-50 transition-colors text-[13px] font-medium" href="#" title="KiotViet Employ">
+<span class="material-symbols-outlined text-[20px] text-slate-400 shrink-0">groups</span>
+<span class="sidebar-text truncate">KiotViet Employ</span>
+</a>
+</div>
+</div>
+<!-- Section: CẤU HÌNH & BÁO CÁO -->
+<div class="sidebar-section">
+<div class="sidebar-section-header px-3 pb-1.5 text-[11px] font-bold text-slate-400 uppercase tracking-wider select-none truncate">
+          Cấu Hình &amp; Báo Cáo
+        </div>
+<div class="space-y-0.5">
+<a class="sidebar-item flex items-center gap-3 px-3 py-2 rounded-lg text-slate-700 hover:text-[#0090da] hover:bg-slate-50 transition-colors text-[13px] font-medium" href="#" title="Cấu hình mục tiêu KPI">
+<span class="material-symbols-outlined text-[20px] text-slate-400 shrink-0">tune</span>
+<span class="sidebar-text truncate">Cấu hình mục tiêu KPI</span>
+</a>
+<a class="sidebar-item flex items-center gap-3 px-3 py-2 rounded-lg text-slate-700 hover:text-[#0090da] hover:bg-slate-50 transition-colors text-[13px] font-medium" href="#" title="Báo cáo xuất khẩu">
+<span class="material-symbols-outlined text-[20px] text-slate-400 shrink-0">ios_share</span>
+<span class="sidebar-text truncate">Báo cáo xuất khẩu</span>
+</a>
+<a class="sidebar-item flex items-center gap-3 px-3 py-2 rounded-lg text-slate-700 hover:text-[#0090da] hover:bg-slate-50 transition-colors text-[13px] font-medium" href="#" title="Nhật ký đồng bộ dữ liệu">
+<span class="material-symbols-outlined text-[20px] text-slate-400 shrink-0">history_toggle_off</span>
+<span class="sidebar-text truncate">Nhật ký đồng bộ dữ liệu</span>
+</a>
+</div>
+</div>
+</div>
+<!-- Sidebar Footer -->
+<div class="p-3.5 border-t border-slate-100 bg-slate-50/50 shrink-0 overflow-hidden">
+<div class="sidebar-footer-content">
+<div class="flex items-center gap-2 text-secondary text-[12px] font-semibold mb-1 truncate">
+<span class="w-2 h-2 rounded-full bg-[#20C65A] inline-block shrink-0 animate-pulse"></span>
+<span class="truncate">Hệ thống vận hành bình thường</span>
+</div>
+<div class="text-[11px] text-slate-400 flex items-center justify-between font-code">
+<span>Phiên bản v2.6.4</span>
+<span class="text-[#0090da] hover:underline cursor-pointer">Changelog</span>
+</div>
+</div>
+<div class="sidebar-footer-compact hidden flex items-center justify-center py-1" title="Hệ thống vận hành bình thường · v2.6.4">
+<span class="w-2.5 h-2.5 rounded-full bg-[#20C65A] inline-block animate-pulse"></span>
+</div>
+</div>
+</aside>
+<!-- ==================== MAIN CONTENT WRAPPER ==================== -->
+<div class="content-expanded transition-all duration-300 ease-in-out min-h-screen flex flex-col" id="mainContentWrapper">
+<!-- Top Fixed Header -->
+<header class="header-expanded fixed top-0 right-0 h-16 bg-white/95 backdrop-blur-md shadow-[0_1px_4px_rgba(7,55,99,0.05)] z-40 px-6 flex items-center justify-between gap-4 border-b border-slate-200 transition-all duration-300 ease-in-out" id="topHeader">
+<div class="flex items-center gap-3 min-w-0">
+<button class="p-1.5 rounded-lg text-slate-500 hover:text-primary hover:bg-slate-100 transition-colors" id="headerCollapseToggle" title="Thu gọn / Mở rộng Sidebar" type="button">
+<span class="material-symbols-outlined text-[20px]">view_sidebar</span>
+</button>
+<div class="hidden sm:flex items-center gap-2 bg-[#f0f4f9] px-3 py-1.5 rounded-lg border border-slate-200 min-w-0">
+<span class="material-symbols-outlined text-[17px] text-slate-500 shrink-0">calendar_clock</span>
+<span class="text-[12.5px] text-slate-600 truncate">Dữ liệu chốt đến: <strong class="text-slate-800 font-code font-semibold">Hết ngày hôm qua (T-1) · 23:59:59 - 22/10/2026</strong></span>
+</div>
+<div class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-blue-50 text-[#0090da] border border-blue-100 text-[12px] font-medium shrink-0">
+<span class="material-symbols-outlined text-[14px]">history</span>
+<span>Dữ liệu T-1 (Hôm qua)</span>
+</div>
+<button class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-white border border-slate-200 hover:bg-slate-50 text-slate-700 text-[12.5px] font-semibold transition-all shadow-sm shrink-0" id="refreshDataBtn" type="button">
+<span class="material-symbols-outlined text-[16px] text-primary" id="refreshIcon">sync</span>
+<span class="hidden md:inline">Đồng bộ lại dữ liệu T-1</span>
+</button>
+</div>
+<div class="flex items-center gap-4 shrink-0">
+<button class="relative p-2 rounded-lg text-slate-500 hover:bg-slate-100 hover:text-slate-800 transition-colors" type="button">
+<span class="material-symbols-outlined text-[22px]">notifications</span>
+<span class="absolute top-1.5 right-1.5 px-1.5 py-0.2 rounded-full bg-error text-white text-[10px] font-bold leading-tight">2</span>
+</button>
+<div class="flex items-center gap-2.5 cursor-pointer pl-1 group">
+<div class="w-8 h-8 rounded-full bg-[#0090da] flex items-center justify-center font-code text-white text-[12px] font-bold shadow-sm">TL</div>
+<div class="hidden xl:block text-left">
+<div class="text-[13px] font-bold text-slate-800 leading-snug group-hover:text-primary transition-colors">Trần Lâm</div>
+<div class="text-[11px] text-slate-400 leading-none">Quản lý CSKH</div>
+</div>
+<span class="material-symbols-outlined text-[18px] text-slate-400 group-hover:text-slate-600">arrow_drop_down</span>
+</div>
+</div>
+</header>
+<!-- Main Content Area -->
+<main class="w-full pt-20 px-6 pb-8 bg-background flex-1">
+<div class="flex flex-col w-full space-y-6 max-w-[1600px] mx-auto">
+<!-- Enterprise Header Bar -->
+<section class="bg-white rounded-xl p-5 shadow-sm border border-slate-200/80 flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
+<div>
+<div class="flex items-center gap-2.5 mb-1.5 flex-wrap">
+<h1 class="text-[22px] font-bold text-slate-900 tracking-tight">Tổng quan Hiệu suất Vận hành &amp; Chỉ số KPI</h1>
+<span class="px-2 py-0.5 rounded text-[11px] font-bold bg-blue-50 text-[#0090da] border border-blue-100 uppercase">T-1 Snapshot</span>
+</div>
+<p class="text-[13px] text-slate-500 flex items-center gap-1.5">
+<span class="material-symbols-outlined text-[16px] text-slate-400">info</span>
+<span>Lũy kế tháng này (MTD) - Chốt dữ liệu đến hết 22/10/2026 (Phạm vi toàn quốc: Hà Nội, TP.HCM, Đà Nẵng, Cần Thơ)</span>
+</p>
+</div>
+<div class="flex flex-wrap items-center gap-2.5 shrink-0">
+<div class="flex items-center p-1 bg-slate-100 rounded-lg">
+<button class="px-3.5 py-1.5 rounded-md bg-white text-[#0090da] font-bold text-[12.5px] shadow-sm" type="button">Tháng này (MTD)</button>
+<button class="px-3.5 py-1.5 rounded-md text-slate-600 hover:text-slate-900 font-medium text-[12.5px] transition-colors" type="button">Tháng trước</button>
+<button class="px-3.5 py-1.5 rounded-md text-slate-600 hover:text-slate-900 font-medium text-[12.5px] transition-colors" type="button">Quý 4/2026</button>
+</div>
+<button class="inline-flex items-center gap-1.5 px-4 py-2 rounded-lg bg-[#0090da] hover:bg-[#007aba] text-white font-semibold text-[13px] shadow-sm transition-all" type="button">
+<span class="material-symbols-outlined text-[18px]">file_download</span>
+<span>Xuất báo cáo PDF/Excel</span>
+</button>
+</div>
+</section>
+<!-- Hero Scorecard & 6 KPI Breakdown Table -->
+<section class="grid grid-cols-1 xl:grid-cols-12 gap-5">
+<!-- Left Hero Scorecard -->
+<div class="xl:col-span-4 bg-white rounded-xl p-5 shadow-sm border border-slate-200/80 flex flex-col justify-between">
+<div>
+<div class="flex items-center justify-between border-b border-slate-100 pb-3 mb-4">
+<span class="text-[11px] uppercase tracking-wider text-slate-400 font-bold">MTD Performance Score</span>
+<span class="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[11px] font-bold bg-[#dcfce7] text-[#00722f]">
+<span class="material-symbols-outlined text-[13px]">trending_up</span>+3.8% MoM
+                </span>
+</div>
+<div class="space-y-1">
+<div class="text-[12.5px] font-semibold text-slate-600 uppercase tracking-wide">
+                  Tổng Tỷ Lệ Hoàn Thành KPI Tháng Này
+                </div>
+<div class="flex items-baseline gap-2 pt-1">
+<span class="text-5xl font-black text-[#0090da] tracking-tight">88.6%</span>
+<span class="text-[15px] font-medium text-slate-400">/ 100% Target</span>
+</div>
+</div>
+<!-- Progress Bar -->
+<div class="mt-4 mb-4">
+<div class="w-full bg-slate-100 rounded-full h-3.5 overflow-hidden p-0.5 border border-slate-200/60">
+<div class="h-full rounded-full transition-all duration-700 bg-[#0090da]" style="width: 88.6%"></div>
+</div>
+<div class="flex justify-between items-center text-[11.5px] font-code text-slate-400 mt-1.5">
+<span>0%</span>
+<span class="font-bold text-slate-700">Hiện tại: 88.6%</span>
+<span>100% Target</span>
+</div>
+</div>
+<div class="p-3.5 rounded-xl bg-slate-50 border border-slate-200/70 space-y-1.5 mb-4">
+<div class="flex items-center gap-2">
+<span class="material-symbols-outlined text-[#20C65A] text-[18px]">check_circle</span>
+<span class="text-[13px] font-bold text-slate-800">Tiến độ khả quan</span>
+</div>
+<p class="text-[12.5px] text-slate-600 leading-relaxed">
+                  Còn 9 ngày làm việc để hoàn thành <strong class="text-slate-800">+11.4%</strong> đạt mốc 100% kế hoạch tháng. Điểm số tăng <strong class="text-slate-800">+3.8%</strong> so với cùng kỳ tháng trước (84.8%).
+                </p>
+</div>
+</div>
+<div class="pt-3 border-t border-slate-100 text-[12px] font-code text-slate-500 flex items-center justify-between">
+<span>Đánh giá xếp loại: <strong class="text-secondary font-bold">Hạng Tốt (Rank A)</strong></span>
+<span>6 Nhóm chỉ tiêu</span>
+</div>
+</div>
+<!-- Right 6 KPI Breakdown Table -->
+<div class="xl:col-span-8 bg-white rounded-xl p-5 shadow-sm border border-slate-200/80 flex flex-col justify-between">
+<div class="flex items-center justify-between mb-3.5">
+<div class="flex items-center gap-2">
+<span class="material-symbols-outlined text-[#0090da] text-[22px]">format_list_bulleted</span>
+<h2 class="text-[16px] text-slate-900 font-bold">Chi Tiết 6 Nhóm KPI Vận Hành Theo Trọng Số (Weights)</h2>
+</div>
+<span class="text-[12px] font-code text-slate-400 hidden sm:inline">Quy chuẩn Director/Manager CSKH</span>
+</div>
+<div class="overflow-x-auto">
+<table class="w-full text-left text-[13px] min-w-[560px]">
+<thead>
+<tr class="bg-slate-100/80 text-slate-500 text-[11px] font-bold uppercase tracking-wider">
+<th class="py-2.5 px-3 rounded-l-lg">Nhóm KPI</th>
+<th class="py-2.5 px-3 text-center">Tỷ trọng</th>
+<th class="py-2.5 px-3">Mục tiêu</th>
+<th class="py-2.5 px-3 font-semibold">Thực đạt (T-1)</th>
+<th class="py-2.5 px-3 font-semibold">Điểm đóng góp</th>
+<th class="py-2.5 px-3 rounded-r-lg text-center">Đánh giá</th>
+</tr>
+</thead>
+<tbody class="divide-y divide-slate-100">
+<!-- KPI 1 -->
+<tr class="hover:bg-slate-50/70 transition-colors">
+<td class="py-3 px-3">
+<div class="font-bold text-slate-800">1. KPI Department</div>
+<div class="text-[12px] text-slate-500">KPI số lượng công việc hỗ trợ toàn khối</div>
+</td>
+<td class="py-3 px-3 text-center font-code font-bold text-[#0090da]">30%</td>
+<td class="py-3 px-3 font-code text-slate-600">100%</td>
+<td class="py-3 px-3 font-code font-bold text-slate-800">96.2%</td>
+<td class="py-3 px-3 font-code font-bold text-[#0090da]">28.9% <span class="text-slate-400 font-normal">/ 30%</span></td>
+<td class="py-3 px-3 text-center">
+<span class="inline-flex px-2 py-0.5 rounded text-[11px] font-semibold bg-slate-100 text-slate-600">Đang bám sát</span>
+</td>
+</tr>
+<!-- KPI 2 -->
+<tr class="hover:bg-slate-50/70 transition-colors">
+<td class="py-3 px-3">
+<div class="font-bold text-slate-800">2. KPI Call - Miss call</div>
+<div class="text-[12px] text-slate-500">Tỷ lệ cuộc gọi nhỡ hotline 1900 6522</div>
+</td>
+<td class="py-3 px-3 text-center font-code font-bold text-[#0090da]">20%</td>
+<td class="py-3 px-3 font-code text-slate-600">≤ 5.0%</td>
+<td class="py-3 px-3 font-code font-bold text-secondary">4.8%</td>
+<td class="py-3 px-3 font-code font-bold text-secondary">20.0% <span class="text-slate-400 font-normal">/ 20%</span></td>
+<td class="py-3 px-3 text-center">
+<span class="inline-flex px-2 py-0.5 rounded text-[11px] font-bold bg-[#dcfce7] text-[#00722f]">Đạt chuẩn</span>
+</td>
+</tr>
+<!-- KPI 3 -->
+<tr class="hover:bg-slate-50/70 transition-colors">
+<td class="py-3 px-3">
+<div class="font-bold text-slate-800">3. KPI Gọi lại đúng quy định</div>
+<div class="text-[12px] text-slate-500">Callback khách nhỡ trong vòng 15-30 phút</div>
+</td>
+<td class="py-3 px-3 text-center font-code font-bold text-[#0090da]">10%</td>
+<td class="py-3 px-3 font-code text-slate-600">90.0%</td>
+<td class="py-3 px-3 font-code font-bold text-amber-700">87.5%</td>
+<td class="py-3 px-3 font-code font-bold text-amber-700">8.8% <span class="text-slate-400 font-normal">/ 10%</span></td>
+<td class="py-3 px-3 text-center">
+<span class="inline-flex px-2 py-0.5 rounded text-[11px] font-bold bg-amber-50 text-amber-800 border border-amber-200">Cần cải thiện (+2.5%)</span>
+</td>
+</tr>
+<!-- KPI 4 -->
+<tr class="hover:bg-slate-50/70 transition-colors">
+<td class="py-3 px-3">
+<div class="font-bold text-slate-800">4. KPI Freshchat (Multi-channel)</div>
+<div class="text-[12px] text-slate-500">Phản hồi đầu &lt;1p (78.2% vs 75%) | FRT TB 44s (≤50s)</div>
+</td>
+<td class="py-3 px-3 text-center font-code font-bold text-[#0090da]">15%</td>
+<td class="py-3 px-3 font-code text-slate-600">≥75% | ≤50s</td>
+<td class="py-3 px-3 font-code font-bold text-secondary">78.2% | 44s</td>
+<td class="py-3 px-3 font-code font-bold text-secondary">15.0% <span class="text-slate-400 font-normal">/ 15%</span></td>
+<td class="py-3 px-3 text-center">
+<span class="inline-flex px-2 py-0.5 rounded text-[11px] font-bold bg-[#dcfce7] text-[#00722f]">Xuất sắc</span>
+</td>
+</tr>
+<!-- KPI 5 -->
+<tr class="bg-red-50/40 hover:bg-red-50/70 transition-colors">
+<td class="py-3 px-3">
+<div class="flex items-center gap-1.5 font-bold text-slate-800">
+<span>5. KPI Ticket &amp; SLA Xử lý</span>
+<span class="w-2 h-2 rounded-full bg-error inline-block"></span>
+</div>
+<div class="text-[12px] text-slate-500">SLA 4h đạt 97.2% | Thời gian TB: <strong class="text-error font-semibold">195p</strong> (Vượt mục tiêu 180p)</div>
+</td>
+<td class="py-3 px-3 text-center font-code font-bold text-[#0090da]">20%</td>
+<td class="py-3 px-3 font-code text-slate-600">98.5% | ≤180p</td>
+<td class="py-3 px-3 font-code font-bold text-error">97.2% | 195p</td>
+<td class="py-3 px-3 font-code font-bold text-error">14.5% <span class="text-slate-400 font-normal">/ 20%</span></td>
+<td class="py-3 px-3 text-center">
+<span class="inline-flex px-2 py-0.5 rounded text-[11px] font-bold bg-error-container text-on-error-container">Quá hạn xử lý</span>
+</td>
+</tr>
+<!-- KPI 6 -->
+<tr class="hover:bg-slate-50/70 transition-colors">
+<td class="py-3 px-3">
+<div class="font-bold text-slate-800">6. KPI Fanpage</div>
+<div class="text-[12px] text-slate-500">Số lượng lead chuyển đổi / Tổng KH quan tâm</div>
+</td>
+<td class="py-3 px-3 text-center font-code font-bold text-[#0090da]">5%</td>
+<td class="py-3 px-3 font-code text-slate-600">84.5%</td>
+<td class="py-3 px-3 font-code font-bold text-slate-800">82.0%</td>
+<td class="py-3 px-3 font-code font-bold text-[#0090da]">4.4% <span class="text-slate-400 font-normal">/ 5%</span></td>
+<td class="py-3 px-3 text-center">
+<span class="inline-flex px-2 py-0.5 rounded text-[11px] font-semibold bg-slate-100 text-slate-600">Khá</span>
+</td>
+</tr>
+</tbody>
+<tfoot>
+<tr class="bg-slate-100/90 font-bold text-slate-800 border-t border-slate-200">
+<td class="py-2.5 px-3 rounded-l-lg text-[13px]">TỔNG ĐIỂM KPI TÍCH LŨY (MTD)</td>
+<td class="py-2.5 px-3 text-center font-code text-[#0090da]">100%</td>
+<td class="py-2.5 px-3 font-code text-slate-400 font-normal">100%</td>
+<td class="py-2.5 px-3 font-code text-slate-400 font-normal">T-1</td>
+<td class="py-2.5 px-3 font-code text-[16px] text-[#0090da]">88.6%</td>
+<td class="py-2.5 px-3 rounded-r-lg text-center font-code text-secondary font-bold">Đạt 88.6/100</td>
+</tr>
+</tfoot>
+</table>
+</div>
+</div>
+</section>
+<!-- Operational Channels Summary (3 Cards) -->
+<section class="space-y-3">
+<div class="flex items-center justify-between">
+<div class="flex items-center gap-2">
+<span class="material-symbols-outlined text-[#0090da] text-[22px]">alt_route</span>
+<h2 class="text-[16px] text-slate-900 font-bold">Tình Hình Vận Hành 3 Kênh Tiếp Nhận (Dữ liệu chốt ngày T-1)</h2>
+</div>
+<span class="text-[12px] font-code text-slate-400">Tổng tương tác: 9,240 lượt</span>
+</div>
+<div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+<!-- Card 1: Hotline -->
+<div class="bg-white rounded-xl p-4 shadow-sm border border-slate-200/80 hover:border-blue-300 transition-colors">
+<div class="flex items-center justify-between mb-3">
+<div class="flex items-center gap-2.5">
+<div class="w-9 h-9 rounded-lg bg-blue-50 text-[#0090da] flex items-center justify-center shrink-0">
+<span class="material-symbols-outlined text-[20px]">call</span>
+</div>
+<div>
+<h3 class="text-[13.5px] font-bold text-slate-800">Kênh Hotline 1900 6522</h3>
+<span class="text-[11.5px] text-slate-400">Tổng đài Inbound</span>
+</div>
+</div>
+<span class="px-2 py-0.5 rounded text-[11px] font-bold bg-[#dcfce7] text-[#00722f]">Đạt SL</span>
+</div>
+<div class="text-2xl font-black text-slate-900 mb-2">4,820 <span class="text-[13px] font-normal text-slate-400">cuộc gọi</span></div>
+<div class="grid grid-cols-2 gap-2 text-[12.5px] pt-2 border-t border-slate-100">
+<div>
+<span class="text-slate-400 block text-[11px]">Tỷ lệ Miss call</span>
+<span class="font-code font-bold text-secondary">4.8% <span class="text-[10px] font-normal text-slate-400">(≤5%)</span></span>
+</div>
+<div>
+<span class="text-slate-400 block text-[11px]">AHT (Thời lượng TB)</span>
+<span class="font-code font-bold text-slate-800">3m 18s</span>
+</div>
+</div>
+</div>
+<!-- Card 2: Freshchat -->
+<div class="bg-white rounded-xl p-4 shadow-sm border border-slate-200/80 hover:border-blue-300 transition-colors">
+<div class="flex items-center justify-between mb-3">
+<div class="flex items-center gap-2.5">
+<div class="w-9 h-9 rounded-lg bg-blue-50 text-[#0090da] flex items-center justify-center shrink-0">
+<span class="material-symbols-outlined text-[20px]">forum</span>
+</div>
+<div>
+<h3 class="text-[13.5px] font-bold text-slate-800">Kênh Freshchat</h3>
+<span class="text-[11.5px] text-slate-400">Livechat &amp; Multi-domain</span>
+</div>
+</div>
+<span class="px-2 py-0.5 rounded text-[11px] font-bold bg-[#dcfce7] text-[#00722f]">Tốc độ cao</span>
+</div>
+<div class="text-2xl font-black text-slate-900 mb-2">3,140 <span class="text-[13px] font-normal text-slate-400">hội thoại</span></div>
+<div class="grid grid-cols-2 gap-2 text-[12.5px] pt-2 border-t border-slate-100">
+<div>
+<span class="text-slate-400 block text-[11px]">Phản hồi &lt;1 phút</span>
+<span class="font-code font-bold text-secondary">78.2% <span class="text-[10px] font-normal text-slate-400">(≥75%)</span></span>
+</div>
+<div>
+<span class="text-slate-400 block text-[11px]">FRT trung bình</span>
+<span class="font-code font-bold text-secondary">44 giây</span>
+</div>
+</div>
+</div>
+<!-- Card 3: Ticket CRM -->
+<div class="bg-white rounded-xl p-4 shadow-sm border border-slate-200/80 hover:border-blue-300 transition-colors">
+<div class="flex items-center justify-between mb-3">
+<div class="flex items-center gap-2.5">
+<div class="w-9 h-9 rounded-lg bg-red-50 text-error flex items-center justify-center shrink-0">
+<span class="material-symbols-outlined text-[20px]">confirmation_number</span>
+</div>
+<div>
+<h3 class="text-[13.5px] font-bold text-slate-800">Kênh Ticket &amp; Helpdesk</h3>
+<span class="text-[11.5px] text-slate-400">CRM &amp; Kỹ thuật L2</span>
+</div>
+</div>
+<span class="px-2 py-0.5 rounded text-[11px] font-bold bg-error-container text-on-error-container">Cần chú ý</span>
+</div>
+<div class="text-2xl font-black text-slate-900 mb-2">1,280 <span class="text-[13px] font-normal text-slate-400">phiếu hỗ trợ</span></div>
+<div class="grid grid-cols-2 gap-2 text-[12.5px] pt-2 border-t border-slate-100">
+<div>
+<span class="text-slate-400 block text-[11px]">Đúng SLA 4 giờ</span>
+<span class="font-code font-bold text-slate-800">97.2% <span class="text-[10px] font-normal text-slate-400">(Target 98.5%)</span></span>
+</div>
+<div>
+<span class="text-slate-400 block text-[11px]">Tồn quá 180 phút</span>
+<span class="font-code font-bold text-error">40 ticket</span>
+</div>
+</div>
+</div>
+</div>
+</section>
+<!-- Workforce Distribution & Management Bottlenecks -->
+<section class="grid grid-cols-1 lg:grid-cols-12 gap-5 pb-4">
+<!-- Workforce Split Card (5 cols) -->
+<div class="lg:col-span-5 bg-white rounded-xl p-5 shadow-sm border border-slate-200/80 flex flex-col justify-between">
+<div>
+<div class="flex items-center justify-between mb-4">
+<div class="flex items-center gap-2">
+<span class="material-symbols-outlined text-[#0090da] text-[20px]">groups</span>
+<h3 class="text-[15px] font-bold text-slate-900">Cơ Cấu Lực Lượng Vận Hành</h3>
+</div>
+<span class="text-[12px] font-code text-slate-400">150 nhân sự ca T-1</span>
+</div>
+<!-- Segmented Bar Comparison -->
+<div class="space-y-4 my-2">
+<div>
+<div class="flex justify-between items-center text-[13px] mb-1.5">
+<span class="font-bold text-slate-800 flex items-center gap-2">
+<span class="w-3 h-3 rounded bg-[#0090da] inline-block"></span>
+                      Khối Inhouse KiotViet
+                    </span>
+<span class="font-code font-bold text-slate-800">58% (5,359 tương tác)</span>
+</div>
+<div class="w-full bg-slate-100 rounded-full h-2.5 overflow-hidden">
+<div class="bg-[#0090da] h-full rounded-full" style="width: 58%"></div>
+</div>
+<div class="flex justify-between text-[11.5px] text-slate-400 mt-1.5">
+<span>85 nhân sự trực</span>
+<span>CSAT: 96.1% · FCR: 82.4%</span>
+</div>
+</div>
+<div>
+<div class="flex justify-between items-center text-[13px] mb-1.5">
+<span class="font-bold text-slate-800 flex items-center gap-2">
+<span class="w-3 h-3 rounded bg-slate-500 inline-block"></span>
+                      Đối tác OS (Outsourced BPO)
+                    </span>
+<span class="font-code font-bold text-slate-800">42% (3,881 tương tác)</span>
+</div>
+<div class="w-full bg-slate-100 rounded-full h-2.5 overflow-hidden">
+<div class="bg-slate-500 h-full rounded-full" style="width: 42%"></div>
+</div>
+<div class="flex justify-between text-[11.5px] text-slate-400 mt-1.5">
+<span>65 nhân sự trực</span>
+<span>CSAT: 91.8% · FCR: 73.2%</span>
+</div>
+</div>
+</div>
+</div>
+<div class="pt-3 border-t border-slate-100 flex items-center justify-between text-[12px] text-slate-600">
+<span>Tỷ lệ phân bổ mục tiêu: <strong>60% Inhouse / 40% OS</strong></span>
+<span class="text-secondary font-bold">Cân đối tốt</span>
+</div>
+</div>
+<!-- Management Alerts (7 cols) -->
+<div class="lg:col-span-7 bg-white rounded-xl p-5 shadow-sm border border-slate-200/80 flex flex-col justify-between">
+<div>
+<div class="flex items-center justify-between mb-3">
+<div class="flex items-center gap-2">
+<span class="material-symbols-outlined text-error text-[22px]">warning</span>
+<h3 class="text-[15px] font-bold text-slate-900">2 Điểm Nghẽn KPI Cần Quản Lý Chỉ Đạo Hôm Nay</h3>
+</div>
+<span class="px-2.5 py-0.5 rounded text-[11px] font-bold bg-error-container text-on-error-container">Cần hành động</span>
+</div>
+<div class="space-y-3 my-2">
+<!-- Bottleneck 1 -->
+<div class="p-3.5 rounded-xl bg-red-50/70 border border-red-200/80 flex items-start gap-3">
+<div class="w-8 h-8 rounded-lg bg-red-100 text-error flex items-center justify-center shrink-0 mt-0.5">
+<span class="material-symbols-outlined text-[19px]">timer_off</span>
+</div>
+<div class="flex-1 min-w-0">
+<div class="flex items-center justify-between flex-wrap gap-1">
+<div class="text-[13px] font-bold text-slate-900">1. Thời gian xử lý Ticket TB đang vượt mức 180 phút</div>
+<span class="font-code font-bold text-error bg-red-100 px-2 py-0.5 rounded text-[11px]">Thực tế: 195 phút (+15p)</span>
+</div>
+<p class="text-[12.5px] text-slate-600 mt-1 leading-relaxed">
+                      Ghi nhận 40 ticket quá hạn, tập trung chủ yếu ở phân hệ KiotViet FnB &amp; cấu hình cổng thanh toán VietQR. Cần Team Lead kỹ thuật đôn đốc nhóm L2 phân loại và đóng ticket trước 12:00 hôm nay.
+                    </p>
+</div>
+</div>
+<!-- Bottleneck 2 -->
+<div class="p-3.5 rounded-xl bg-amber-50/70 border border-amber-200/80 flex items-start gap-3">
+<div class="w-8 h-8 rounded-lg bg-amber-100 text-amber-800 flex items-center justify-center shrink-0 mt-0.5">
+<span class="material-symbols-outlined text-[19px]">phone_callback</span>
+</div>
+<div class="flex-1 min-w-0">
+<div class="flex items-center justify-between flex-wrap gap-1">
+<div class="text-[13px] font-bold text-slate-900">2. Tỷ lệ gọi lại đúng quy định đạt 87.5% (Còn thiếu 2.5% so với KPI 90%)</div>
+<span class="font-code font-bold text-amber-800 bg-amber-100 px-2 py-0.5 rounded text-[11px]">Mục tiêu: ≥90.0%</span>
+</div>
+<p class="text-[12.5px] text-slate-600 mt-1 leading-relaxed">
+                      Khối đối tác Outsourced (OS) có 19 cuộc gọi nhỡ chưa được liên hệ lại trong khung 30 phút theo SLA thỏa thuận. Đã gửi danh sách cho Giám sát ca trực phía đối tác BPO.
+                    </p>
+</div>
+</div>
+</div>
+</div>
+<div class="pt-3 border-t border-slate-100 flex items-center justify-between gap-2 flex-wrap">
+<span class="text-slate-500 text-[12px]">Lưu ý: Dữ liệu được tính tự động từ hệ thống tổng đài và CRM đồng bộ đến 23:59:59 hôm qua.</span>
+<button class="px-4 py-1.5 rounded-lg bg-blue-50 hover:bg-blue-100 text-[#0090da] font-bold text-[12.5px] transition-colors shrink-0" type="button">
+                Gửi nhắc nhở Team Lead
+              </button>
+</div>
+</div>
+</section>
+</div>
+</main>
+</div>
+<!-- Interactive Script for Smooth Sidebar & Sync Micro-interactions -->
+<script>
+    (function() {
+      const sidebar = document.getElementById('mainSidebar');
+      const contentWrapper = document.getElementById('mainContentWrapper');
+      const topHeader = document.getElementById('topHeader');
+      const toggleBtn = document.getElementById('sidebarToggleBtn');
+      const headerToggleBtn = document.getElementById('headerCollapseToggle');
+      const toggleIcon = document.getElementById('sidebarToggleIcon');
+      const logoFull = document.querySelector('.logo-full');
+      const logoCompact = document.querySelector('.logo-compact');
+      const sidebarTexts = document.querySelectorAll('.sidebar-text');
+      const sectionHeaders = document.querySelectorAll('.sidebar-section-header');
+      const sidebarItems = document.querySelectorAll('.sidebar-item');
+      const footerContent = document.querySelector('.sidebar-footer-content');
+      const footerCompact = document.querySelector('.sidebar-footer-compact');
+
+      let isCollapsed = false;
+
+      function applySidebarState(collapsed) {
+        isCollapsed = collapsed;
+        if (isCollapsed) {
+          sidebar.classList.remove('sidebar-expanded');
+          sidebar.classList.add('sidebar-collapsed');
+          contentWrapper.classList.remove('content-expanded');
+          contentWrapper.classList.add('content-collapsed');
+          topHeader.classList.remove('header-expanded');
+          topHeader.classList.add('header-collapsed');
+
+          if (toggleIcon) {
+            toggleIcon.textContent = 'menu';
+            toggleIcon.style.transform = 'rotate(180deg)';
+          }
+
+          if (logoFull) logoFull.classList.add('hidden');
+          if (logoCompact) logoCompact.classList.remove('hidden');
+
+          sidebarTexts.forEach(el => el.classList.add('hidden'));
+          sectionHeaders.forEach(el => el.classList.add('opacity-0', 'h-0', 'pb-0', 'overflow-hidden'));
+          sidebarItems.forEach(el => {
+            el.classList.add('justify-center', 'px-2');
+            el.classList.remove('px-3');
+          });
+
+          if (footerContent) footerContent.classList.add('hidden');
+          if (footerCompact) footerCompact.classList.remove('hidden');
+
+          toggleBtn.setAttribute('title', 'Mở rộng menu (Phím tắt: Ctrl + B)');
+        } else {
+          sidebar.classList.remove('sidebar-collapsed');
+          sidebar.classList.add('sidebar-expanded');
+          contentWrapper.classList.remove('content-collapsed');
+          contentWrapper.classList.add('content-expanded');
+          topHeader.classList.remove('header-collapsed');
+          topHeader.classList.add('header-expanded');
+
+          if (toggleIcon) {
+            toggleIcon.textContent = 'menu_open';
+            toggleIcon.style.transform = 'rotate(0deg)';
+          }
+
+          if (logoFull) logoFull.classList.remove('hidden');
+          if (logoCompact) logoCompact.classList.add('hidden');
+
+          sidebarTexts.forEach(el => el.classList.remove('hidden'));
+          sectionHeaders.forEach(el => el.classList.remove('opacity-0', 'h-0', 'pb-0', 'overflow-hidden'));
+          sidebarItems.forEach(el => {
+            el.classList.remove('justify-center', 'px-2');
+            el.classList.add('px-3');
+          });
+
+          if (footerContent) footerContent.classList.remove('hidden');
+          if (footerCompact) footerCompact.classList.add('hidden');
+
+          toggleBtn.setAttribute('title', 'Thu gọn menu (Phím tắt: Ctrl + B)');
+        }
+      }
+
+      if (toggleBtn) toggleBtn.addEventListener('click', () => applySidebarState(!isCollapsed));
+      if (headerToggleBtn) headerToggleBtn.addEventListener('click', () => applySidebarState(!isCollapsed));
+
+      document.addEventListener('keydown', (e) => {
+        if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'b') {
+          e.preventDefault();
+          applySidebarState(!isCollapsed);
+        }
+      });
+
+      // Refresh sync micro-animation
+      const refreshBtn = document.getElementById('refreshDataBtn');
+      const refreshIcon = document.getElementById('refreshIcon');
+      if (refreshBtn && refreshIcon) {
+        refreshBtn.addEventListener('click', function() {
+          refreshIcon.classList.add('animate-spin');
+          refreshBtn.setAttribute('disabled', 'true');
+          setTimeout(() => {
+            refreshIcon.classList.remove('animate-spin');
+            refreshBtn.removeAttribute('disabled');
+          }, 600);
+        });
+      }
+    })();
+  </script>
+</body></html>
