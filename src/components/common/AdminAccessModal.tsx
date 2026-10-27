@@ -1,5 +1,11 @@
 import React, { useState } from 'react';
-import { getAllowedUsers, addAllowedUser, removeAllowedUser } from '../../services/authService';
+import {
+  getAllowedUsers,
+  addAllowedUser,
+  removeAllowedUser,
+  getGoogleClientId,
+  saveGoogleClientId,
+} from '../../services/authService';
 import { getSupabaseCredentials, saveSupabaseCredentials, SUPABASE_SQL_SCHEMA } from '../../services/supabaseClient';
 import { AllowedUser } from '../../types';
 
@@ -9,12 +15,15 @@ interface AdminAccessModalProps {
 }
 
 export const AdminAccessModal: React.FC<AdminAccessModalProps> = ({ isOpen, onClose }) => {
-  const [activeTab, setActiveTab] = useState<'whitelist' | 'supabase'>('whitelist');
+  const [activeTab, setActiveTab] = useState<'whitelist' | 'google-oauth' | 'supabase'>('whitelist');
   const [users, setUsers] = useState<AllowedUser[]>(getAllowedUsers());
   const [newEmail, setNewEmail] = useState('');
   const [newName, setNewName] = useState('');
   const [newRole, setNewRole] = useState('Quản lý CSKH');
   const [toastMessage, setToastMessage] = useState<string | null>(null);
+
+  // Google OAuth Client ID
+  const [googleClientId, setGoogleClientId] = useState(getGoogleClientId());
 
   // Supabase credentials
   const initialCreds = getSupabaseCredentials();
@@ -27,6 +36,12 @@ export const AdminAccessModal: React.FC<AdminAccessModalProps> = ({ isOpen, onCl
   const showToast = (msg: string) => {
     setToastMessage(msg);
     setTimeout(() => setToastMessage(null), 3000);
+  };
+
+  const handleSaveGoogleClientId = (e: React.FormEvent) => {
+    e.preventDefault();
+    saveGoogleClientId(googleClientId.trim());
+    showToast('Đã lưu Google OAuth Client ID thành công!');
   };
 
   const handleAddUser = (e: React.FormEvent) => {
@@ -101,7 +116,16 @@ export const AdminAccessModal: React.FC<AdminAccessModalProps> = ({ isOpen, onCl
             }`}
           >
             <span className="material-symbols-outlined text-[16px]">verified_user</span>
-            <span>Danh sách Whitelist Google Admin ({users.length})</span>
+            <span>Whitelist Admin ({users.length})</span>
+          </button>
+          <button
+            onClick={() => setActiveTab('google-oauth')}
+            className={`flex-1 py-1.5 rounded-lg font-bold transition-all flex items-center justify-center gap-1.5 ${
+              activeTab === 'google-oauth' ? 'bg-white text-primary shadow-xs' : 'text-slate-600 hover:text-slate-900'
+            }`}
+          >
+            <span className="material-symbols-outlined text-[16px]">vpn_key</span>
+            <span>Google OAuth 2.0</span>
           </button>
           <button
             onClick={() => setActiveTab('supabase')}
@@ -110,7 +134,7 @@ export const AdminAccessModal: React.FC<AdminAccessModalProps> = ({ isOpen, onCl
             }`}
           >
             <span className="material-symbols-outlined text-[16px]">database</span>
-            <span>Cấu hình &amp; Schema Supabase</span>
+            <span>Supabase Database</span>
           </button>
         </div>
 
@@ -210,6 +234,49 @@ export const AdminAccessModal: React.FC<AdminAccessModalProps> = ({ isOpen, onCl
                   </tbody>
                 </table>
               </div>
+            </>
+          ) : activeTab === 'google-oauth' ? (
+            <>
+              {/* Google OAuth 2.0 configuration */}
+              <form onSubmit={handleSaveGoogleClientId} className="p-4 bg-slate-50 rounded-xl border border-slate-200 text-xs space-y-3">
+                <div className="font-bold text-slate-800 flex items-center gap-1.5">
+                  <span className="material-symbols-outlined text-[18px] text-primary">key</span>
+                  <span>Cấu hình Google Cloud OAuth 2.0 Client ID:</span>
+                </div>
+
+                <div className="space-y-1">
+                  <label className="block text-slate-600 font-semibold">Google OAuth Client ID (Web Application):</label>
+                  <input
+                    type="text"
+                    required
+                    value={googleClientId}
+                    onChange={(e) => setGoogleClientId(e.target.value)}
+                    placeholder="vd: 875260475277-xxxxxxxx.apps.googleusercontent.com"
+                    className="w-full px-3 py-2 bg-white border border-slate-300 rounded-lg font-mono text-xs focus:outline-none focus:ring-1 focus:ring-primary"
+                  />
+                  <p className="text-[11px] text-slate-500">
+                    Client ID này được lưu trữ để kích hoạt popup xác thực chính thức `accounts.google.com` cho nhân sự.
+                  </p>
+                </div>
+
+                <div className="p-3 rounded-lg bg-sky-50 border border-sky-100 text-[11px] text-slate-600 space-y-1.5">
+                  <div className="font-bold text-slate-800">Cấu hình Authorized JavaScript origins trên Google Cloud:</div>
+                  <div className="font-mono bg-white p-1.5 rounded border border-sky-200 text-slate-900 select-all">
+                    {typeof window !== 'undefined' ? window.location.origin : 'https://cs-report-sage.vercel.app'}
+                  </div>
+                  <p className="text-[10px] text-slate-500">
+                    Sau khi thêm domain trên vào Google Cloud Console, dán Client ID vào ô trên và bấm lưu.
+                  </p>
+                </div>
+
+                <button
+                  type="submit"
+                  className="px-4 py-1.5 bg-primary hover:bg-primary-dark text-white font-bold rounded-lg transition-colors flex items-center gap-1 cursor-pointer"
+                >
+                  <span className="material-symbols-outlined text-[16px]">save</span>
+                  <span>Lưu Google Client ID</span>
+                </button>
+              </form>
             </>
           ) : (
             <>

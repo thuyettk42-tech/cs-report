@@ -5,6 +5,8 @@ import {
   getStoredSheetUrl,
   fetchFromGoogleSheet,
   getSyncAuditLogs,
+  parseCsvToMetrics,
+  addSyncAuditLog,
 } from '../../services/googleSheetsSync';
 import { MultiChannelMetricRow, SyncAuditLog } from '../../types';
 
@@ -45,6 +47,43 @@ export const MultiChannelSyncView: React.FC<MultiChannelSyncViewProps> = ({
       setIsSyncing(false);
       setSyncStatusMsg({ text: err.message || 'Lỗi khi đồng bộ Google Sheet', isError: true });
     }
+  };
+
+  // Handle direct CSV upload from disk
+  const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    const reader = new FileReader();
+    reader.onload = (event) => {
+      const text = event.target?.result as string;
+      if (text) {
+        try {
+          const parsed = parseCsvToMetrics(text);
+          if (parsed.length > 0) {
+            setMetrics(parsed);
+            saveMultiChannelData(parsed);
+            addSyncAuditLog({
+              timestamp: new Date().toLocaleString('vi-VN'),
+              updatedBy: currentUserEmail,
+              source: `Tệp tải lên: ${file.name}`,
+              rowCount: parsed.length,
+              status: 'success',
+              notes: `Đã nhập trực tiếp ${parsed.length} chỉ số từ tệp CSV`,
+            });
+            setAuditLogs(getSyncAuditLogs());
+            setSyncStatusMsg({ text: `Đã tải và xử lý thành công ${parsed.length} chỉ số từ tệp ${file.name}!` });
+            setTimeout(() => setSyncStatusMsg(null), 4000);
+          } else {
+            setSyncStatusMsg({ text: 'Tệp CSV không chứa cấu trúc bảng dữ liệu KiotViet phù hợp.', isError: true });
+          }
+        } catch (err: any) {
+          setSyncStatusMsg({ text: `Lỗi đọc tệp CSV: ${err.message}`, isError: true });
+        }
+      }
+    };
+    reader.readAsText(file);
+    e.target.value = '';
   };
 
   // Helper to get raw numeric value
@@ -162,16 +201,24 @@ export const MultiChannelSyncView: React.FC<MultiChannelSyncViewProps> = ({
             </div>
           </div>
 
-          <button
-            onClick={handleSyncFromSheet}
-            disabled={isSyncing}
-            className="px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs rounded-xl shadow-xs flex items-center justify-center gap-2 transition-all disabled:opacity-60 shrink-0"
-          >
-            <span className={`material-symbols-outlined text-[18px] ${isSyncing ? 'animate-spin' : ''}`}>
-              sync
-            </span>
-            <span>{isSyncing ? 'Đang đồng bộ Google Sheet...' : 'Đồng bộ từ Google Sheet ngay'}</span>
-          </button>
+          <div className="flex items-center gap-2 shrink-0">
+            <label className="px-3.5 py-2 bg-slate-800 hover:bg-slate-900 text-white font-bold text-xs rounded-xl shadow-xs flex items-center justify-center gap-1.5 transition-all cursor-pointer">
+              <span className="material-symbols-outlined text-[18px]">upload_file</span>
+              <span>Tải file CSV lên</span>
+              <input type="file" accept=".csv,.txt" onChange={handleFileUpload} className="hidden" />
+            </label>
+
+            <button
+              onClick={handleSyncFromSheet}
+              disabled={isSyncing}
+              className="px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs rounded-xl shadow-xs flex items-center justify-center gap-2 transition-all disabled:opacity-60 cursor-pointer"
+            >
+              <span className={`material-symbols-outlined text-[18px] ${isSyncing ? 'animate-spin' : ''}`}>
+                sync
+              </span>
+              <span>{isSyncing ? 'Đang đồng bộ...' : 'Đồng bộ từ Sheet'}</span>
+            </button>
+          </div>
         </div>
 
         {syncStatusMsg && (

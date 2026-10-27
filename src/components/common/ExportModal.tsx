@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { getInitialMultiChannelData } from '../../services/googleSheetsSync';
 
 interface ExportModalProps {
   isOpen: boolean;
@@ -23,21 +24,57 @@ export const ExportModal: React.FC<ExportModalProps> = ({
 
   const handleExport = () => {
     setIsExporting(true);
-    setProgress(15);
-    const interval = setInterval(() => {
-      setProgress((prev) => {
-        if (prev >= 95) {
-          clearInterval(interval);
+    setProgress(30);
+
+    setTimeout(() => {
+      try {
+        if (format === 'pdf') {
+          setProgress(100);
           setTimeout(() => {
             setIsExporting(false);
             setProgress(0);
             onClose();
-          }, 400);
-          return 100;
+            window.print();
+          }, 300);
+          return;
         }
-        return prev + 25;
-      });
-    }, 200);
+
+        const metrics = getInitialMultiChannelData();
+        const BOM = '\uFEFF';
+        const csvRows = ['Kênh,Chỉ số,Tháng 1,Tháng 2,Tháng 3,Tháng 4,Tháng 5,Tháng 6,Tháng 7,Tháng 8,Tháng 9,Tháng 10,Tháng 11,Tháng 12,Định nghĩa / Ghi chú'];
+        
+        metrics.forEach((row) => {
+          const cells = [
+            `"${row.channel}"`,
+            `"${row.metric}"`,
+            ...row.months.map((m) => (m !== null && m !== undefined ? `"${m}"` : '""')),
+            `"${row.definition || ''}"`,
+          ];
+          csvRows.push(cells.join(','));
+        });
+
+        const fullContent = BOM + csvRows.join('\r\n');
+        const blob = new Blob([fullContent], { type: 'text/csv;charset=utf-8;' });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `${defaultFilename}_${format === 'excel' ? 'XLSX' : 'CSV'}.csv`;
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        URL.revokeObjectURL(url);
+
+        setProgress(100);
+      } catch (err) {
+        console.error('Export failed:', err);
+      } finally {
+        setTimeout(() => {
+          setIsExporting(false);
+          setProgress(0);
+          onClose();
+        }, 500);
+      }
+    }, 400);
   };
 
   return (

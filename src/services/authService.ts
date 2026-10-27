@@ -6,55 +6,77 @@ const STORAGE_KEY_SESSION_EXPIRES_AT = 'kiotviet_session_expires_at_v1';
 
 export const INITIAL_ALLOWED_USERS: AllowedUser[] = [
   {
-    email: 'thuyet.vm@kiotviet.com',
+    email: 'thuyettk42@gmail.com',
     name: 'Vũ Minh Thuyết',
     role: 'Manager CS (Super Admin)',
     addedAt: '01/01/2026',
     addedBy: 'Hệ thống KiotViet',
   },
   {
-    email: 'lam.tran@kiotviet.com',
-    name: 'Trần Lâm',
-    role: 'Quản lý CSKH (Lead Admin)',
+    email: 'hai.nguyen@kiotviet.com',
+    name: 'Hải Nguyễn',
+    role: 'Giám Đốc / Quản Lý CSKH',
     addedAt: '01/01/2026',
-    addedBy: 'Hệ thống KiotViet',
+    addedBy: 'Vũ Minh Thuyết',
   },
   {
-    email: 'yen.nguyen@kiotviet.com',
-    name: 'Nguyễn Thị Yến',
+    email: 'lam.hn@kiotviet.com',
+    name: 'Lâm HN',
+    role: 'Quản Lý Vận Hành CSKH',
+    addedAt: '01/01/2026',
+    addedBy: 'Vũ Minh Thuyết',
+  },
+  {
+    email: 'yendao@kiotviet.com',
+    name: 'Yến Đào',
+    role: 'Manager CS',
+    addedAt: '01/01/2026',
+    addedBy: 'Vũ Minh Thuyết',
+  },
+  {
+    email: 'thuyet.vm@kiotviet.com',
+    name: 'Vũ Minh Thuyết',
     role: 'Manager CS',
     addedAt: '01/01/2026',
     addedBy: 'Hệ thống KiotViet',
   },
-  {
-    email: 'cskh.leader@kiotviet.com',
-    name: 'CSKH Team Leader',
-    role: 'Team Leader',
-    addedAt: '15/01/2026',
-    addedBy: 'Trần Lâm',
-  },
-  {
-    email: 'admin.care@kiotviet.com',
-    name: 'System Admin CSKH',
-    role: 'System Admin',
-    addedAt: '01/01/2026',
-    addedBy: 'Vũ Minh Thuyết',
-  },
 ];
 
 export function getAllowedUsers(): AllowedUser[] {
+  let list = INITIAL_ALLOWED_USERS;
   try {
     const raw = localStorage.getItem(STORAGE_KEY_ALLOWED_USERS);
     if (raw) {
       const parsed = JSON.parse(raw);
       if (Array.isArray(parsed) && parsed.length > 0) {
-        return parsed;
+        list = parsed;
       }
     }
   } catch (err) {
     console.warn(err);
   }
-  return INITIAL_ALLOWED_USERS;
+
+  // Ensure mandatory whitelist accounts are always present
+  const mandatoryUsers: AllowedUser[] = [
+    { email: 'thuyettk42@gmail.com', name: 'Vũ Minh Thuyết', role: 'Manager CS (Super Admin)', addedAt: '01/01/2026', addedBy: 'Hệ thống KiotViet' },
+    { email: 'hai.nguyen@kiotviet.com', name: 'Hải Nguyễn', role: 'Giám Đốc / Quản Lý CSKH', addedAt: '01/01/2026', addedBy: 'Vũ Minh Thuyết' },
+    { email: 'lam.hn@kiotviet.com', name: 'Lâm HN', role: 'Quản Lý Vận Hành CSKH', addedAt: '01/01/2026', addedBy: 'Vũ Minh Thuyết' },
+    { email: 'yendao@kiotviet.com', name: 'Yến Đào', role: 'Manager CS', addedAt: '01/01/2026', addedBy: 'Vũ Minh Thuyết' },
+  ];
+
+  let hasChanged = false;
+  mandatoryUsers.forEach((req) => {
+    if (!list.some((u) => u.email.toLowerCase() === req.email.toLowerCase())) {
+      list.push(req);
+      hasChanged = true;
+    }
+  });
+
+  if (hasChanged) {
+    saveAllowedUsers(list);
+  }
+
+  return list;
 }
 
 export function saveAllowedUsers(users: AllowedUser[]): void {
@@ -90,7 +112,7 @@ export function removeAllowedUser(email: string): { success: boolean; message: s
   const current = getAllowedUsers();
   const normalizedEmail = email.toLowerCase().trim();
 
-  if (normalizedEmail === 'thuyet.vm@kiotviet.com') {
+  if (normalizedEmail === 'thuyet.vm@kiotviet.com' || normalizedEmail === 'thuyettk42@gmail.com') {
     return { success: false, message: 'Không thể xóa tài khoản Super Admin chính!' };
   }
 
@@ -233,23 +255,55 @@ export function setCurrentUser(user: UserProfile | null): void {
   }
 }
 
-export function signInWithGoogle(emailInput?: string): { success: boolean; user?: UserProfile; message?: string } {
-  const email = (emailInput || 'thuyet.vm@kiotviet.com').toLowerCase().trim();
+const STORAGE_KEY_GOOGLE_CLIENT_ID = 'kiotviet_google_client_id_v1';
+
+export function getGoogleClientId(): string {
+  try {
+    const custom = localStorage.getItem(STORAGE_KEY_GOOGLE_CLIENT_ID);
+    if (custom && custom.trim().length > 0) return custom.trim();
+  } catch (e) {
+    console.warn(e);
+  }
+  return (import.meta as any).env?.VITE_GOOGLE_CLIENT_ID || '';
+}
+
+export function saveGoogleClientId(clientId: string): void {
+  try {
+    localStorage.setItem(STORAGE_KEY_GOOGLE_CLIENT_ID, clientId.trim());
+  } catch (err) {
+    console.error('Failed to save Google Client ID', err);
+  }
+}
+
+/**
+ * Verifies a real Google Profile obtained from Google OAuth against the Admin Whitelist
+ */
+export function verifyAndSignInGoogleProfile(profile: {
+  email: string;
+  name?: string;
+  picture?: string;
+  sub?: string;
+}): { success: boolean; user?: UserProfile; message?: string } {
+  const email = (profile.email || '').toLowerCase().trim();
+  if (!email) {
+    return { success: false, message: 'Google không trả về thông tin email hợp lệ.' };
+  }
+
   const { allowed, user: allowedUser } = isEmailAllowed(email);
 
   if (!allowed) {
     return {
       success: false,
-      message: `Tài khoản Google "${email}" chưa được cấp quyền truy cập. Vui lòng liên hệ Thuyết (thuyet.vm@kiotviet.com) hoặc Lâm (lam.tran@kiotviet.com) để được thêm vào danh sách Admin.`,
+      message: `Tài khoản Google "${email}" chưa được cấp quyền truy cập. Vui lòng liên hệ Quản lý (thuyet.vm@kiotviet.com hoặc lam.tran@kiotviet.com) để thêm vào Whitelist.`,
     };
   }
 
   const initials = allowedUser?.name
     ? allowedUser.name.split(' ').map((w) => w[0]).join('').slice(-2).toUpperCase()
-    : 'KV';
+    : email.slice(0, 2).toUpperCase();
 
   const authUser: UserProfile = {
-    name: allowedUser?.name || email.split('@')[0],
+    name: allowedUser?.name || profile.name || email.split('@')[0],
     role: allowedUser?.role || 'Quản lý CSKH',
     email: email,
     avatarText: initials,
@@ -261,23 +315,111 @@ export function signInWithGoogle(emailInput?: string): { success: boolean; user?
   return { success: true, user: authUser };
 }
 
+/**
+ * Triggers authentic Google OAuth 2.0 popup via Google Identity Services (GIS)
+ */
+export function triggerGoogleIdentityPopup(callbacks: {
+  onSuccess: (user: UserProfile) => void;
+  onError: (msg: string) => void;
+  onConfigNeeded: () => void;
+}): void {
+  const clientId = getGoogleClientId();
+
+  // If Google Client ID is not configured yet, notify user to configure it
+  if (!clientId) {
+    callbacks.onConfigNeeded();
+    return;
+  }
+
+  if (typeof window === 'undefined' || !(window as any).google?.accounts?.oauth2) {
+    callbacks.onError('Thư viện Google Identity Services chưa tải xong. Vui lòng tải lại trang hoặc kiểm tra kết nối mạng.');
+    return;
+  }
+
+  try {
+    const tokenClient = (window as any).google.accounts.oauth2.initTokenClient({
+      client_id: clientId,
+      scope: 'openid email profile',
+      callback: async (tokenResponse: any) => {
+        if (tokenResponse.error) {
+          if (tokenResponse.error === 'access_denied') {
+            callbacks.onError('Bạn đã từ chối xác thực tài khoản Google.');
+          } else {
+            callbacks.onError(`Lỗi xác thực Google: ${tokenResponse.error_description || tokenResponse.error}`);
+          }
+          return;
+        }
+
+        if (!tokenResponse.access_token) {
+          callbacks.onError('Google không cấp mã truy cập xác thực.');
+          return;
+        }
+
+        try {
+          const res = await fetch('https://www.googleapis.com/oauth2/v3/userinfo', {
+            headers: { Authorization: `Bearer ${tokenResponse.access_token}` },
+          });
+
+          if (!res.ok) {
+            throw new Error(`Google trả về mã lỗi ${res.status}`);
+          }
+
+          const profile = await res.json();
+          const verification = verifyAndSignInGoogleProfile(profile);
+
+          if (verification.success && verification.user) {
+            callbacks.onSuccess(verification.user);
+          } else {
+            callbacks.onError(verification.message || 'Tài khoản Google không có trong danh sách Whitelist.');
+          }
+        } catch (fetchErr: any) {
+          callbacks.onError(`Không thể đọc hồ sơ Google: ${fetchErr.message}`);
+        }
+      },
+    });
+
+    // Forces Google to show the account chooser popup (select_account)
+    tokenClient.requestAccessToken({ prompt: 'select_account' });
+  } catch (err: any) {
+    callbacks.onError(`Không thể khởi tạo cửa sổ đăng nhập Google: ${err.message}`);
+  }
+}
+
 export function signInWithCredentials(emailInput: string, passwordInput: string): { success: boolean; user?: UserProfile; message?: string } {
+  return loginWithWhitelistedEmail(emailInput, passwordInput);
+}
+
+/**
+ * Direct Whitelist Authentication:
+ * Checks if email belongs to the internal authorized Whitelist.
+ * If password is provided, verifies security passcode.
+ */
+export function loginWithWhitelistedEmail(
+  emailInput: string,
+  passwordInput?: string
+): { success: boolean; user?: UserProfile; message?: string } {
   const email = emailInput.toLowerCase().trim();
+  if (!email) {
+    return { success: false, message: 'Vui lòng nhập hoặc chọn tài khoản email được cấp quyền.' };
+  }
+
   const { allowed, user: allowedUser } = isEmailAllowed(email);
 
   if (!allowed) {
     return {
       success: false,
-      message: `Tài khoản nội bộ "${email}" không tồn tại trong danh sách Whitelist được cấp quyền.`,
+      message: `Tài khoản "${email}" KHÔNG nằm trong danh sách Whitelist được cấp quyền xem báo cáo nội bộ CSKH KiotViet. Vui lòng liên hệ Quản trị viên (thuyettk42@gmail.com / thuyet.vm@kiotviet.com).`,
     };
   }
 
-  // Password check: KiotViet default or custom
-  if (passwordInput !== 'KiotViet#2026' && passwordInput !== 'KiotViet#2024') {
-    return {
-      success: false,
-      message: 'Mật khẩu bảo mật không chính xác. Vui lòng kiểm tra lại!',
-    };
+  // Check password if provided (default KiotViet#2026)
+  if (passwordInput && passwordInput.trim() !== '') {
+    if (passwordInput !== 'KiotViet#2026' && passwordInput !== 'KiotViet#2024') {
+      return {
+        success: false,
+        message: 'Mật khẩu bảo mật nội bộ không chính xác. Mật khẩu mặc định: KiotViet#2026',
+      };
+    }
   }
 
   const initials = allowedUser?.name
@@ -285,11 +427,11 @@ export function signInWithCredentials(emailInput: string, passwordInput: string)
     : 'KV';
 
   const authUser: UserProfile = {
-    name: allowedUser?.name || 'Trần Lâm',
-    role: allowedUser?.role || 'Quản lý CSKH',
+    name: allowedUser?.name || 'Vũ Minh Thuyết',
+    role: allowedUser?.role || 'Manager CS',
     email: email,
     avatarText: initials,
-    provider: 'sso',
+    provider: email.includes('@gmail.com') ? 'google' : 'sso',
     isAdmin: true,
   };
 
