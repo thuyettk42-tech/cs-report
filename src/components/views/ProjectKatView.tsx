@@ -8,9 +8,15 @@ export const ProjectKatView: React.FC<ProjectKatViewProps> = ({ onOpenExport }) 
   // State for filters
   const [timeFilter, setTimeFilter] = useState<'today' | '7days' | 'month' | 'year'>('month');
   const [selectedService, setSelectedService] = useState<string>('all');
-  const [agentTab, setAgentTab] = useState<'day' | 'shift'>('day');
+  const [volumeView, setVolumeView] = useState<'service' | 'channel'>('service');
+  const [agentTeamFilter, setAgentTeamFilter] = useState<'all' | 'inhouse' | 'outsource'>('all');
+  const [agentTimeTab, setAgentTimeTab] = useState<'day' | 'shift'>('day');
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [refreshNotice, setRefreshNotice] = useState<string | null>(null);
+
+  // State for business group filters (KVE / HKD)
+  const [jiraGroupFilter, setJiraGroupFilter] = useState<'all' | 'kve' | 'hkd'>('all');
+  const [caseGroupFilter, setCaseGroupFilter] = useState<'all' | 'kve' | 'hkd'>('all');
 
   // Google Sheet integration modal/state
   const [showSheetModal, setShowSheetModal] = useState(false);
@@ -38,7 +44,7 @@ export const ProjectKatView: React.FC<ProjectKatViewProps> = ({ onOpenExport }) 
     }, 1500);
   };
 
-  // 30 Days trend data matching screenshot
+  // 30 Days trend data
   const dailyServiceData = [
     { day: '01', hddt: 360, cks: 210, thue: 140, khac: 50 },
     { day: '03', hddt: 410, cks: 230, thue: 155, khac: 60 },
@@ -46,10 +52,9 @@ export const ProjectKatView: React.FC<ProjectKatViewProps> = ({ onOpenExport }) 
     { day: '07', hddt: 490, cks: 260, thue: 170, khac: 70 },
     { day: '09', hddt: 520, cks: 280, thue: 180, khac: 65 },
     { day: '11', hddt: 560, cks: 300, thue: 195, khac: 75 },
-    { day: '13', hddt: 610, cks: 340, thue: 210, khac: 80 },
+    { day: '13', dayBold: true, hddt: 610, cks: 340, thue: 210, khac: 80 },
     { day: '15', hddt: 590, cks: 310, thue: 200, khac: 70 },
     { day: '17', hddt: 640, cks: 360, thue: 230, khac: 85 },
-    { day: '19', hddt: 670, cks: 420, thue: 280, khac: 90 },
     { day: '20', dayHighlight: true, hddt: 710, cks: 440, thue: 310, khac: 95 },
     { day: '22', hddt: 630, cks: 380, thue: 250, khac: 85 },
     { day: '24', hddt: 570, cks: 320, thue: 220, khac: 75 },
@@ -58,113 +63,181 @@ export const ProjectKatView: React.FC<ProjectKatViewProps> = ({ onOpenExport }) 
     { day: 'Hôm nay', isToday: true, hddt: 612, cks: 318, thue: 241, khac: 77 },
   ];
 
-  // Specialists Performance Ranking
-  const agentRanking = [
-    { rank: 1, name: 'Hoàng Mai Linh', score: 68, delta: '+31% TB', status: 'good' },
-    { rank: 2, name: 'Trần Văn Nam', score: 64, delta: '+23% TB', status: 'good' },
-    { rank: 3, name: 'Lê Thị Thu Thảo', score: 61, delta: '+17% TB', status: 'good' },
-    { rank: 4, name: 'Nguyễn Đức Hưng', score: 58, delta: '+11% TB', status: 'good' },
-    { rank: 5, name: 'Vũ Thị Cẩm Tú', score: 55, delta: '+5% TB', status: 'good' },
-    { rank: 6, name: 'Đặng Quốc Anh', score: 53, delta: '+2% TB', status: 'good' },
-    { rank: 7, name: 'Phạm Minh Khoa', score: 50, delta: 'Đạt KPI', status: 'kpi' },
-    { rank: 8, name: 'Bùi Hải Đăng', score: 48, delta: 'Đạt KPI', status: 'kpi' },
-    { rank: 9, name: 'Nguyễn Hồng Ngọc', score: 44, delta: '-1 ca', status: 'warning' },
-    { rank: 10, name: 'Đỗ Thanh Vân', score: 39, delta: '-6 ca (Cần kèm)', status: 'danger' },
+  // Hourly volume distribution (8h to 18h)
+  const hourlyData = [
+    { hour: '8h', count: 48, intensity: 'low' },
+    { hour: '9h', count: 75, intensity: 'medium-low' },
+    { hour: '10h', count: 110, intensity: 'medium' },
+    { hour: '11h', count: 125, intensity: 'medium' },
+    { hour: '12h', count: 52, intensity: 'low' },
+    { hour: '13h', count: 98, intensity: 'medium-low' },
+    { hour: '14h', count: 172, intensity: 'peak', isPeak: true },
+    { hour: '15h', count: 185, intensity: 'super-peak', isPeak: true },
+    { hour: '16h', count: 168, intensity: 'peak', isPeak: true },
+    { hour: '17h', count: 104, intensity: 'medium' },
+    { hour: '18h', count: 62, intensity: 'low' },
   ];
 
-  // Top Issues Table
+  // Specialists Performance Ranking
+  const allAgents = [
+    { rank: 1, name: 'Hoàng Mai Linh', team: 'inhouse', aht: '6m45s', score: 68, delta: '+31% TB', status: 'good' },
+    { rank: 2, name: 'Trần Văn Nam', team: 'inhouse', aht: '7m10s', score: 64, delta: '+23% TB', status: 'good' },
+    { rank: 3, name: 'Lê Thị Thu Thảo', team: 'inhouse', aht: '7m20s', score: 61, delta: '+17% TB', status: 'good' },
+    { rank: 4, name: 'Nguyễn Đức Hưng', team: 'outsource', aht: '8m05s', score: 58, delta: '+11% TB', status: 'good' },
+    { rank: 5, name: 'Vũ Thị Cẩm Tú', team: 'inhouse', aht: '7m35s', score: 55, delta: '+5% TB', status: 'good' },
+    { rank: 6, name: 'Đặng Quốc Anh', team: 'outsource', aht: '8m15s', score: 53, delta: '+2% TB', status: 'good' },
+    { rank: 7, name: 'Phạm Minh Khoa', team: 'inhouse', aht: '7m50s', score: 50, delta: 'Đạt KPI', status: 'kpi' },
+    { rank: 8, name: 'Bùi Hải Đăng', team: 'outsource', aht: '8m40s', score: 48, delta: 'Đạt KPI', status: 'kpi' },
+    { rank: 9, name: 'Nguyễn Hồng Ngọc', team: 'outsource', aht: '8m55s', score: 44, delta: '-1 ca', status: 'warning' },
+    { rank: 10, name: 'Đỗ Thanh Vân', team: 'outsource', aht: '9m15s', score: 39, delta: '-6 ca (Cần kèm)', status: 'danger' },
+  ];
+
+  const displayedAgents = allAgents.filter((agent) => {
+    if (agentTeamFilter === 'inhouse') return agent.team === 'inhouse';
+    if (agentTeamFilter === 'outsource') return agent.team === 'outsource';
+    return true;
+  });
+
+  // Top Issues Table (Jira)
   const topIssues = [
     {
       id: 1,
       title: 'Không nhận USB Token khi ký số',
-      desc: 'Trình điều khiển PKI Token xung đột Windows 11',
+      jiraCode: 'KAT-3419 • Xung đột Win 11 PKI Token',
+      group: 'KVE',
       category: 'Bug',
-      catColor: 'bg-rose-100 text-rose-700 border-rose-200',
+      catColor: 'bg-rose-50 text-rose-700 border-rose-200',
       service: 'CKS',
-      count7d: 146,
-      trendType: 'up-red',
-      status: 'Đang vá hotfix',
+      createDate: '19/10/2026',
+      daysOpen: 5,
+      daysColor: 'bg-amber-100 text-amber-800',
+      jiraStatus: '⚡ Đang vá hotfix (In Progress)',
       statusColor: 'bg-amber-50 text-amber-800 border-amber-200',
     },
     {
       id: 2,
-      title: 'Hóa đơn bị CQT từ chối cấp mã',
-      desc: 'Lỗi mã định danh MST người mua / sai quy cách',
-      category: 'Case',
-      catColor: 'bg-amber-100 text-amber-700 border-amber-200',
-      service: 'HĐĐT',
-      count7d: 128,
-      trendType: 'flat-grey',
-      status: 'Đã phối hợp Thuế',
-      statusColor: 'bg-sky-50 text-sky-800 border-sky-200',
+      title: 'Lỗi kết nối cổng Thuế điện tử khi nộp tờ khai',
+      jiraCode: 'KAT-3402 • Timeout API TCT cao điểm',
+      group: 'HKD',
+      category: 'Bug',
+      catColor: 'bg-rose-50 text-rose-700 border-rose-200',
+      service: 'Thuế - KT',
+      createDate: '15/10/2026',
+      daysOpen: 9,
+      daysColor: 'bg-rose-100 text-rose-800',
+      jiraStatus: 'Dev re-check retry mechanism',
+      statusColor: 'bg-rose-50 text-rose-700 border-rose-200',
     },
     {
       id: 3,
-      title: 'Lỗi kết nối cổng Thuế điện tử khi nộp tờ khai',
-      desc: 'Timeout API hệ thống TCT thời điểm cao điểm',
-      category: 'Bug',
-      catColor: 'bg-rose-100 text-rose-700 border-rose-200',
-      service: 'Thuế',
-      count7d: 97,
-      trendType: 'down-green',
-      status: 'Đang khắc phục',
-      statusColor: 'bg-amber-50 text-amber-800 border-amber-200',
+      title: 'Hướng dẫn gia hạn chứng thư số còn hạn',
+      jiraCode: 'KAT-3435 • Tài liệu quy trình cấp bù',
+      group: 'KVE',
+      category: 'Support',
+      catColor: 'bg-sky-50 text-sky-700 border-sky-200',
+      service: 'CKS',
+      createDate: '22/10/2026',
+      daysOpen: 2,
+      daysColor: 'bg-emerald-100 text-emerald-800',
+      jiraStatus: '✔ Ready for Release',
+      statusColor: 'bg-emerald-50 text-emerald-800 border-emerald-200',
     },
     {
       id: 4,
-      title: 'Hướng dẫn gia hạn chứng thư số',
-      desc: 'Quy trình cấp bù thời hạn chữ ký số còn hạn',
+      title: 'Sai số liệu sổ sách kế toán HKD khi kết xuất báo cáo',
+      jiraCode: 'KAT-3388 • Mẫu biểu TT88',
+      group: 'HKD',
       category: 'Support',
-      catColor: 'bg-sky-100 text-sky-700 border-sky-200',
-      service: 'CKS',
-      count7d: 92,
-      trendType: 'up-orange',
-      status: 'Đã có tài liệu HD',
-      statusColor: 'bg-emerald-50 text-emerald-800 border-emerald-200',
+      catColor: 'bg-sky-50 text-sky-700 border-sky-200',
+      service: 'Thuế - KT',
+      createDate: '12/10/2026',
+      daysOpen: 12,
+      daysColor: 'bg-rose-100 text-rose-800',
+      jiraStatus: 'Chờ duyệt tài liệu nghiệp vụ',
+      statusColor: 'bg-slate-100 text-slate-700 border-slate-200',
     },
     {
       id: 5,
-      title: 'Điều chỉnh / thay thế hóa đơn sai thông tin',
-      desc: 'Lập biên bản điều chỉnh theo Nghị định 123',
-      category: 'Support',
-      catColor: 'bg-sky-100 text-sky-700 border-sky-200',
+      title: 'Sai lệch tổng tiền khi xuất HĐ từ đơn bán lẻ',
+      jiraCode: 'KAT-3350 • Làm tròn thập phân chiết khấu',
+      group: 'KVE',
+      category: 'Bug',
+      catColor: 'bg-rose-50 text-rose-700 border-rose-200',
       service: 'HĐĐT',
-      count7d: 85,
-      trendType: 'flat-grey',
-      status: 'Đang hướng dẫn',
-      statusColor: 'bg-sky-50 text-sky-800 border-sky-200',
+      createDate: '08/10/2026',
+      daysOpen: 16,
+      daysColor: 'bg-emerald-100 text-emerald-800',
+      jiraStatus: '✔ Đã đóng (Bản 3.8.2)',
+      statusColor: 'bg-emerald-50 text-emerald-800 border-emerald-200',
+    },
+  ];
+
+  const displayedIssues = topIssues.filter((item) => {
+    if (jiraGroupFilter === 'kve') return item.group === 'KVE';
+    if (jiraGroupFilter === 'hkd') return item.group === 'HKD';
+    return true;
+  });
+
+  // Section 5: Đề xuất tính năng & Nghiệp vụ mới (Case) [Tháng này]
+  const newFeatureCases = [
+    {
+      id: 1,
+      title: 'Tự động ký số lô nhiều hóa đơn cuối ca bán hàng',
+      sub: 'Tránh tình trạng nhân viên thu ngân phải nhập mã PIN từng hóa đơn lẻ',
+      group: 'KVE',
+      service: 'HĐĐT & CKS',
+      shopCount: '48 shop',
+      priority: 'Cao (P1)',
+      priorityColor: 'bg-rose-50 text-rose-700 border-rose-200',
+      evaluation: 'Đã đưa vào Backlog Sprint 42',
+      evalColor: 'bg-emerald-50 text-emerald-700 border-emerald-200',
     },
     {
-      id: 6,
-      title: 'Sai lệch tổng tiền khi xuất HĐ từ đơn bán lẻ',
-      desc: 'Làm tròn số thập phân chiết khấu dòng sản phẩm',
-      category: 'Bug',
-      catColor: 'bg-rose-100 text-rose-700 border-rose-200',
-      service: 'HĐĐT',
-      count7d: 41,
-      trendType: 'down-green',
-      status: 'Đã xử lý bản 3.8.2',
-      statusColor: 'bg-emerald-50 text-emerald-800 border-emerald-200',
-      hasCheck: true,
+      id: 2,
+      title: 'Cảnh báo hết hạn chứng thư số trước 30 ngày qua Zalo OA',
+      sub: 'Gửi thông báo chủ động để chủ shop kịp gia hạn trước kỳ kê khai thuế',
+      group: 'KVE',
+      service: 'Chữ ký số (CKS)',
+      shopCount: '35 shop',
+      priority: 'Trung bình (P2)',
+      priorityColor: 'bg-amber-50 text-amber-700 border-amber-200',
+      evaluation: 'Đang thiết kế luồng ZNS',
+      evalColor: 'bg-sky-50 text-sky-700 border-sky-200',
+    },
+    {
+      id: 3,
+      title: 'Kết xuất dữ liệu tờ khai thuế GTGT mẫu chuẩn TT80',
+      sub: 'Tự động tổng hợp doanh thu theo từng mức thuế suất 8% và 10% ra file XML',
+      group: 'HKD',
+      service: 'Thuế - KT',
+      shopCount: '29 shop',
+      priority: 'Cao (P1)',
+      priorityColor: 'bg-rose-50 text-rose-700 border-rose-200',
+      evaluation: 'Đang thẩm định cùng ban Pháp chế',
+      evalColor: 'bg-amber-50 text-amber-700 border-amber-200',
+    },
+    {
+      id: 4,
+      title: 'Tự động lập sổ kế toán HKD theo TT88',
+      sub: 'Đồng bộ số liệu hóa đơn máy tính tiền và đơn hàng tự ghi sổ',
+      group: 'HKD',
+      service: 'Thuế - KT',
+      shopCount: '21 shop',
+      priority: 'Thấp (P3)',
+      priorityColor: 'bg-slate-100 text-slate-700 border-slate-200',
+      evaluation: 'Nghiên cứu Q4/2026',
+      evalColor: 'bg-slate-50 text-slate-600 border-slate-200',
     },
   ];
 
-  // Churn data (T1 to T10)
-  const churnMonthly = [
-    { month: 'T1', count2026: 14, count2025: 12 },
-    { month: 'T2', count2026: 19, count2025: 15 },
-    { month: 'T3', count2026: 21, count2025: 18 },
-    { month: 'T4', count2026: 16, count2025: 14 },
-    { month: 'T5', count2026: 17, count2025: 16 },
-    { month: 'T6', count2026: 22, count2025: 19 },
-    { month: 'T7', count2026: 18, count2025: 17 },
-    { month: 'T8', count2026: 20, count2025: 18 },
-    { month: 'T9', count2026: 24, count2025: 20 },
-    { month: 'T10', count2026: 15, count2025: 13 },
-  ];
+  const displayedCases = newFeatureCases.filter((fc) => {
+    if (caseGroupFilter === 'kve') return fc.group === 'KVE';
+    if (caseGroupFilter === 'hkd') return fc.group === 'HKD';
+    return true;
+  });
 
   return (
-    <div className="flex flex-col w-full space-y-5 animate-fadeIn">
+    <div className="flex flex-col w-full space-y-4 animate-fadeIn pb-8">
       {/* Toast Refresh Notice */}
       {refreshNotice && (
         <div className="fixed top-20 right-6 z-50 bg-emerald-700 text-white px-4 py-2.5 rounded-xl shadow-lg flex items-center gap-2.5 text-xs font-semibold animate-fadeIn">
@@ -180,19 +253,19 @@ export const ProjectKatView: React.FC<ProjectKatViewProps> = ({ onOpenExport }) 
             <span className="px-2.5 py-0.5 rounded-full bg-sky-100 text-sky-800 font-bold uppercase tracking-wider text-[11px]">
               PHÂN HỆ KAT
             </span>
-            <span className="flex items-center gap-1.5 text-emerald-600 font-semibold">
+            <span className="flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-emerald-50 text-emerald-700 border border-emerald-200/80 font-semibold text-[11px]">
               <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
               Line chuyên biệt
             </span>
             <span className="text-slate-400">•</span>
-            <span className="text-slate-500 font-medium">Kỳ chốt thuế Q1/2026</span>
+            <span className="text-slate-500 font-medium">Kỳ chốt thuế Q3/2026</span>
           </div>
 
           <h1 className="text-xl sm:text-2xl font-bold text-slate-900 tracking-tight">
             Báo cáo vận hành dự án KAT
           </h1>
           <p className="text-xs sm:text-sm text-slate-500 max-w-4xl leading-relaxed">
-            Theo dõi lượng phục vụ Hóa đơn điện tử, Chữ ký số, Thuế, năng suất nhân sự, sự vụ, khiếu nại và hủy hợp đồng
+            Theo dõi lưu lượng phục vụ Hóa đơn điện tử, Chữ ký số, Thuế - Kế toán; năng suất nhân sự, sự vụ, khiếu nại và hủy hợp đồng
           </p>
         </div>
 
@@ -273,236 +346,352 @@ export const ProjectKatView: React.FC<ProjectKatViewProps> = ({ onOpenExport }) 
             </span>
           </button>
 
-          {/* Google Sheet Link / Config Button */}
+          {/* Google Sheet Config Button */}
           <button
             onClick={() => setShowSheetModal(true)}
             className="inline-flex items-center gap-1.5 h-9 px-2.5 rounded-xl bg-emerald-50 hover:bg-emerald-100 border border-emerald-200 text-emerald-800 text-xs font-semibold transition-all shadow-xs cursor-pointer"
             title="Cấu hình Google Sheet liên kết nguồn dữ liệu KAT"
           >
             <span className="material-symbols-outlined text-[16px] text-emerald-600">table_chart</span>
-            <span className="hidden md:inline">Google Sheet KAT</span>
+            <span className="hidden md:inline">Google Sheet</span>
           </button>
         </div>
       </div>
 
-      {/* TOP 5 METRIC CARDS */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
-        {/* Card 1: Tổng phục vụ hôm nay */}
-        <div className="bg-white p-4.5 rounded-2xl shadow-xs border border-slate-200/90 flex flex-col justify-between">
+      {/* TOP 6 METRIC CARDS */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-3.5">
+        {/* Card 1: Tổng yêu cầu hôm nay */}
+        <div className="bg-white p-4 rounded-2xl shadow-xs border border-slate-200 flex flex-col justify-between">
           <div className="flex items-center justify-between">
-            <span className="text-[11px] font-bold uppercase tracking-wider text-slate-500">
-              TỔNG PHỤC VỤ HÔM NAY
+            <span className="text-[10px] font-bold uppercase tracking-wider text-slate-500">
+              TỔNG YÊU CẦU [HÔM NAY]
             </span>
-            <div className="w-8 h-8 rounded-full bg-sky-50 text-sky-600 flex items-center justify-center">
-              <span className="material-symbols-outlined text-[18px]">support_agent</span>
+            <div className="w-7 h-7 rounded-full bg-sky-50 text-sky-600 flex items-center justify-center">
+              <span className="material-symbols-outlined text-[16px]">headset</span>
             </div>
           </div>
-          <div className="my-2.5">
+          <div className="my-2">
             <div className="flex items-baseline gap-1.5">
-              <span className="text-2xl sm:text-3xl font-extrabold text-slate-900 tracking-tight">
+              <span className="text-2xl font-extrabold text-slate-900 tracking-tight">
                 1,248
               </span>
               <span className="text-xs font-semibold text-slate-500">ca</span>
             </div>
           </div>
-          <div className="flex items-center gap-1 text-[11px] text-slate-500">
-            <span className="text-emerald-600 font-bold flex items-center gap-0.5">
-              <span className="text-[10px]">▲</span> +6.1%
-            </span>
-            <span>Đạt 108% định mức ngày</span>
+          <div className="space-y-0.5 text-[11px]">
+            <div className="text-slate-400 truncate">Call: 540 | Chat: 412 | ...</div>
+            <div className="text-emerald-600 font-bold flex items-center gap-0.5">
+              <span className="text-[9px]">▲</span> +6.1% so với hôm qua
+            </div>
           </div>
         </div>
 
-        {/* Card 2: Năng suất TB / Nhân sự */}
-        <div className="bg-white p-4.5 rounded-2xl shadow-xs border border-slate-200/90 flex flex-col justify-between">
+        {/* Card 2: Tỷ lệ gọi nhỡ hôm nay */}
+        <div className="bg-white p-4 rounded-2xl shadow-xs border border-slate-200 flex flex-col justify-between">
           <div className="flex items-center justify-between">
-            <span className="text-[11px] font-bold uppercase tracking-wider text-slate-500">
-              NĂNG SUẤT TB / NHÂN SỰ
+            <span className="text-[10px] font-bold uppercase tracking-wider text-slate-500">
+              TỶ LỆ GỌI NHỠ [HÔM NAY]
             </span>
-            <div className="w-8 h-8 rounded-full bg-emerald-50 text-emerald-600 flex items-center justify-center">
-              <span className="material-symbols-outlined text-[18px]">person</span>
+            <div className="w-7 h-7 rounded-full bg-slate-100 text-slate-600 flex items-center justify-center">
+              <span className="material-symbols-outlined text-[16px]">phone_missed</span>
             </div>
           </div>
-          <div className="my-2.5">
-            <div className="flex items-baseline gap-1.5">
-              <span className="text-2xl sm:text-3xl font-extrabold text-slate-900 tracking-tight">
-                52
+          <div className="my-2">
+            <div className="flex items-baseline gap-2">
+              <span className="text-2xl font-extrabold text-slate-900 tracking-tight">
+                3.8%
               </span>
-              <span className="text-xs font-semibold text-slate-500">ca/ngày</span>
+              <span className="text-[11px] text-slate-400 font-normal">21/540 cuộc</span>
             </div>
           </div>
-          <div className="flex items-center justify-between text-[11px] text-slate-500">
-            <span>Mục tiêu: ≥ 45</span>
+          <div className="flex items-center justify-between text-[11px] pt-1 border-t border-slate-50">
+            <span className="text-slate-500">Mục tiêu &lt; 5.0%</span>
             <span className="px-1.5 py-0.5 rounded bg-emerald-100 text-emerald-800 font-bold text-[10px]">
-              Vượt chuẩn 115%
+              Đạt chuẩn
             </span>
           </div>
         </div>
 
-        {/* Card 3: Sự vụ đang mở */}
-        <div className="bg-white p-4.5 rounded-2xl shadow-xs border border-slate-200/90 flex flex-col justify-between">
+        {/* Card 3: Phản hồi chat TB */}
+        <div className="bg-white p-4 rounded-2xl shadow-xs border border-slate-200 flex flex-col justify-between">
           <div className="flex items-center justify-between">
-            <span className="text-[11px] font-bold uppercase tracking-wider text-slate-500">
-              SỰ VỤ ĐANG MỞ
+            <span className="text-[10px] font-bold uppercase tracking-wider text-slate-500">
+              PHẢN HỒI CHAT TB [HÔM NAY]
             </span>
-            <div className="w-8 h-8 rounded-full bg-amber-50 text-amber-600 flex items-center justify-center">
-              <span className="material-symbols-outlined text-[18px]">folder_open</span>
+            <div className="w-7 h-7 rounded-full bg-sky-50 text-sky-600 flex items-center justify-center">
+              <span className="material-symbols-outlined text-[16px]">chat</span>
             </div>
           </div>
-          <div className="my-2.5">
+          <div className="my-2">
             <div className="flex items-baseline gap-1.5">
-              <span className="text-2xl sm:text-3xl font-extrabold text-slate-900 tracking-tight">
-                87
+              <span className="text-2xl font-extrabold text-slate-900 tracking-tight">
+                42s
               </span>
-              <span className="text-xs font-semibold text-slate-500">vụ đang giải quyết</span>
+              <span className="text-xs font-semibold text-slate-500">TB</span>
             </div>
           </div>
-          <div className="flex items-center gap-2 text-[11px]">
-            <span className="text-rose-600 font-bold">Bug: 12</span>
-            <span className="text-slate-300">•</span>
-            <span className="text-amber-600 font-bold">Case: 31</span>
-            <span className="text-slate-300">•</span>
-            <span className="text-sky-600 font-bold">Guide: 44</span>
+          <div className="flex items-center justify-between text-[11px] pt-1 border-t border-slate-50">
+            <span className="text-slate-500 truncate">First response: 28s</span>
+            <span className="text-emerald-600 font-bold shrink-0">Mục tiêu &lt; 60s</span>
           </div>
         </div>
 
-        {/* Card 4: Khiếu nại đang xử lý */}
-        <div className="bg-white p-4.5 rounded-2xl shadow-xs border border-slate-200/90 flex flex-col justify-between">
+        {/* Card 4: Ticket đúng SLA (4H) */}
+        <div className="bg-white p-4 rounded-2xl shadow-xs border border-slate-200 flex flex-col justify-between">
           <div className="flex items-center justify-between">
-            <span className="text-[11px] font-bold uppercase tracking-wider text-slate-500">
+            <div className="flex items-center gap-1.5">
+              <span className="text-[10px] font-bold uppercase tracking-wider text-slate-500">
+                TICKET ĐÚNG SLA (4H)
+              </span>
+              <span className="material-symbols-outlined text-[14px] text-emerald-600">check_circle</span>
+            </div>
+            <div className="w-7 h-7 rounded-full bg-emerald-50 text-emerald-600 flex items-center justify-center">
+              <span className="material-symbols-outlined text-[16px]">check_circle</span>
+            </div>
+          </div>
+          <div className="my-2">
+            <div className="flex items-baseline gap-2">
+              <span className="text-2xl font-extrabold text-slate-900 tracking-tight">
+                96.5%
+              </span>
+              <span className="text-[11px] text-slate-400 font-normal">286/296</span>
+            </div>
+          </div>
+          <div className="flex items-center justify-between text-[11px] pt-1 border-t border-slate-50">
+            <span className="text-slate-500">Chuẩn SLA: 95%</span>
+            <span className="text-rose-600 font-bold">10 ticket quá hạn</span>
+          </div>
+        </div>
+
+        {/* Card 5: Khiếu nại đang xử lý */}
+        <div className="bg-white p-4 rounded-2xl shadow-xs border border-slate-200 flex flex-col justify-between">
+          <div className="flex items-center justify-between">
+            <span className="text-[10px] font-bold uppercase tracking-wider text-slate-500">
               KHIẾU NẠI ĐANG XỬ LÝ
             </span>
-            <div className="w-8 h-8 rounded-full bg-amber-50 text-amber-600 flex items-center justify-center">
-              <span className="material-symbols-outlined text-[18px]">warning</span>
+            <div className="w-7 h-7 rounded-full bg-amber-50 text-amber-600 flex items-center justify-center">
+              <span className="material-symbols-outlined text-[16px]">warning</span>
             </div>
           </div>
-          <div className="my-2.5">
+          <div className="my-2">
             <div className="flex items-baseline gap-1.5">
-              <span className="text-2xl sm:text-3xl font-extrabold text-slate-900 tracking-tight text-amber-600">
+              <span className="text-2xl font-extrabold text-amber-600 tracking-tight">
                 14
               </span>
               <span className="text-xs font-semibold text-slate-500">ca phát sinh</span>
             </div>
           </div>
-          <div className="flex items-center gap-1 text-[11px] text-slate-500">
-            <span>SLA chuẩn: 92%</span>
-            <span className="text-slate-300">•</span>
+          <div className="flex items-center justify-between text-[11px] pt-1 border-t border-slate-50">
+            <span className="text-slate-500">Đang điều tra</span>
             <span className="text-rose-600 font-bold">• 2 quá hạn</span>
           </div>
         </div>
 
-        {/* Card 5: Hủy hợp đồng 2026 */}
-        <div className="bg-white p-4.5 rounded-2xl shadow-xs border border-slate-200/90 flex flex-col justify-between">
+        {/* Card 6: Ticket Jira mở (Bug+Sup) */}
+        <div className="bg-white p-4 rounded-2xl shadow-xs border border-slate-200 flex flex-col justify-between">
           <div className="flex items-center justify-between">
-            <span className="text-[11px] font-bold uppercase tracking-wider text-slate-500">
-              HỦY HỢP ĐỒNG 2026
+            <span className="text-[10px] font-bold uppercase tracking-wider text-slate-500">
+              TICKET JIRA MỞ (BUG+SUP)
             </span>
-            <div className="w-8 h-8 rounded-full bg-rose-50 text-rose-600 flex items-center justify-center">
-              <span className="material-symbols-outlined text-[18px]">cancel_presentation</span>
+            <div className="w-7 h-7 rounded-full bg-sky-50 text-sky-700 flex items-center justify-center">
+              <span className="material-symbols-outlined text-[16px]">settings</span>
             </div>
           </div>
-          <div className="my-2.5">
+          <div className="my-2">
             <div className="flex items-baseline gap-1.5">
-              <span className="text-2xl sm:text-3xl font-extrabold text-slate-900 tracking-tight text-rose-600">
-                186
+              <span className="text-2xl font-extrabold text-[#006195] tracking-tight">
+                56
               </span>
-              <span className="text-xs font-semibold text-slate-500">HĐ hủy</span>
+              <span className="text-xs font-semibold text-slate-500">ticket</span>
             </div>
           </div>
-          <div className="flex items-center justify-between text-[11px] text-slate-500">
-            <span>Tỷ lệ hủy: 2.3%</span>
-            <span className="text-rose-600 font-bold">+0.4% so 2025</span>
+          <div className="flex items-center justify-between text-[11px] pt-1 border-t border-slate-50">
+            <span className="text-slate-500 truncate">Bug: 24 | Support: 32</span>
+            <span className="text-rose-600 font-bold shrink-0">9 ticket &gt; 7N</span>
           </div>
         </div>
       </div>
 
-      {/* ROW 1: SẢN LƯỢNG PHỤC VỤ (65%) & TỶ TRỌNG LOẠI DỊCH VỤ (35%) */}
-      <div className="grid grid-cols-1 lg:grid-cols-12 gap-5">
-        {/* Left: Stacked Bar Chart */}
-        <div className="lg:col-span-8 bg-white p-5 rounded-2xl shadow-xs border border-slate-200 flex flex-col justify-between">
+      {/* ROW 2: SẢN LƯỢNG PHỤC VỤ (8 COLS) & TỶ TRỌNG HÔM NAY (4 COLS) */}
+      <div className="grid grid-cols-1 lg:grid-cols-12 gap-4">
+        {/* Left: 30-day Volume Trend + Hourly heat bar */}
+        <div className="lg:col-span-8 bg-white p-5 rounded-2xl shadow-xs border border-slate-200 flex flex-col justify-between space-y-4">
           <div>
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-4">
-              <div>
+              <div className="flex items-center gap-2 flex-wrap">
                 <h2 className="text-base font-bold text-slate-900">
-                  Sản lượng phục vụ theo phân loại dịch vụ (30 ngày gần nhất)
+                  Sản lượng phục vụ KAT [30 ngày]
                 </h2>
-                <p className="text-xs text-slate-500 mt-0.5">
-                  Số lượng ca hỗ trợ kỹ thuật và vận hành theo ngày trong tháng
-                </p>
+                <span className="px-2 py-0.5 rounded bg-sky-50 text-sky-800 border border-sky-100 font-semibold text-[11px]">
+                  Xu hướng tháng
+                </span>
               </div>
 
-              {/* Legend */}
-              <div className="flex items-center gap-3 text-xs text-slate-600 flex-wrap">
-                <span className="flex items-center gap-1.5">
-                  <span className="w-2.5 h-2.5 rounded-xs bg-[#004b74]"></span>
-                  <span>HĐĐT</span>
-                </span>
-                <span className="flex items-center gap-1.5">
-                  <span className="w-2.5 h-2.5 rounded-xs bg-[#0090DA]"></span>
-                  <span>CKS</span>
-                </span>
-                <span className="flex items-center gap-1.5">
-                  <span className="w-2.5 h-2.5 rounded-xs bg-[#10b981]"></span>
-                  <span>Thuế điện tử</span>
-                </span>
-                <span className="flex items-center gap-1.5">
-                  <span className="w-2.5 h-2.5 rounded-xs bg-[#94a3b8]"></span>
-                  <span>Khác</span>
-                </span>
+              {/* Toggles & Legend */}
+              <div className="flex items-center gap-3 flex-wrap">
+                <div className="inline-flex p-0.5 bg-slate-100 rounded-lg text-xs font-medium border border-slate-200">
+                  <button
+                    onClick={() => setVolumeView('service')}
+                    className={`px-2.5 py-1 rounded-md transition-all text-[11px] ${
+                      volumeView === 'service' ? 'bg-white text-slate-900 font-bold shadow-2xs' : 'text-slate-600'
+                    }`}
+                  >
+                    Theo dịch vụ
+                  </button>
+                  <button
+                    onClick={() => setVolumeView('channel')}
+                    className={`px-2.5 py-1 rounded-md transition-all text-[11px] ${
+                      volumeView === 'channel' ? 'bg-white text-slate-900 font-bold shadow-2xs' : 'text-slate-600'
+                    }`}
+                  >
+                    Theo kênh (Call, Chat, Ticket)
+                  </button>
+                </div>
+
+                <div className="flex items-center gap-2.5 text-[11px] text-slate-600">
+                  <span className="flex items-center gap-1">
+                    <span className="w-2.5 h-2.5 rounded-xs bg-[#004b74]"></span>
+                    <span>HĐĐT</span>
+                  </span>
+                  <span className="flex items-center gap-1">
+                    <span className="w-2.5 h-2.5 rounded-xs bg-[#0090DA]"></span>
+                    <span>CKS</span>
+                  </span>
+                  <span className="flex items-center gap-1">
+                    <span className="w-2.5 h-2.5 rounded-xs bg-[#10b981]"></span>
+                    <span>Thuế - KT</span>
+                  </span>
+                  <span className="flex items-center gap-1">
+                    <span className="w-2.5 h-2.5 rounded-xs bg-[#94a3b8]"></span>
+                    <span>Khác</span>
+                  </span>
+                </div>
               </div>
             </div>
 
-            {/* Stacked Bars Graphic */}
-            <div className="pt-4 pb-2">
-              <div className="h-56 flex items-end justify-between gap-1 sm:gap-2 px-1 border-b border-slate-200">
-                {dailyServiceData.map((d, i) => {
-                  const total = d.hddt + d.cks + d.thue + d.khac;
-                  // Max total ~1500 -> normalize height in percentage
-                  const maxVal = 1500;
-                  const hHddt = (d.hddt / maxVal) * 100;
-                  const hCks = (d.cks / maxVal) * 100;
-                  const hThue = (d.thue / maxVal) * 100;
-                  const hKhac = (d.khac / maxVal) * 100;
+            <p className="text-xs text-slate-500 -mt-2 mb-3">
+              Số lượng ca hỗ trợ kỹ thuật và vận hành theo ngày trong tháng
+            </p>
 
+            {/* Stacked Bars Graphic with Y-axis */}
+            <div className="pt-2 pb-2">
+              <div className="flex">
+                {/* Y-axis labels */}
+                <div className="flex flex-col justify-between text-[10px] text-slate-400 pr-2 pb-6 text-right w-10 shrink-0">
+                  <span>1,500</span>
+                  <span>1,000</span>
+                  <span>500</span>
+                  <span>250</span>
+                  <span>0</span>
+                </div>
+
+                {/* Bars Container */}
+                <div className="flex-1 h-52 flex items-end justify-between gap-1 sm:gap-2 px-1 border-b border-l border-slate-200">
+                  {dailyServiceData.map((d, i) => {
+                    const total = d.hddt + d.cks + d.thue + d.khac;
+                    const maxVal = 1500;
+                    const hHddt = (d.hddt / maxVal) * 100;
+                    const hCks = (d.cks / maxVal) * 100;
+                    const hThue = (d.thue / maxVal) * 100;
+                    const hKhac = (d.khac / maxVal) * 100;
+
+                    return (
+                      <div key={i} className="flex-1 flex flex-col items-center group relative h-full justify-end">
+                        {/* Tooltip */}
+                        <div className="opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none absolute bottom-full mb-2 z-20 bg-slate-900 text-white text-[11px] rounded-lg p-2 shadow-xl whitespace-nowrap text-left space-y-0.5">
+                          <div className="font-bold border-b border-slate-700 pb-1 mb-1">
+                            Ngày {d.day} • Tổng: {total.toLocaleString()} ca
+                          </div>
+                          <div className="flex justify-between gap-3 text-[#38bdf8]">
+                            <span>HĐĐT:</span> <b>{d.hddt}</b>
+                          </div>
+                          <div className="flex justify-between gap-3 text-[#60a5fa]">
+                            <span>CKS:</span> <b>{d.cks}</b>
+                          </div>
+                          <div className="flex justify-between gap-3 text-[#4ade80]">
+                            <span>Thuế - KT:</span> <b>{d.thue}</b>
+                          </div>
+                          <div className="flex justify-between gap-3 text-slate-300">
+                            <span>Khác:</span> <b>{d.khac}</b>
+                          </div>
+                        </div>
+
+                        {/* Top Indicator Pin for Today */}
+                        {d.isToday && (
+                          <div className="mb-1 text-emerald-600 text-[10px] font-bold flex flex-col items-center">
+                            <span>●</span>
+                          </div>
+                        )}
+
+                        {/* The Stacked Bar */}
+                        <div className="w-full max-w-[18px] rounded-t flex flex-col overflow-hidden shadow-2xs hover:brightness-110 transition-all cursor-pointer">
+                          <div style={{ height: `${hKhac}%` }} className="w-full bg-[#94a3b8]"></div>
+                          <div style={{ height: `${hThue}%` }} className="w-full bg-[#10b981]"></div>
+                          <div style={{ height: `${hCks}%` }} className="w-full bg-[#0090DA]"></div>
+                          <div style={{ height: `${hHddt}%` }} className="w-full bg-[#004b74]"></div>
+                        </div>
+
+                        {/* X Axis Label */}
+                        {d.dayHighlight ? (
+                          <span className="mt-2 text-[10px] tracking-tight px-1 py-0.5 rounded bg-[#004b74] text-white font-bold">
+                            {d.day}
+                          </span>
+                        ) : d.dayBold ? (
+                          <span className="mt-2 text-[10px] tracking-tight font-bold text-slate-800 truncate">
+                            {d.day}
+                          </span>
+                        ) : (
+                          <span className={`mt-2 text-[10px] tracking-tight truncate ${d.isToday ? 'font-bold text-[#006195]' : 'text-slate-400'}`}>
+                            {d.day}
+                          </span>
+                        )}
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+            </div>
+
+            {/* Hourly volume heat panel */}
+            <div className="mt-4 p-3 rounded-xl bg-slate-50 border border-slate-200/90 space-y-2">
+              <div className="flex items-center justify-between text-xs">
+                <span className="font-bold text-sky-800 flex items-center gap-1.5">
+                  <span className="material-symbols-outlined text-[16px] text-sky-600">schedule</span>
+                  Lưu lượng theo giờ hôm nay [8h - 18h]
+                </span>
+                <span className="text-[11px] text-slate-500 font-medium">
+                  Đỉnh điểm: <b className="text-slate-800">14h - 16h (185 ca/h)</b>
+                </span>
+              </div>
+
+              {/* 11 Hourly Bars */}
+              <div className="h-10 flex items-end justify-between gap-1 pt-1 px-1">
+                {hourlyData.map((h, idx) => {
+                  const maxH = 185;
+                  const barH = (h.count / maxH) * 100;
                   return (
-                    <div key={i} className="flex-1 flex flex-col items-center group relative h-full justify-end">
+                    <div key={idx} className="flex-1 flex flex-col items-center group relative h-full justify-end">
                       {/* Tooltip */}
-                      <div className="opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none absolute bottom-full mb-2 z-20 bg-slate-900 text-white text-[11px] rounded-lg p-2 shadow-xl whitespace-nowrap text-left space-y-0.5">
-                        <div className="font-bold border-b border-slate-700 pb-1 mb-1">
-                          Ngày {d.day} • Tổng: {total.toLocaleString()} ca
-                        </div>
-                        <div className="flex justify-between gap-3 text-[#38bdf8]">
-                          <span>HĐĐT:</span> <b>{d.hddt}</b>
-                        </div>
-                        <div className="flex justify-between gap-3 text-[#60a5fa]">
-                          <span>CKS:</span> <b>{d.cks}</b>
-                        </div>
-                        <div className="flex justify-between gap-3 text-[#4ade80]">
-                          <span>Thuế:</span> <b>{d.thue}</b>
-                        </div>
-                        <div className="flex justify-between gap-3 text-slate-300">
-                          <span>Khác:</span> <b>{d.khac}</b>
-                        </div>
+                      <div className="opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none absolute bottom-full mb-1 z-20 bg-slate-900 text-white text-[10px] rounded px-1.5 py-0.5 whitespace-nowrap">
+                        {h.hour}: {h.count} ca
                       </div>
 
-                      {/* Peak Pin for Day 20 or Today */}
-                      {d.isToday && (
-                        <div className="mb-1 text-slate-700 text-[10px] font-bold flex flex-col items-center">
-                          <span>●</span>
-                        </div>
-                      )}
-
-                      {/* The Stacked Bar */}
-                      <div className="w-full max-w-[20px] rounded-t flex flex-col overflow-hidden shadow-2xs hover:brightness-110 transition-all cursor-pointer">
-                        <div style={{ height: `${hKhac}%` }} className="w-full bg-[#94a3b8]"></div>
-                        <div style={{ height: `${hThue}%` }} className="w-full bg-[#10b981]"></div>
-                        <div style={{ height: `${hCks}%` }} className="w-full bg-[#0090DA]"></div>
-                        <div style={{ height: `${hHddt}%` }} className="w-full bg-[#004b74]"></div>
-                      </div>
-
-                      {/* X Axis Label */}
-                      <span className={`mt-2 text-[10px] tracking-tight truncate ${d.isToday ? 'font-bold text-sky-700' : 'text-slate-400'}`}>
-                        {d.day}
+                      <div
+                        style={{ height: `${barH}%` }}
+                        className={`w-full max-w-[28px] rounded-t transition-all ${
+                          h.intensity === 'super-peak'
+                            ? 'bg-[#0090DA]'
+                            : h.intensity === 'peak'
+                            ? 'bg-[#0284c7]'
+                            : h.intensity === 'medium'
+                            ? 'bg-sky-400/80'
+                            : h.intensity === 'medium-low'
+                            ? 'bg-sky-300/70'
+                            : 'bg-slate-300'
+                        }`}
+                      ></div>
+                      <span className={`text-[9px] mt-1 ${h.isPeak ? 'font-bold text-sky-800' : 'text-slate-400'}`}>
+                        {h.hour}
                       </span>
                     </div>
                   );
@@ -512,23 +701,23 @@ export const ProjectKatView: React.FC<ProjectKatViewProps> = ({ onOpenExport }) 
           </div>
 
           {/* Footnote callout */}
-          <div className="mt-4 p-3 rounded-xl bg-slate-50 border border-slate-200/80 flex items-start gap-2.5 text-xs text-slate-600">
-            <span className="material-symbols-outlined text-[18px] text-sky-600 shrink-0 mt-0.5">
-              info
+          <div className="p-3 rounded-xl bg-slate-50 border border-slate-200/80 flex items-start gap-2 text-xs text-slate-600">
+            <span className="material-symbols-outlined text-[16px] text-sky-600 shrink-0 mt-0.5">
+              location_on
             </span>
-            <div className="leading-relaxed">
-              <span className="font-semibold text-slate-800">Ghi chú:</span> Lượng yêu cầu Chữ ký số và Thuế tăng vọt 34% vào các mốc ngày 18 - 22 do thời hạn nộp tờ khai quý. Trung bình tháng: 1,180 ca/ngày
+            <div className="leading-relaxed text-[11px]">
+              <span className="font-semibold text-slate-800">Ghi chú:</span> Lượng yêu cầu Chữ ký số và Thuế - Kế toán tăng quanh ngày 18 - 22 do hạn nộp tờ khai (ngày 20). Trung bình tháng: 1,180 ca/ngày
             </div>
           </div>
         </div>
 
-        {/* Right: Tỷ trọng hôm nay theo loại dịch vụ */}
-        <div className="lg:col-span-4 bg-white p-5 rounded-2xl shadow-xs border border-slate-200 flex flex-col justify-between">
+        {/* Right: Tỷ trọng hôm nay [Hôm nay] */}
+        <div className="lg:col-span-4 bg-white p-5 rounded-2xl shadow-xs border border-slate-200 flex flex-col justify-between space-y-4">
           <div>
             <div className="flex items-start justify-between mb-4">
               <div>
                 <h2 className="text-base font-bold text-slate-900">
-                  Tỷ trọng hôm nay theo loại dịch vụ
+                  Tỷ trọng hôm nay [Hôm nay]
                 </h2>
                 <p className="text-xs text-slate-500 mt-0.5">
                   Phân rã sản lượng xử lý trong 24 giờ qua
@@ -568,12 +757,12 @@ export const ProjectKatView: React.FC<ProjectKatViewProps> = ({ onOpenExport }) 
                   </div>
                   <div className="flex items-center gap-2">
                     <span className="font-bold text-slate-900">318</span>
-                    <span className="text-slate-400 text-[11px]">(26%)</span>
+                    <span className="text-slate-400 text-[11px]">(25%)</span>
                     <span className="text-emerald-600 font-bold text-[11px]">+11%</span>
                   </div>
                 </div>
                 <div className="w-full h-2 rounded-full bg-slate-100 overflow-hidden">
-                  <div className="h-full bg-[#0090DA] rounded-full" style={{ width: '26%' }}></div>
+                  <div className="h-full bg-[#0090DA] rounded-full" style={{ width: '25%' }}></div>
                 </div>
               </div>
 
@@ -582,7 +771,7 @@ export const ProjectKatView: React.FC<ProjectKatViewProps> = ({ onOpenExport }) 
                 <div className="flex items-center justify-between text-xs">
                   <div className="flex items-center gap-2 font-medium text-slate-800">
                     <span className="w-2.5 h-2.5 rounded-full bg-[#10b981]"></span>
-                    <span>Thuế điện tử</span>
+                    <span>Thuế - Kế toán</span>
                   </div>
                   <div className="flex items-center gap-2">
                     <span className="font-bold text-slate-900">241</span>
@@ -600,7 +789,7 @@ export const ProjectKatView: React.FC<ProjectKatViewProps> = ({ onOpenExport }) 
                 <div className="flex items-center justify-between text-xs">
                   <div className="flex items-center gap-2 font-medium text-slate-800">
                     <span className="w-2.5 h-2.5 rounded-full bg-[#94a3b8]"></span>
-                    <span>Khác (Tài khoản, API kết nối)</span>
+                    <span>Khác (TK, Gateway, Onboarding)</span>
                   </div>
                   <div className="flex items-center gap-2">
                     <span className="font-bold text-slate-900">77</span>
@@ -616,13 +805,13 @@ export const ProjectKatView: React.FC<ProjectKatViewProps> = ({ onOpenExport }) 
           </div>
 
           {/* Operational Review Callout */}
-          <div className="mt-5 p-3.5 rounded-xl bg-sky-50/70 border border-sky-200/90 flex items-start gap-2.5">
+          <div className="mt-4 p-3.5 rounded-xl bg-sky-50/70 border border-sky-200/90 flex items-start gap-2.5">
             <span className="material-symbols-outlined text-[18px] text-sky-700 shrink-0 mt-0.5">
               check_circle
             </span>
             <div className="text-xs space-y-1">
               <span className="font-bold text-sky-950 block">Nhận định vận hành KAT:</span>
-              <p className="text-sky-900 leading-relaxed">
+              <p className="text-sky-900 leading-relaxed text-[11px]">
                 Đội ngũ HĐĐT giữ tải ổn định. Kênh Chữ ký số USB Token đang có dấu hiệu tăng do lỗi chứng thư mới gia hạn.
               </p>
             </div>
@@ -630,13 +819,13 @@ export const ProjectKatView: React.FC<ProjectKatViewProps> = ({ onOpenExport }) 
         </div>
       </div>
 
-      {/* ROW 2: NĂNG SUẤT NHÂN SỰ KAT (FULL WIDTH) */}
-      <div className="bg-white p-5 rounded-2xl shadow-xs border border-slate-200 space-y-5">
+      {/* ROW 3: NĂNG SUẤT NHÂN SỰ KAT [HÔM NAY] (FULL WIDTH) */}
+      <div className="bg-white p-5 rounded-2xl shadow-xs border border-slate-200 space-y-4">
         <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-3">
           <div>
             <div className="flex items-center gap-2">
               <h2 className="text-base font-bold text-slate-900">
-                Năng suất nhân sự KAT
+                Năng suất nhân sự KAT [Hôm nay]
               </h2>
               <span className="px-2 py-0.5 rounded-full bg-sky-100 text-sky-800 text-[11px] font-bold">
                 24 chuyên viên
@@ -647,31 +836,50 @@ export const ProjectKatView: React.FC<ProjectKatViewProps> = ({ onOpenExport }) 
             </p>
           </div>
 
-          {/* KPI metrics & Tabs */}
+          {/* Filters & Toggles */}
           <div className="flex flex-wrap items-center gap-2 sm:gap-3">
-            <span className="px-2.5 py-1 rounded-lg bg-sky-50 text-sky-800 text-xs font-semibold border border-sky-200">
-              AHT: <b>7m 40s</b> (-25s)
-            </span>
-            <span className="px-2.5 py-1 rounded-lg bg-emerald-50 text-emerald-800 text-xs font-semibold border border-emerald-200">
-              FCR: <b>81.5%</b> (≥80%)
-            </span>
-            <span className="px-2.5 py-1 rounded-lg bg-slate-100 text-slate-700 text-xs font-semibold border border-slate-200">
-              TB ca/giờ: <b>6.5 ca/h</b>
-            </span>
-
+            {/* Team filter pills */}
             <div className="inline-flex p-0.5 bg-slate-100 rounded-lg text-xs font-medium border border-slate-200">
               <button
-                onClick={() => setAgentTab('day')}
-                className={`px-3 py-1 rounded-md transition-all ${
-                  agentTab === 'day' ? 'bg-white text-slate-900 font-bold shadow-2xs' : 'text-slate-600'
+                onClick={() => setAgentTeamFilter('all')}
+                className={`px-2.5 py-1 rounded-md transition-all text-[11px] ${
+                  agentTeamFilter === 'all' ? 'bg-white text-slate-900 font-bold shadow-2xs' : 'text-slate-600'
+                }`}
+              >
+                Tất cả (24)
+              </button>
+              <button
+                onClick={() => setAgentTeamFilter('inhouse')}
+                className={`px-2.5 py-1 rounded-md transition-all text-[11px] ${
+                  agentTeamFilter === 'inhouse' ? 'bg-white text-slate-900 font-bold shadow-2xs' : 'text-slate-600'
+                }`}
+              >
+                Inhouse (16)
+              </button>
+              <button
+                onClick={() => setAgentTeamFilter('outsource')}
+                className={`px-2.5 py-1 rounded-md transition-all text-[11px] ${
+                  agentTeamFilter === 'outsource' ? 'bg-white text-slate-900 font-bold shadow-2xs' : 'text-slate-600'
+                }`}
+              >
+                Outsource (8)
+              </button>
+            </div>
+
+            {/* Time toggle pills */}
+            <div className="inline-flex p-0.5 bg-slate-100 rounded-lg text-xs font-medium border border-slate-200">
+              <button
+                onClick={() => setAgentTimeTab('day')}
+                className={`px-2.5 py-1 rounded-md transition-all text-[11px] ${
+                  agentTimeTab === 'day' ? 'bg-white text-slate-900 font-bold shadow-2xs' : 'text-slate-600'
                 }`}
               >
                 Theo ngày
               </button>
               <button
-                onClick={() => setAgentTab('shift')}
-                className={`px-3 py-1 rounded-md transition-all ${
-                  agentTab === 'shift' ? 'bg-white text-slate-900 font-bold shadow-2xs' : 'text-slate-600'
+                onClick={() => setAgentTimeTab('shift')}
+                className={`px-2.5 py-1 rounded-md transition-all text-[11px] ${
+                  agentTimeTab === 'shift' ? 'bg-white text-slate-900 font-bold shadow-2xs' : 'text-slate-600'
                 }`}
               >
                 Theo ca làm
@@ -680,8 +888,53 @@ export const ProjectKatView: React.FC<ProjectKatViewProps> = ({ onOpenExport }) 
           </div>
         </div>
 
+        {/* 3 Summary Stat Boxes */}
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-3 pt-1">
+          {/* Box 1: Inhouse */}
+          <div className="p-3 rounded-xl bg-slate-50 border border-slate-200/90 flex items-center justify-between text-xs">
+            <div className="flex items-center gap-2">
+              <span className="w-2 h-2 rounded-full bg-sky-600"></span>
+              <span className="font-semibold text-slate-700">Inhouse (16 nhân sự)</span>
+            </div>
+            <div className="flex items-center gap-3">
+              <span className="text-slate-600">Năng suất TB: <b className="text-slate-900">54.5 ca</b></span>
+              <span className="px-2 py-0.5 rounded bg-sky-100/70 text-sky-800 font-semibold text-[11px]">
+                AHT TB: <b>7m 15s</b>
+              </span>
+            </div>
+          </div>
+
+          {/* Box 2: Outsource */}
+          <div className="p-3 rounded-xl bg-slate-50 border border-slate-200/90 flex items-center justify-between text-xs">
+            <div className="flex items-center gap-2">
+              <span className="w-2 h-2 rounded-full bg-amber-500"></span>
+              <span className="font-semibold text-slate-700">Outsource (8 nhân sự)</span>
+            </div>
+            <div className="flex items-center gap-3">
+              <span className="text-slate-600">Năng suất TB: <b className="text-slate-900">47.0 ca</b></span>
+              <span className="px-2 py-0.5 rounded bg-amber-100/70 text-amber-800 font-semibold text-[11px]">
+                AHT TB: <b>8m 30s</b>
+              </span>
+            </div>
+          </div>
+
+          {/* Box 3: Total Team */}
+          <div className="p-3 rounded-xl bg-slate-50 border border-slate-200/90 flex items-center justify-between text-xs">
+            <div className="flex items-center gap-2">
+              <span className="w-2 h-2 rounded-full bg-emerald-600"></span>
+              <span className="font-semibold text-slate-700">Toàn Team (24 nhân sự)</span>
+            </div>
+            <div className="flex items-center gap-3">
+              <span className="text-slate-600">Năng suất TB: <b className="text-slate-900">52.0 ca</b></span>
+              <span className="px-2 py-0.5 rounded bg-emerald-100/70 text-emerald-800 font-semibold text-[11px]">
+                AHT Tổng: <b>7m 40s</b>
+              </span>
+            </div>
+          </div>
+        </div>
+
         {/* Target Benchmark Indicators Header */}
-        <div className="flex items-center justify-end gap-6 text-xs px-2 text-slate-500">
+        <div className="flex items-center justify-end gap-6 text-xs px-2 text-slate-500 pt-1">
           <div className="flex items-center gap-1.5">
             <span className="w-5 border-t-2 border-dashed border-[#0090DA]"></span>
             <span className="text-[11px] font-bold text-sky-700">Mức TB toàn team: 52 ca</span>
@@ -690,24 +943,38 @@ export const ProjectKatView: React.FC<ProjectKatViewProps> = ({ onOpenExport }) 
           <div className="flex items-center gap-1.5">
             <span className="w-5 border-t-2 border-dashed border-amber-500"></span>
             <span className="text-[11px] font-semibold text-amber-700">Chỉ tiêu tối thiểu: 45 ca</span>
+            <span className="px-1 rounded bg-amber-500 text-white font-bold text-[10px]">Target:</span>
           </div>
         </div>
 
         {/* 10 Specialists Ranking List */}
-        <div className="space-y-3 pt-1">
-          {agentRanking.map((agent) => {
-            // max scale 80 ca
+        <div className="space-y-2.5 pt-1">
+          {displayedAgents.map((agent) => {
             const barWidth = Math.min(100, (agent.score / 80) * 100);
             const isDanger = agent.status === 'danger';
             const isWarning = agent.status === 'warning';
 
             return (
               <div key={agent.rank} className="flex items-center gap-3 text-xs">
-                {/* Agent Name */}
-                <div className="w-36 sm:w-44 truncate flex items-center gap-2 font-medium text-slate-800 shrink-0">
+                {/* Agent Name + Inhouse/Outsource tag */}
+                <div className="w-48 sm:w-56 truncate flex items-center gap-2 font-medium text-slate-800 shrink-0">
                   <span className="text-slate-400 font-bold text-[11px]">#{agent.rank}</span>
                   <span className={`w-1.5 h-1.5 rounded-full ${isDanger ? 'bg-rose-500' : isWarning ? 'bg-amber-500' : 'bg-emerald-500'}`}></span>
                   <span className="truncate">{agent.name}</span>
+                  <span
+                    className={`px-1.5 py-0.2 rounded text-[10px] font-semibold border ${
+                      agent.team === 'inhouse'
+                        ? 'bg-sky-50 text-sky-700 border-sky-200'
+                        : 'bg-amber-50 text-amber-700 border-amber-200'
+                    }`}
+                  >
+                    {agent.team === 'inhouse' ? 'Inhouse' : 'Outsource'}
+                  </span>
+                </div>
+
+                {/* AHT indicator */}
+                <div className="w-16 text-[11px] text-slate-500 shrink-0">
+                  AHT: <span className="font-semibold">{agent.aht}</span>
                 </div>
 
                 {/* Progress bar container with target vertical guidelines */}
@@ -731,7 +998,7 @@ export const ProjectKatView: React.FC<ProjectKatViewProps> = ({ onOpenExport }) 
                         ? 'bg-rose-600'
                         : isWarning
                         ? 'bg-amber-500'
-                        : 'bg-[#004b74]'
+                        : 'bg-[#0284c7]'
                     }`}
                     style={{ width: `${barWidth}%` }}
                   >
@@ -746,7 +1013,7 @@ export const ProjectKatView: React.FC<ProjectKatViewProps> = ({ onOpenExport }) 
                       isDanger
                         ? 'text-rose-600'
                         : isWarning
-                        ? 'text-amber-600'
+                        ? 'text-rose-600'
                         : agent.status === 'kpi'
                         ? 'text-amber-600'
                         : 'text-emerald-600'
@@ -761,139 +1028,175 @@ export const ProjectKatView: React.FC<ProjectKatViewProps> = ({ onOpenExport }) 
         </div>
       </div>
 
-      {/* ROW 3: PHÂN LOẠI SỰ VỤ KAT (35%) & TOP VẤN ĐỀ NỔI CỘM (65%) */}
-      <div className="grid grid-cols-1 lg:grid-cols-12 gap-5">
-        {/* Left: Donut Chart Sự Vụ */}
-        <div className="lg:col-span-4 bg-white p-5 rounded-2xl shadow-xs border border-slate-200 flex flex-col justify-between">
-          <div>
-            <div className="flex items-center justify-between mb-4">
+      {/* ROW 4: TICKET JIRA CHUYỂN SP (4 COLS) & TOP VẤN ĐỀ NỔI CỘM (8 COLS) */}
+      <div className="grid grid-cols-1 lg:grid-cols-12 gap-4">
+        {/* Left: Ticket chuyển SP (Jira) */}
+        <div className="lg:col-span-4 bg-white p-5 rounded-2xl shadow-xs border border-slate-200 flex flex-col justify-between space-y-4">
+          <div className="space-y-4">
+            <div className="flex items-start justify-between gap-2">
               <div>
                 <h2 className="text-base font-bold text-slate-900">
-                  Phân loại sự vụ KAT
+                  Ticket chuyển SP (Jira) [Hiện tại]
                 </h2>
                 <p className="text-xs text-slate-500 mt-0.5">
-                  Cơ cấu 87 sự vụ phát sinh đang theo dõi xử lý
+                  Theo dõi phân loại và độ tuổi tồn đọng các ticket chuyển R&amp;D/Dev
                 </p>
               </div>
-              <span className="px-2 py-0.5 rounded-full bg-slate-100 text-slate-600 text-[11px] font-semibold">
-                Theo tính chất
+              <div className="flex flex-col items-end gap-1 shrink-0">
+                <div className="inline-flex p-0.5 bg-slate-100 rounded-lg text-[10px] font-semibold border border-slate-200">
+                  <button
+                    onClick={() => setJiraGroupFilter('all')}
+                    className={`px-2 py-0.5 rounded transition-all ${
+                      jiraGroupFilter === 'all' ? 'bg-[#004b74] text-white font-bold' : 'text-slate-600 hover:text-slate-900'
+                    }`}
+                  >
+                    Tất cả
+                  </button>
+                  <button
+                    onClick={() => setJiraGroupFilter('kve')}
+                    className={`px-2 py-0.5 rounded transition-all ${
+                      jiraGroupFilter === 'kve' ? 'bg-[#004b74] text-white font-bold' : 'text-slate-600 hover:text-slate-900'
+                    }`}
+                  >
+                    KVE
+                  </button>
+                  <button
+                    onClick={() => setJiraGroupFilter('hkd')}
+                    className={`px-2 py-0.5 rounded transition-all ${
+                      jiraGroupFilter === 'hkd' ? 'bg-[#004b74] text-white font-bold' : 'text-slate-600 hover:text-slate-900'
+                    }`}
+                  >
+                    HKD
+                  </button>
+                </div>
+                <span className="px-2 py-0.5 rounded-lg bg-sky-50 text-sky-800 font-extrabold text-[11px] border border-sky-100">
+                  Tổng: 87 ticket
+                </span>
+              </div>
+            </div>
+
+            {/* 3 Categories: Bug, Support, Case */}
+            <div className="grid grid-cols-3 gap-2">
+              <div className="p-2.5 rounded-xl bg-rose-50 border border-rose-100 text-center">
+                <span className="text-[10px] font-bold uppercase tracking-wider text-rose-600 block">BUG</span>
+                <span className="text-xl font-extrabold text-rose-700">24</span>
+                <span className="text-[10px] text-rose-500 block">Lỗi hệ thống</span>
+              </div>
+              <div className="p-2.5 rounded-xl bg-sky-50 border border-sky-100 text-center">
+                <span className="text-[10px] font-bold uppercase tracking-wider text-sky-600 block">SUPPORT</span>
+                <span className="text-xl font-extrabold text-sky-700">32</span>
+                <span className="text-[10px] text-sky-500 block">Hỗ trợ kỹ thuật</span>
+              </div>
+              <div className="p-2.5 rounded-xl bg-amber-50 border border-amber-100 text-center">
+                <span className="text-[10px] font-bold uppercase tracking-wider text-amber-600 block">CASE</span>
+                <span className="text-xl font-extrabold text-amber-700">31</span>
+                <span className="text-[10px] text-amber-500 block leading-tight">Đề xuất tính năng &amp; nghiệp vụ mới</span>
+              </div>
+            </div>
+
+            {/* Sub-banner: Phân rã nghiệp vụ Jira: KVE: 58 • HKD: 29 */}
+            <div className="p-2.5 rounded-xl bg-sky-50/70 border border-sky-100 flex items-center justify-between text-xs">
+              <span className="text-slate-600 font-medium">Phân rã nghiệp vụ Jira:</span>
+              <span className="font-extrabold text-[#006195] tracking-wide">
+                KVE: 58 • HKD: 29
               </span>
             </div>
 
-            {/* Custom SVG Donut */}
-            <div className="flex items-center justify-center my-6">
-              <div className="relative w-44 h-44 flex items-center justify-center">
-                <svg className="w-full h-full transform -rotate-90" viewBox="0 0 100 100">
-                  {/* Background Track */}
-                  <circle
-                    cx="50"
-                    cy="50"
-                    r="40"
-                    fill="transparent"
-                    stroke="#f1f5f9"
-                    strokeWidth="14"
-                  />
-                  {/* Segment 1: Bug (12 vụ = 28% of 87) -> stroke-dasharray ~ 70.3 */}
-                  <circle
-                    cx="50"
-                    cy="50"
-                    r="40"
-                    fill="transparent"
-                    stroke="#ef4444"
-                    strokeWidth="14"
-                    strokeDasharray="70.3 251.2"
-                    strokeDashoffset="0"
-                  />
-                  {/* Segment 2: Case (31 vụ = 35%) -> stroke-dasharray ~ 87.9 */}
-                  <circle
-                    cx="50"
-                    cy="50"
-                    r="40"
-                    fill="transparent"
-                    stroke="#f59e0b"
-                    strokeWidth="14"
-                    strokeDasharray="87.9 251.2"
-                    strokeDashoffset="-70.3"
-                  />
-                  {/* Segment 3: Support (44 vụ = 37%) -> stroke-dasharray ~ 93 */}
-                  <circle
-                    cx="50"
-                    cy="50"
-                    r="40"
-                    fill="transparent"
-                    stroke="#0090DA"
-                    strokeWidth="14"
-                    strokeDasharray="93 251.2"
-                    strokeDashoffset="-158.2"
-                  />
-                </svg>
-
-                {/* Donut Center */}
-                <div className="absolute inset-0 flex flex-col items-center justify-center text-center">
-                  <span className="text-2xl font-extrabold text-slate-900 tracking-tight">
-                    87
-                  </span>
-                  <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400">
-                    SỰ VỤ MỞ
-                  </span>
-                </div>
-              </div>
-            </div>
-
-            {/* Donut Legend */}
-            <div className="space-y-2.5 text-xs">
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-2">
-                  <span className="w-2.5 h-2.5 rounded-full bg-rose-500"></span>
-                  <span className="text-slate-700">Lỗi hệ thống (Bug)</span>
-                </div>
-                <div>
-                  <b className="text-rose-600">12 vụ</b> <span className="text-slate-400">(28%)</span>
-                </div>
+            {/* Phân bổ tuổi ticket Jira */}
+            <div className="space-y-2 pt-1 border-t border-slate-100">
+              <div className="flex items-center justify-between text-xs">
+                <span className="font-semibold text-slate-700">Phân bổ tuổi ticket Jira</span>
+                <span className="text-rose-600 font-bold text-[11px]">9 ticket &gt; 7 ngày</span>
               </div>
 
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-2">
-                  <span className="w-2.5 h-2.5 rounded-full bg-amber-500"></span>
-                  <span className="text-slate-700">Sự vụ nghiệp vụ (Case)</span>
-                </div>
-                <div>
-                  <b className="text-amber-600">31 vụ</b> <span className="text-slate-400">(35%)</span>
-                </div>
+              {/* Multi-segment progress bar */}
+              <div className="h-2.5 w-full rounded-full bg-slate-100 flex overflow-hidden">
+                <div style={{ width: '55%' }} className="bg-emerald-500" title="0-3 ngày: 31"></div>
+                <div style={{ width: '28%' }} className="bg-sky-500" title="4-7 ngày: 16"></div>
+                <div style={{ width: '11%' }} className="bg-amber-500" title="8-14 ngày: 6"></div>
+                <div style={{ width: '6%' }} className="bg-rose-500" title=">14 ngày: 3"></div>
               </div>
 
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-2">
-                  <span className="w-2.5 h-2.5 rounded-full bg-[#0090DA]"></span>
-                  <span className="text-slate-700">Hướng dẫn sử dụng (Support)</span>
-                </div>
-                <div>
-                  <b className="text-sky-600">44 vụ</b> <span className="text-slate-400">(37%)</span>
-                </div>
+              {/* Legend */}
+              <div className="grid grid-cols-2 gap-2 text-[11px] text-slate-600 pt-1">
+                <span className="flex items-center gap-1.5">
+                  <span className="w-2 h-2 rounded-full bg-emerald-500"></span>
+                  <span>0-3 ngày: <b>31 ticket</b></span>
+                </span>
+                <span className="flex items-center gap-1.5">
+                  <span className="w-2 h-2 rounded-full bg-sky-500"></span>
+                  <span>4-7 ngày: <b>16 ticket</b></span>
+                </span>
+                <span className="flex items-center gap-1.5">
+                  <span className="w-2 h-2 rounded-full bg-amber-500"></span>
+                  <span>8-14 ngày: <b>6 ticket</b></span>
+                </span>
+                <span className="flex items-center gap-1.5">
+                  <span className="w-2 h-2 rounded-full bg-rose-500"></span>
+                  <span>&gt;14 ngày: <b className="text-rose-600">3 ticket</b></span>
+                </span>
               </div>
             </div>
           </div>
 
-          <div className="mt-5 pt-3 border-t border-slate-100 text-[11px] text-slate-500 text-center">
-            Tỷ lệ Bug/Tổng ca: <b className="text-slate-800">1.4%</b> (Chuẩn an toàn &lt; 2%)
+          {/* Bottom SLA Callout */}
+          <div className="p-3 rounded-xl bg-slate-50 border border-slate-200/90 flex items-center justify-between text-xs">
+            <span className="text-slate-600">SLA xử lý Dev fix chuẩn: <b>&le; 5 ngày</b></span>
+            <span className="px-2 py-0.5 rounded bg-amber-100 text-amber-800 font-bold text-[10px]">
+              Cần đôn đốc 9 ticket
+            </span>
           </div>
         </div>
 
-        {/* Right: Top vấn đề phát sinh nổi cộm (Table) */}
-        <div className="lg:col-span-8 bg-white p-5 rounded-2xl shadow-xs border border-slate-200 flex flex-col justify-between">
+        {/* Right: Top vấn đề phát sinh nổi cộm (7 ngày gần nhất) */}
+        <div className="lg:col-span-8 bg-white p-5 rounded-2xl shadow-xs border border-slate-200 flex flex-col justify-between space-y-4">
           <div>
-            <div className="flex items-center justify-between mb-4">
+            <div className="flex items-start justify-between mb-4 flex-wrap gap-2">
               <div>
-                <h2 className="text-base font-bold text-slate-900">
-                  Top vấn đề phát sinh nổi cộm (7 ngày gần nhất)
-                </h2>
-                <p className="text-xs text-slate-500 mt-0.5">
-                  Theo dõi tần suất phát sinh sự vụ kỹ thuật để điều phối R&amp;D và Dev fix
+                <div className="flex items-center gap-2 flex-wrap">
+                  <h2 className="text-base font-bold text-slate-900">
+                    Top vấn đề phát sinh nổi cộm [7 ngày]
+                  </h2>
+                  <span className="px-2 py-0.5 rounded bg-sky-50 text-sky-800 border border-sky-100 font-semibold text-[11px]">
+                    Chỉ Bug &amp; Support
+                  </span>
+                </div>
+                <p className="text-xs text-slate-500 mt-1">
+                  Chi tiết ticket chuyển R&amp;D và Dev fix kèm thời gian tồn (KVE + HKD)
                 </p>
               </div>
-              <span className="text-[11px] text-slate-400">
-                Đồng bộ lúc 14:35
-              </span>
+
+              <div className="flex flex-col items-end gap-1.5">
+                <div className="inline-flex p-0.5 bg-slate-100 rounded-lg text-xs font-semibold border border-slate-200">
+                  <button
+                    onClick={() => setJiraGroupFilter('all')}
+                    className={`px-2.5 py-1 rounded transition-all text-[11px] ${
+                      jiraGroupFilter === 'all' ? 'bg-[#004b74] text-white font-bold' : 'text-slate-600 hover:text-slate-900'
+                    }`}
+                  >
+                    Tất cả
+                  </button>
+                  <button
+                    onClick={() => setJiraGroupFilter('kve')}
+                    className={`px-2.5 py-1 rounded transition-all text-[11px] ${
+                      jiraGroupFilter === 'kve' ? 'bg-[#004b74] text-white font-bold' : 'text-slate-600 hover:text-slate-900'
+                    }`}
+                  >
+                    KVE
+                  </button>
+                  <button
+                    onClick={() => setJiraGroupFilter('hkd')}
+                    className={`px-2.5 py-1 rounded transition-all text-[11px] ${
+                      jiraGroupFilter === 'hkd' ? 'bg-[#004b74] text-white font-bold' : 'text-slate-600 hover:text-slate-900'
+                    }`}
+                  >
+                    HKD
+                  </button>
+                </div>
+                <span className="text-[11px] text-slate-400">
+                  Đồng bộ lúc 14:35
+                </span>
+              </div>
             </div>
 
             {/* Table */}
@@ -901,61 +1204,52 @@ export const ProjectKatView: React.FC<ProjectKatViewProps> = ({ onOpenExport }) 
               <table className="w-full text-left text-xs">
                 <thead>
                   <tr className="border-b border-slate-200 text-slate-400 uppercase text-[10px] font-bold tracking-wider">
-                    <th className="pb-2.5 font-bold">VẤN ĐỀ &amp; MÔ TẢ</th>
-                    <th className="pb-2.5 font-bold">PHÂN LOẠI</th>
-                    <th className="pb-2.5 font-bold">DỊCH VỤ</th>
-                    <th className="pb-2.5 font-bold text-center">LƯỢT 7N</th>
-                    <th className="pb-2.5 font-bold text-center">XU HƯỚNG</th>
-                    <th className="pb-2.5 font-bold text-right">TRẠNG THÁI &amp; XỬ LÝ</th>
+                    <th className="pb-2.5 font-bold">VẤN ĐỀ &amp; MÃ JIRA</th>
+                    <th className="pb-2.5 font-bold text-center">NHÓM</th>
+                    <th className="pb-2.5 font-bold text-center">LOẠI</th>
+                    <th className="pb-2.5 font-bold text-center">DỊCH VỤ</th>
+                    <th className="pb-2.5 font-bold text-center">NGÀY TẠO</th>
+                    <th className="pb-2.5 font-bold text-center">SỐ NGÀY TỒN</th>
+                    <th className="pb-2.5 font-bold text-right">TRẠNG THÁI JIRA</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-slate-100">
-                  {topIssues.map((item) => (
+                  {displayedIssues.map((item) => (
                     <tr key={item.id} className="hover:bg-slate-50/70 transition-colors">
-                      <td className="py-2.5 pr-3 max-w-[280px]">
+                      <td className="py-2.5 pr-3 max-w-[240px]">
                         <div className="font-bold text-slate-900 text-xs truncate">{item.title}</div>
-                        <div className="text-[11px] text-slate-500 truncate">{item.desc}</div>
+                        <div className="text-[11px] text-sky-700 font-medium truncate">{item.jiraCode}</div>
                       </td>
-                      <td className="py-2.5 pr-2">
+                      <td className="py-2.5 px-2 text-center">
+                        <span
+                          className={`px-2 py-0.5 rounded text-[10px] font-bold border ${
+                            item.group === 'KVE'
+                              ? 'bg-sky-50 text-sky-700 border-sky-200'
+                              : 'bg-purple-50 text-purple-700 border-purple-200'
+                          }`}
+                        >
+                          {item.group}
+                        </span>
+                      </td>
+                      <td className="py-2.5 px-2 text-center">
                         <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold border ${item.catColor}`}>
                           {item.category}
                         </span>
                       </td>
-                      <td className="py-2.5 pr-2 font-semibold text-slate-700">
+                      <td className="py-2.5 px-2 text-center font-semibold text-slate-700">
                         {item.service}
                       </td>
-                      <td className="py-2.5 px-2 text-center font-bold text-slate-900">
-                        {item.count7d}
+                      <td className="py-2.5 px-2 text-center text-slate-500 text-[11px]">
+                        {item.createDate}
                       </td>
                       <td className="py-2.5 px-2 text-center">
-                        {/* Mini Sparkline SVG */}
-                        <div className="w-14 h-4 mx-auto flex items-center justify-center">
-                          {item.trendType === 'up-red' && (
-                            <svg className="w-full h-full text-rose-500" viewBox="0 0 50 16">
-                              <polyline fill="none" stroke="currentColor" strokeWidth="2" points="0,14 15,11 30,8 48,2" />
-                            </svg>
-                          )}
-                          {item.trendType === 'flat-grey' && (
-                            <svg className="w-full h-full text-slate-400" viewBox="0 0 50 16">
-                              <polyline fill="none" stroke="currentColor" strokeWidth="2" points="0,8 15,7 30,9 48,8" />
-                            </svg>
-                          )}
-                          {item.trendType === 'down-green' && (
-                            <svg className="w-full h-full text-emerald-500" viewBox="0 0 50 16">
-                              <polyline fill="none" stroke="currentColor" strokeWidth="2" points="0,3 15,5 30,11 48,14" />
-                            </svg>
-                          )}
-                          {item.trendType === 'up-orange' && (
-                            <svg className="w-full h-full text-amber-500" viewBox="0 0 50 16">
-                              <polyline fill="none" stroke="currentColor" strokeWidth="2" points="0,13 15,10 30,7 48,3" />
-                            </svg>
-                          )}
-                        </div>
+                        <span className={`px-2 py-0.5 rounded-full font-bold text-[10px] ${item.daysColor}`}>
+                          {item.daysOpen} ngày
+                        </span>
                       </td>
                       <td className="py-2.5 pl-2 text-right">
                         <span className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[11px] font-semibold border ${item.statusColor}`}>
-                          {item.hasCheck && <span>✓</span>}
-                          <span>{item.status}</span>
+                          <span>{item.jiraStatus}</span>
                         </span>
                       </td>
                     </tr>
@@ -967,258 +1261,324 @@ export const ProjectKatView: React.FC<ProjectKatViewProps> = ({ onOpenExport }) 
         </div>
       </div>
 
-      {/* ROW 4: THỐNG KÊ KHIẾU NẠI (50%) & HỦY HỢP ĐỒNG 2026 (50%) */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-5">
-        {/* Left: Thống kê khiếu nại */}
-        <div className="bg-white p-5 rounded-2xl shadow-xs border border-slate-200 flex flex-col justify-between">
-          <div className="space-y-4">
-            <div className="flex items-start justify-between">
-              <div>
-                <h2 className="text-base font-bold text-slate-900">
-                  Thống kê tình trạng khiếu nại (Complaints &amp; CSAT)
-                </h2>
-                <p className="text-xs text-slate-500 mt-0.5">
-                  Tiến độ và nguyên nhân khiếu nại phát sinh trong tháng
-                </p>
-              </div>
-              <span className="px-2.5 py-1 rounded-xl bg-sky-50 text-sky-800 font-bold text-xs border border-sky-100">
-                Tổng: 152 khiếu nại
+      {/* ROW 5: ĐỀ XUẤT TÍNH NĂNG & NGHIỆP VỤ MỚI (CASE) [THÁNG NÀY] (FULL WIDTH) */}
+      <div className="bg-white p-5 rounded-2xl shadow-xs border border-slate-200 space-y-4">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+          <div>
+            <div className="flex items-center gap-2 flex-wrap">
+              <h2 className="text-base font-bold text-slate-900">
+                Đề xuất tính năng &amp; Nghiệp vụ mới (Case) [Tháng này]
+              </h2>
+              <span className="px-2.5 py-0.5 rounded-full bg-amber-100 text-amber-800 text-[11px] font-bold">
+                31 Case ghi nhận (KVE: 18 • HKD: 13)
               </span>
             </div>
+            <p className="text-xs text-slate-500 mt-0.5">
+              Các kiến nghị bổ sung tính năng KAT nổi bật nhất được khách hàng và đối tác đề xuất
+            </p>
+          </div>
 
-            {/* Multi-segment Progress Bar */}
-            <div className="space-y-1.5">
-              <div className="flex items-center justify-between text-xs text-slate-500">
-                <span>Phân bổ tiến độ tiếp nhận</span>
-                <span className="font-bold text-emerald-600">Đã giải quyết: 86.8%</span>
-              </div>
-              <div className="h-3 w-full rounded-full bg-slate-100 flex overflow-hidden">
-                <div style={{ width: '2.6%' }} className="bg-sky-500" title="Mới: 4"></div>
-                <div style={{ width: '5.2%' }} className="bg-amber-500" title="Đang xử lý: 8"></div>
-                <div style={{ width: '3.9%' }} className="bg-purple-500" title="Chờ KH: 6"></div>
-                <div style={{ width: '88.3%' }} className="bg-emerald-500" title="Đã đóng: 132"></div>
-              </div>
-              <div className="flex items-center gap-3 text-[11px] text-slate-600 pt-1 flex-wrap">
-                <span className="flex items-center gap-1">
-                  <span className="w-2 h-2 rounded-full bg-sky-500"></span>
-                  <span>Mới (4)</span>
-                </span>
-                <span className="flex items-center gap-1">
-                  <span className="w-2 h-2 rounded-full bg-amber-500"></span>
-                  <span>Đang xử lý (8)</span>
-                </span>
-                <span className="flex items-center gap-1">
-                  <span className="w-2 h-2 rounded-full bg-purple-500"></span>
-                  <span>Chờ KH (6)</span>
-                </span>
-                <span className="flex items-center gap-1">
-                  <span className="w-2 h-2 rounded-full bg-emerald-500"></span>
-                  <span>Đã đóng (132)</span>
-                </span>
-                <span className="text-rose-600 font-bold">• Quá hạn (2)</span>
-              </div>
+          <div className="flex items-center gap-2.5 flex-wrap self-start sm:self-auto">
+            {/* Filter pills */}
+            <div className="inline-flex p-0.5 bg-slate-100 rounded-lg text-xs font-semibold border border-slate-200">
+              <button
+                onClick={() => setCaseGroupFilter('all')}
+                className={`px-2.5 py-1 rounded transition-all text-[11px] ${
+                  caseGroupFilter === 'all' ? 'bg-[#004b74] text-white font-bold' : 'text-slate-600 hover:text-slate-900'
+                }`}
+              >
+                Tất cả
+              </button>
+              <button
+                onClick={() => setCaseGroupFilter('kve')}
+                className={`px-2.5 py-1 rounded transition-all text-[11px] ${
+                  caseGroupFilter === 'kve' ? 'bg-[#004b74] text-white font-bold' : 'text-slate-600 hover:text-slate-900'
+                }`}
+              >
+                KVE
+              </button>
+              <button
+                onClick={() => setCaseGroupFilter('hkd')}
+                className={`px-2.5 py-1 rounded transition-all text-[11px] ${
+                  caseGroupFilter === 'hkd' ? 'bg-[#004b74] text-white font-bold' : 'text-slate-600 hover:text-slate-900'
+                }`}
+              >
+                HKD
+              </button>
             </div>
 
-            {/* SLA Indicator Card */}
-            <div className="p-3.5 rounded-xl bg-sky-50/70 border border-sky-200/80 flex items-center justify-between">
-              <div className="flex items-center gap-2.5">
-                <div className="w-8 h-8 rounded-full bg-sky-100 text-sky-700 flex items-center justify-center shrink-0">
-                  <span className="material-symbols-outlined text-[18px]">schedule</span>
-                </div>
-                <div>
-                  <div className="text-xs font-bold text-slate-800">
-                    Thời gian xử lý khiếu nại TB
-                  </div>
-                  <div className="text-[11px] text-slate-500">
-                    Cam kết chất lượng SLA ≤ 2.0 ngày
-                  </div>
-                </div>
+            <span className="px-3 py-1 rounded-xl bg-sky-50 text-sky-800 border border-sky-200 text-xs font-semibold">
+              4 Case trọng điểm đang đánh giá
+            </span>
+          </div>
+        </div>
+
+        {/* Feature Case Table */}
+        <div className="overflow-x-auto">
+          <table className="w-full text-left text-xs">
+            <thead>
+              <tr className="border-b border-slate-200 text-slate-400 uppercase text-[10px] font-bold tracking-wider">
+                <th className="pb-2.5 font-bold">ĐỀ XUẤT TÍNH NĂNG</th>
+                <th className="pb-2.5 font-bold text-center">NHÓM</th>
+                <th className="pb-2.5 font-bold text-center">PHÂN HỆ / DỊCH VỤ</th>
+                <th className="pb-2.5 font-bold text-center">SỐ GIAN HÀNG YÊU CẦU</th>
+                <th className="pb-2.5 font-bold text-center">MỨC ĐỘ ƯU TIÊN</th>
+                <th className="pb-2.5 font-bold text-right">ĐÁNH GIÁ R&amp;D / PO</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-slate-100">
+              {displayedCases.map((fc) => (
+                <tr key={fc.id} className="hover:bg-slate-50/70 transition-colors">
+                  <td className="py-3 pr-4 max-w-[340px]">
+                    <div className="font-bold text-slate-900 text-xs">{fc.title}</div>
+                    <div className="text-[11px] text-slate-500 leading-snug mt-0.5">{fc.sub}</div>
+                  </td>
+                  <td className="py-3 px-2 text-center">
+                    <span
+                      className={`px-2 py-0.5 rounded text-[10px] font-bold border ${
+                        fc.group === 'KVE'
+                          ? 'bg-sky-50 text-sky-700 border-sky-200'
+                          : 'bg-purple-50 text-purple-700 border-purple-200'
+                      }`}
+                    >
+                      {fc.group}
+                    </span>
+                  </td>
+                  <td className="py-3 px-2 text-center font-medium text-slate-700">
+                    {fc.service}
+                  </td>
+                  <td className="py-3 px-2 text-center font-extrabold text-[#006195]">
+                    {fc.shopCount}
+                  </td>
+                  <td className="py-3 px-2 text-center">
+                    <span className={`px-2.5 py-0.5 rounded-full text-[10px] font-bold border ${fc.priorityColor}`}>
+                      {fc.priority}
+                    </span>
+                  </td>
+                  <td className="py-3 pl-3 text-right">
+                    <span className={`inline-flex items-center px-2.5 py-1 rounded-full text-[11px] font-semibold border ${fc.evalColor}`}>
+                      {fc.evaluation}
+                    </span>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      {/* ROW 6: THỐNG KÊ KHIẾU NẠI [THÁNG NÀY] (FULL WIDTH) */}
+      <div className="bg-white p-5 rounded-2xl shadow-xs border border-slate-200 space-y-5">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+          <div>
+            <div className="flex items-center gap-2">
+              <h2 className="text-base font-bold text-slate-900">
+                Thống kê khiếu nại [Tháng này]
+              </h2>
+              <span className="px-2 py-0.5 rounded bg-sky-50 text-sky-800 border border-sky-100 font-semibold text-[11px]">
+                CSAT &amp; Chất lượng dịch vụ
+              </span>
+            </div>
+            <p className="text-xs text-slate-500 mt-0.5">
+              Tiến độ xử lý và nguyên nhân khiếu nại phát sinh dự án KAT
+            </p>
+          </div>
+
+          <span className="px-2.5 py-1 rounded-xl bg-slate-100 text-slate-700 font-bold text-xs border border-slate-200">
+            Tổng: 152 khiếu nại
+          </span>
+        </div>
+
+        {/* Progress bar container */}
+        <div className="space-y-1.5">
+          <div className="flex items-center justify-between text-xs text-slate-500">
+            <span>Phân bổ tiến độ tiếp nhận</span>
+            <span className="font-bold text-emerald-600">Đã giải quyết: 86.8%</span>
+          </div>
+          <div className="h-3 w-full rounded-full bg-slate-100 flex overflow-hidden">
+            <div style={{ width: '2.6%' }} className="bg-sky-500" title="Mới: 4"></div>
+            <div style={{ width: '5.2%' }} className="bg-amber-500" title="Đang xử lý: 8"></div>
+            <div style={{ width: '3.9%' }} className="bg-purple-500" title="Chờ KH: 6"></div>
+            <div style={{ width: '86.8%' }} className="bg-emerald-500" title="Đã đóng: 132"></div>
+            <div style={{ width: '1.5%' }} className="bg-rose-500" title="Quá hạn: 2"></div>
+          </div>
+          <div className="flex items-center gap-3 text-[11px] text-slate-600 pt-1 flex-wrap">
+            <span className="flex items-center gap-1">
+              <span className="w-2 h-2 rounded-full bg-sky-500"></span>
+              <span>Mới (4)</span>
+            </span>
+            <span className="flex items-center gap-1">
+              <span className="w-2 h-2 rounded-full bg-amber-500"></span>
+              <span>Đang xử lý (8)</span>
+            </span>
+            <span className="flex items-center gap-1">
+              <span className="w-2 h-2 rounded-full bg-purple-500"></span>
+              <span>Chờ KH (6)</span>
+            </span>
+            <span className="flex items-center gap-1">
+              <span className="w-2 h-2 rounded-full bg-emerald-500"></span>
+              <span>Đã đóng (132)</span>
+            </span>
+            <span className="text-rose-600 font-bold flex items-center gap-1">
+              <span className="w-2 h-2 rounded-full bg-rose-500"></span>
+              Quá hạn (2)
+            </span>
+          </div>
+        </div>
+
+        {/* 2 Highlight SLA & CSAT Cards */}
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          {/* Card 1: SLA xử lý khiếu nại */}
+          <div className="p-4 rounded-xl bg-sky-50/70 border border-sky-200/80 flex items-center justify-between">
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 rounded-full bg-sky-100 text-sky-700 flex items-center justify-center shrink-0">
+                <span className="material-symbols-outlined text-[20px]">schedule</span>
               </div>
-              <div className="text-right">
-                <div className="text-base font-extrabold text-slate-900">1.8 ngày</div>
-                <span className="px-2 py-0.5 rounded bg-emerald-100 text-emerald-800 font-bold text-[10px]">
-                  Đạt chuẩn SLA
-                </span>
+              <div>
+                <div className="text-xs font-bold text-slate-800">
+                  Thời gian xử lý khiếu nại TB
+                </div>
+                <div className="text-[11px] text-slate-500">
+                  Cam kết chất lượng SLA &le; 2.0 ngày
+                </div>
               </div>
             </div>
+            <div className="text-right">
+              <div className="text-lg font-extrabold text-emerald-600">1.8 ngày</div>
+              <span className="px-2 py-0.5 rounded bg-emerald-100 text-emerald-800 font-bold text-[10px]">
+                Đạt chuẩn SLA
+              </span>
+            </div>
+          </div>
 
-            {/* Top Lý do khiếu nại */}
-            <div className="space-y-2 pt-1">
-              <div className="text-[11px] font-bold uppercase tracking-wider text-slate-400">
-                TOP LÝ DO KHIẾU NẠI HÀNG ĐẦU
+          {/* Card 2: CSAT */}
+          <div className="p-4 rounded-xl bg-emerald-50/60 border border-emerald-200/80 flex items-center justify-between">
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 rounded-full bg-emerald-100 text-emerald-700 flex items-center justify-center shrink-0">
+                <span className="material-symbols-outlined text-[20px]">sentiment_satisfied</span>
               </div>
-              <div className="space-y-2 text-xs">
-                <div className="space-y-1">
-                  <div className="flex justify-between text-slate-700">
-                    <span>Chậm phản hồi khi nghẽn mạng Thuế</span>
-                    <b className="text-slate-900">38%</b>
-                  </div>
-                  <div className="w-full h-1.5 rounded-full bg-slate-100 overflow-hidden">
-                    <div className="h-full bg-slate-400 rounded-full" style={{ width: '38%' }}></div>
-                  </div>
+              <div>
+                <div className="text-xs font-bold text-slate-800">
+                  Chỉ số hài lòng khách hàng (CSAT)
                 </div>
-
-                <div className="space-y-1">
-                  <div className="flex justify-between text-slate-700">
-                    <span>Xử lý chưa triệt để lỗi USB Token</span>
-                    <b className="text-slate-900">29%</b>
-                  </div>
-                  <div className="w-full h-1.5 rounded-full bg-slate-100 overflow-hidden">
-                    <div className="h-full bg-slate-400 rounded-full" style={{ width: '29%' }}></div>
-                  </div>
-                </div>
-
-                <div className="space-y-1">
-                  <div className="flex justify-between text-slate-700">
-                    <span>Thái độ hỗ trợ chưa rõ ràng nghiệp vụ hóa đơn</span>
-                    <b className="text-slate-900">18%</b>
-                  </div>
-                  <div className="w-full h-1.5 rounded-full bg-slate-100 overflow-hidden">
-                    <div className="h-full bg-slate-400 rounded-full" style={{ width: '18%' }}></div>
-                  </div>
-                </div>
-
-                <div className="space-y-1">
-                  <div className="flex justify-between text-slate-700">
-                    <span>Lỗi sản phẩm lặp lại sau cập nhật</span>
-                    <b className="text-slate-900">15%</b>
-                  </div>
-                  <div className="w-full h-1.5 rounded-full bg-slate-100 overflow-hidden">
-                    <div className="h-full bg-slate-400 rounded-full" style={{ width: '15%' }}></div>
-                  </div>
+                <div className="text-[11px] text-slate-500">
+                  Dự án KAT Quý 3/2026
                 </div>
               </div>
+            </div>
+            <div className="text-right">
+              <div className="text-lg font-extrabold text-emerald-600">94.2%</div>
+              <span className="px-2 py-0.5 rounded bg-emerald-100 text-emerald-800 font-bold text-[10px]">
+                Mục tiêu &ge; 90%
+              </span>
             </div>
           </div>
         </div>
 
-        {/* Right: Hủy hợp đồng 2026 (Churn Rate) */}
-        <div className="bg-white p-5 rounded-2xl shadow-xs border border-slate-200 flex flex-col justify-between">
-          <div className="space-y-4">
-            <div className="flex items-start justify-between">
-              <div>
-                <h2 className="text-base font-bold text-slate-900">
-                  Hủy hợp đồng 2026 (Churn Rate)
-                </h2>
-                <p className="text-xs text-slate-500 mt-0.5">
-                  Diễn biến theo tháng và cơ cấu nguyên nhân rời bỏ dịch vụ
-                </p>
+        {/* Top Lý do khiếu nại hàng đầu (Đã phân rã) */}
+        <div className="space-y-3 pt-1">
+          <div className="text-[11px] font-bold uppercase tracking-wider text-slate-400">
+            TOP LÝ DO KHIẾU NẠI HÀNG ĐẦU (ĐÃ PHÂN RÃ)
+          </div>
+
+          <div className="space-y-3 text-xs">
+            {/* Reason 1 */}
+            <div className="space-y-1">
+              <div className="flex justify-between text-slate-700">
+                <span className="font-medium">Chậm phản hồi khi nghẽn mạng Thuế &amp; CKS</span>
+                <b className="text-slate-900 font-bold">38% (58 ca)</b>
               </div>
-              <span className="px-2.5 py-1 rounded-xl bg-rose-50 text-rose-700 font-bold text-xs border border-rose-100">
-                Tỷ lệ hủy: 2.3%
-              </span>
-            </div>
-
-            {/* Monthly Churn Chart */}
-            <div className="space-y-2">
-              <div className="flex items-center justify-between text-xs">
-                <span className="text-[11px] text-slate-500">
-                  Số HĐ hủy theo tháng (T1 đến T10/2026)
-                </span>
-                <div className="flex items-center gap-3 text-[11px]">
-                  <span className="flex items-center gap-1 text-slate-600">
-                    <span className="w-2.5 h-2.5 rounded-xs bg-rose-500"></span>
-                    <span>2026 (186 HĐ)</span>
-                  </span>
-                  <span className="flex items-center gap-1 text-slate-400">
-                    <span className="w-3 border-t-2 border-slate-300"></span>
-                    <span>2025 (Cùng kỳ)</span>
-                  </span>
-                </div>
-              </div>
-
-              {/* Bar visualization */}
-              <div className="h-32 pt-2 flex items-end justify-between gap-1 sm:gap-2 px-1 border-b border-slate-200">
-                {churnMonthly.map((m, idx) => {
-                  const maxH = 26;
-                  const h2026 = (m.count2026 / maxH) * 100;
-
-                  return (
-                    <div key={idx} className="flex-1 flex flex-col items-center group relative h-full justify-end">
-                      {/* Tooltip */}
-                      <div className="opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none absolute bottom-full mb-1 z-20 bg-slate-900 text-white text-[10px] rounded px-1.5 py-0.5 whitespace-nowrap">
-                        {m.month}: {m.count2026} HĐ
-                      </div>
-
-                      <span className="text-[10px] font-bold text-slate-700 mb-1">
-                        {m.count2026}
-                      </span>
-                      <div
-                        style={{ height: `${h2026}%` }}
-                        className="w-full max-w-[18px] bg-rose-500/80 hover:bg-rose-600 rounded-t transition-all"
-                      ></div>
-                      <span className="text-[10px] text-slate-400 mt-1.5">
-                        {m.month}
-                      </span>
-                    </div>
-                  );
-                })}
+              <div className="w-full h-2 rounded-full bg-slate-100 overflow-hidden">
+                <div className="h-full bg-rose-600 rounded-full" style={{ width: '38%' }}></div>
               </div>
             </div>
 
-            {/* Top Lý do hủy hợp đồng */}
-            <div className="space-y-2 pt-1">
-              <div className="text-[11px] font-bold uppercase tracking-wider text-slate-400">
-                TOP LÝ DO KHÁCH HÀNG HỦY DỊCH VỤ
+            {/* Reason 2 */}
+            <div className="space-y-1">
+              <div className="flex justify-between text-slate-700">
+                <span className="font-medium">Xử lý chưa triệt để lỗi USB Token</span>
+                <b className="text-slate-900 font-bold">29% (44 ca)</b>
               </div>
-              <div className="space-y-2 text-xs">
-                <div className="space-y-1">
-                  <div className="flex justify-between text-slate-700">
-                    <span>Chuyển sang nhà cung cấp khác</span>
-                    <b className="text-slate-900">34% (63 HĐ)</b>
-                  </div>
-                  <div className="w-full h-1.5 rounded-full bg-slate-100 overflow-hidden">
-                    <div className="h-full bg-slate-500 rounded-full" style={{ width: '34%' }}></div>
-                  </div>
-                </div>
+              <div className="w-full h-2 rounded-full bg-slate-100 overflow-hidden">
+                <div className="h-full bg-amber-500 rounded-full" style={{ width: '29%' }}></div>
+              </div>
+            </div>
 
-                <div className="space-y-1">
-                  <div className="flex justify-between text-slate-700">
-                    <span>Ngừng kinh doanh / Giải thể cửa hàng</span>
-                    <b className="text-slate-900">28% (52 HĐ)</b>
-                  </div>
-                  <div className="w-full h-1.5 rounded-full bg-slate-100 overflow-hidden">
-                    <div className="h-full bg-slate-500 rounded-full" style={{ width: '28%' }}></div>
-                  </div>
-                </div>
+            {/* Reason 3 */}
+            <div className="space-y-1">
+              <div className="flex justify-between text-slate-700">
+                <span className="font-medium">Tư vấn sai / chưa đúng nghiệp vụ hóa đơn, thuế</span>
+                <b className="text-slate-900 font-bold">18% (27 ca)</b>
+              </div>
+              <div className="w-full h-2 rounded-full bg-slate-100 overflow-hidden">
+                <div className="h-full bg-sky-500 rounded-full" style={{ width: '18%' }}></div>
+              </div>
+            </div>
 
-                <div className="space-y-1">
-                  <div className="flex justify-between text-slate-700">
-                    <span>Chi phí gia hạn / Giá gói dịch vụ cao</span>
-                    <b className="text-slate-900">19% (35 HĐ)</b>
-                  </div>
-                  <div className="w-full h-1.5 rounded-full bg-slate-100 overflow-hidden">
-                    <div className="h-full bg-slate-500 rounded-full" style={{ width: '19%' }}></div>
-                  </div>
-                </div>
-
-                <div className="space-y-1">
-                  <div className="flex justify-between text-slate-700">
-                    <span>Chất lượng hỗ trợ kỹ thuật chưa kịp thời</span>
-                    <b className="text-slate-900">12% (22 HĐ)</b>
-                  </div>
-                  <div className="w-full h-1.5 rounded-full bg-slate-100 overflow-hidden">
-                    <div className="h-full bg-slate-500 rounded-full" style={{ width: '12%' }}></div>
-                  </div>
-                </div>
-
-                <div className="space-y-1">
-                  <div className="flex justify-between text-slate-700">
-                    <span>Lý do khác</span>
-                    <b className="text-slate-900">7% (14 HĐ)</b>
-                  </div>
-                  <div className="w-full h-1.5 rounded-full bg-slate-100 overflow-hidden">
-                    <div className="h-full bg-slate-400 rounded-full" style={{ width: '7%' }}></div>
-                  </div>
-                </div>
+            {/* Reason 4 */}
+            <div className="space-y-1">
+              <div className="flex justify-between text-slate-700">
+                <span className="font-medium">Thái độ phục vụ chưa chuẩn mực</span>
+                <b className="text-slate-900 font-bold">12% (18 ca)</b>
+              </div>
+              <div className="w-full h-2 rounded-full bg-slate-100 overflow-hidden">
+                <div className="h-full bg-amber-400 rounded-full" style={{ width: '12%' }}></div>
               </div>
             </div>
           </div>
         </div>
       </div>
 
+      {/* ROW 7: HỦY HỢP ĐỒNG KAT NĂM 2026 (CHURN RATE) [NĂM 2026] (FULL WIDTH) */}
+      <div className="bg-white p-5 rounded-2xl shadow-xs border border-slate-200 space-y-4">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+          <div className="flex items-center gap-2.5">
+            <div className="w-7 h-7 rounded-lg bg-rose-50 text-rose-600 flex items-center justify-center">
+              <span className="material-symbols-outlined text-[18px]">cancel_presentation</span>
+            </div>
+            <div>
+              <div className="flex items-center gap-2">
+                <h2 className="text-base font-bold text-slate-900">
+                  Hủy hợp đồng KAT năm 2026 (Churn Rate) [Năm 2026]
+                </h2>
+                <span className="px-2 py-0.5 rounded bg-rose-50 text-rose-700 border border-rose-200 font-bold text-[11px]">
+                  Tỷ lệ hủy: 2.3% (186 HĐ)
+                </span>
+              </div>
+            </div>
+          </div>
+
+          <span className="text-xs text-slate-500">
+            +0.4% so với cùng kỳ 2025
+          </span>
+        </div>
+
+        {/* 4 Summary Boxes Grid */}
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
+          <div className="p-3.5 rounded-xl bg-slate-50 border border-slate-200/90 space-y-1">
+            <span className="text-xs text-slate-600 block">Chuyển nhà cung cấp khác</span>
+            <span className="text-base font-bold text-slate-900 block">34% (63 HĐ)</span>
+          </div>
+
+          <div className="p-3.5 rounded-xl bg-slate-50 border border-slate-200/90 space-y-1">
+            <span className="text-xs text-slate-600 block">Ngừng kinh doanh / Giải thể</span>
+            <span className="text-base font-bold text-slate-900 block">28% (52 HĐ)</span>
+          </div>
+
+          <div className="p-3.5 rounded-xl bg-slate-50 border border-slate-200/90 space-y-1">
+            <span className="text-xs text-slate-600 block">Chi phí gia hạn cao</span>
+            <span className="text-base font-bold text-slate-900 block">19% (35 HĐ)</span>
+          </div>
+
+          <div className="p-3.5 rounded-xl bg-slate-50 border border-slate-200/90 space-y-1">
+            <span className="text-xs text-slate-600 block">Chất lượng hỗ trợ chưa kịp thời / Khác</span>
+            <span className="text-base font-bold text-slate-900 block">19% (36 HĐ)</span>
+          </div>
+        </div>
+      </div>
+
       {/* FOOTER LIVE SYNC BAR */}
-      <div className="pt-2 pb-6 flex flex-col sm:flex-row items-center justify-between text-xs text-slate-400 gap-2 border-t border-slate-200">
+      <div className="pt-2 pb-2 flex flex-col sm:flex-row items-center justify-between text-xs text-slate-400 gap-2 border-t border-slate-200">
         <div className="flex items-center gap-2">
           <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
           <span>Hệ thống KiotViet Care Hub • KAT Analytics Engine Live Sync</span>
