@@ -524,18 +524,23 @@ export function loginWithWhitelistedEmail(
   if (!allowed) {
     return {
       success: false,
-      message: `Tài khoản "${email}" KHÔNG nằm trong danh sách Whitelist được cấp quyền xem báo cáo nội bộ CSKH KiotViet. Vui lòng liên hệ Quản trị viên (thuyettk42@gmail.com / thuyet.vm@kiotviet.com).`,
+      message: `Tài khoản "${email}" không nằm trong danh sách Whitelist được cấp quyền. Vui lòng liên hệ Quản trị viên (thuyettk42@gmail.com).`,
     };
   }
 
-  // If password is provided, check standard internal passcodes
-  if (passwordInput && passwordInput.trim() !== '') {
-    if (passwordInput !== 'KiotViet#2026' && passwordInput !== 'KiotViet#2024') {
-      return {
-        success: false,
-        message: 'Mật khẩu bảo mật nội bộ không chính xác (Mặc định: KiotViet#2026).',
-      };
-    }
+  // Password must be provided and correct
+  if (!passwordInput || passwordInput.trim() === '') {
+    return {
+      success: false,
+      message: 'Vui lòng nhập mật khẩu tài khoản.',
+    };
+  }
+
+  if (passwordInput !== 'KiotViet#2026' && passwordInput !== 'KiotViet#2024') {
+    return {
+      success: false,
+      message: 'Mật khẩu không chính xác. Vui lòng thử lại.',
+    };
   }
 
   const initials = allowedUser?.name

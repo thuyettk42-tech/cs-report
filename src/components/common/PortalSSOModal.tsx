@@ -1,14 +1,12 @@
 import React, { useState } from 'react';
 import {
   loginWithWhitelistedEmail,
-  signInAsWhitelistedUser,
   triggerGoogleIdentityPopup,
   getGoogleClientId,
   saveGoogleClientId,
   getCurrentOrigin,
-  getAllowedUsers,
 } from '../../services/authService';
-import { UserProfile, AllowedUser } from '../../types';
+import { UserProfile } from '../../types';
 
 interface PortalSSOModalProps {
   isOpen: boolean;
@@ -34,28 +32,10 @@ export const PortalSSOModal: React.FC<PortalSSOModalProps> = ({
   const [copiedClientId, setCopiedClientId] = useState(false);
   const [showOriginMismatchGuide, setShowOriginMismatchGuide] = useState(false);
 
-  const allowedUsers = getAllowedUsers();
   const currentOrigin = getCurrentOrigin() || (typeof window !== 'undefined' ? window.location.origin : '');
   const clientId = getGoogleClientId();
 
   if (!isOpen) return null;
-
-  // Direct 1-Click Fast Login for Whitelist Members
-  const handleFastLogin = (targetEmail: string) => {
-    setIsLoading(true);
-    setErrorMessage(null);
-
-    setTimeout(() => {
-      const res = signInAsWhitelistedUser(targetEmail);
-      setIsLoading(false);
-      if (res.success && res.user) {
-        if (onLoginSuccess) onLoginSuccess(res.user);
-        if (onClose) onClose();
-      } else {
-        setErrorMessage(res.message || 'Không thể đăng nhập tài khoản.');
-      }
-    }, 250);
-  };
 
   // Handle standard credentials login
   const handleCredentialsSubmit = (e: React.FormEvent) => {
@@ -64,18 +44,22 @@ export const PortalSSOModal: React.FC<PortalSSOModalProps> = ({
       setErrorMessage('Vui lòng nhập tên đăng nhập hoặc email.');
       return;
     }
+    if (!password.trim()) {
+      setErrorMessage('Vui lòng nhập mật khẩu.');
+      return;
+    }
 
     setIsLoading(true);
     setErrorMessage(null);
 
     setTimeout(() => {
-      const result = loginWithWhitelistedEmail(email, password || 'KiotViet#2026');
+      const result = loginWithWhitelistedEmail(email, password);
       setIsLoading(false);
       if (result.success && result.user) {
         if (onLoginSuccess) onLoginSuccess(result.user);
         if (onClose) onClose();
       } else {
-        setErrorMessage(result.message || 'Tài khoản không tồn tại trong danh sách Whitelist được cấp quyền.');
+        setErrorMessage(result.message || 'Tài khoản không tồn tại trong danh sách Whitelist hoặc mật khẩu không chính xác.');
       }
     }, 300);
   };
@@ -215,95 +199,22 @@ export const PortalSSOModal: React.FC<PortalSSOModalProps> = ({
               <div className="mt-0.5 leading-relaxed text-rose-700">{errorMessage}</div>
             </div>
           </div>
-          <div className="flex items-center gap-2 pt-1 border-t border-rose-200/60">
-            <button
-              type="button"
-              onClick={() => handleFastLogin('thuyettk42@gmail.com')}
-              className="text-[11px] font-bold text-primary hover:underline flex items-center gap-1 cursor-pointer"
-            >
-              <span className="material-symbols-outlined text-[14px]">bolt</span>
-              Vào ngay với thuyettk42@gmail.com
-            </button>
-            <span className="text-slate-300">•</span>
-            <button
-              type="button"
-              onClick={() => setShowOriginMismatchGuide(true)}
-              className="text-[11px] font-medium text-slate-600 hover:text-slate-900 underline cursor-pointer"
-            >
-              Cách sửa lỗi origin_mismatch
-            </button>
-          </div>
+          {errorMessage.toLowerCase().includes('origin_mismatch') && (
+            <div className="flex items-center gap-2 pt-1 border-t border-rose-200/60">
+              <button
+                type="button"
+                onClick={() => setShowOriginMismatchGuide(true)}
+                className="text-[11px] font-medium text-amber-800 hover:text-amber-900 underline cursor-pointer"
+              >
+                Xem hướng dẫn khắc phục lỗi 400: origin_mismatch
+              </button>
+            </div>
+          )}
         </div>
       )}
 
-      {/* FAST ACCESS FOR WHITELIST (Bypasses Google Origin Restrictions) */}
-      <div className="mb-5 p-3.5 rounded-2xl bg-gradient-to-r from-sky-50 to-indigo-50/60 border border-sky-200/90 shadow-xs">
-        <div className="flex items-center justify-between mb-2">
-          <div className="flex items-center gap-1.5 text-xs font-bold text-slate-800">
-            <span className="material-symbols-outlined text-[16px] text-sky-600">verified_user</span>
-            <span>Tài khoản Whitelist (Đăng nhập tức thì)</span>
-          </div>
-          <span className="text-[10px] bg-sky-200/70 text-sky-800 font-semibold px-2 py-0.5 rounded-full">
-            Không bị lỗi Origin
-          </span>
-        </div>
-
-        {/* Primary 1-Click Button for Thuyết */}
-        <button
-          type="button"
-          onClick={() => handleFastLogin('thuyettk42@gmail.com')}
-          disabled={isLoading}
-          className="w-full h-11 px-3.5 rounded-xl bg-[#006195] hover:bg-[#004b74] active:scale-[0.99] text-white font-bold text-xs sm:text-sm flex items-center justify-between transition-all shadow-sm hover:shadow-md cursor-pointer disabled:opacity-70 group"
-        >
-          <div className="flex items-center gap-2.5 min-w-0">
-            <div className="w-7 h-7 rounded-lg bg-white/20 flex items-center justify-center font-bold text-xs shrink-0">
-              VT
-            </div>
-            <div className="text-left truncate">
-              <div className="leading-tight font-bold text-white group-hover:text-sky-100 truncate">
-                Vũ Minh Thuyết (thuyettk42@gmail.com)
-              </div>
-              <div className="text-[10px] text-sky-200 leading-tight">
-                Manager CS • Toàn quyền xem &amp; xuất dữ liệu
-              </div>
-            </div>
-          </div>
-          <span className="material-symbols-outlined text-[18px] text-sky-200 group-hover:translate-x-0.5 transition-transform shrink-0">
-            arrow_forward
-          </span>
-        </button>
-
-        {/* Other Whitelist Members Quick Access */}
-        <div className="mt-2.5 pt-2 border-t border-sky-200/50 flex flex-wrap items-center gap-1.5 text-[11px]">
-          <span className="text-slate-500 text-[11px] font-medium mr-1">Tài khoản khác:</span>
-          {allowedUsers
-            .filter((u) => u.email !== 'thuyettk42@gmail.com' && u.email !== 'thuyet.vm@kiotviet.com')
-            .map((u) => (
-              <button
-                key={u.email}
-                type="button"
-                onClick={() => handleFastLogin(u.email)}
-                className="px-2 py-1 rounded-lg bg-white hover:bg-sky-100 border border-sky-200 text-slate-700 font-medium transition-colors cursor-pointer text-[11px] flex items-center gap-1 shadow-2xs"
-                title={`Đăng nhập dưới tên ${u.name} (${u.email})`}
-              >
-                <span>{u.name}</span>
-                <span className="text-[10px] text-slate-400">({u.email.split('@')[0]})</span>
-              </button>
-            ))}
-        </div>
-      </div>
-
-      {/* Divider */}
-      <div className="relative flex py-1 items-center mb-4">
-        <div className="flex-grow border-t border-slate-200"></div>
-        <span className="flex-shrink mx-3 text-slate-400 text-[11px] uppercase font-semibold">
-          Hoặc kết nối Google SSO &amp; Mật khẩu
-        </span>
-        <div className="flex-grow border-t border-slate-200"></div>
-      </div>
-
-      {/* GOOGLE ACCOUNT SIGN-IN BUTTON */}
-      <div className="mb-4 space-y-1.5">
+      {/* 1. GOOGLE ACCOUNT SIGN-IN BUTTON */}
+      <div className="mb-5 space-y-1.5">
         <button
           type="button"
           onClick={handleGoogleClick}
@@ -320,7 +231,7 @@ export const PortalSSOModal: React.FC<PortalSSOModalProps> = ({
           <span>Đăng nhập với Google Account</span>
         </button>
 
-        {/* Origin Mismatch helper trigger */}
+        {/* Helper info */}
         <div className="flex items-center justify-between px-1 text-[11px] text-slate-500">
           <button
             type="button"
@@ -328,7 +239,7 @@ export const PortalSSOModal: React.FC<PortalSSOModalProps> = ({
             className="text-amber-700 hover:text-amber-900 font-medium inline-flex items-center gap-1 cursor-pointer"
           >
             <span className="material-symbols-outlined text-[14px] text-amber-600">help</span>
-            Báo &ldquo;Lỗi 400: origin_mismatch&rdquo;? Bấm xem cách sửa
+            Báo &ldquo;Lỗi 400: origin_mismatch&rdquo;?
           </button>
           <button
             type="button"
@@ -341,24 +252,21 @@ export const PortalSSOModal: React.FC<PortalSSOModalProps> = ({
         </div>
       </div>
 
-      {/* USERNAME & PASSWORD FORM */}
-      <form onSubmit={handleCredentialsSubmit} className="space-y-3.5 text-left pt-2 border-t border-slate-100">
+      {/* Divider */}
+      <div className="relative flex py-1 items-center mb-4">
+        <div className="flex-grow border-t border-slate-200"></div>
+        <span className="flex-shrink mx-3 text-slate-400 text-[11px] uppercase font-semibold">
+          Hoặc đăng nhập bằng tên đăng nhập và mật khẩu
+        </span>
+        <div className="flex-grow border-t border-slate-200"></div>
+      </div>
+
+      {/* 2. USERNAME & PASSWORD FORM */}
+      <form onSubmit={handleCredentialsSubmit} className="space-y-3.5 text-left">
         <div className="space-y-1">
-          <div className="flex items-center justify-between">
-            <label className="block text-xs font-semibold text-slate-700">
-              Tên đăng nhập / Email
-            </label>
-            <button
-              type="button"
-              onClick={() => {
-                setEmail('thuyettk42@gmail.com');
-                setPassword('KiotViet#2026');
-              }}
-              className="text-[11px] text-primary hover:underline font-medium cursor-pointer"
-            >
-              Điền mẫu thuyettk42
-            </button>
-          </div>
+          <label className="block text-xs font-semibold text-slate-700">
+            Tên đăng nhập / Email
+          </label>
           <div className="relative flex items-center">
             <span className="material-symbols-outlined absolute left-3 text-slate-400 text-[18px]">badge</span>
             <input
@@ -369,27 +277,26 @@ export const PortalSSOModal: React.FC<PortalSSOModalProps> = ({
                 setEmail(e.target.value);
                 setErrorMessage(null);
               }}
-              placeholder="Nhập email (vd: thuyettk42@gmail.com)..."
+              placeholder="Nhập email được cấp quyền..."
               className="w-full h-10 pl-9 pr-3 rounded-xl bg-white border border-slate-300 text-slate-900 text-xs sm:text-sm focus:outline-none focus:ring-2 focus:ring-primary/20"
             />
           </div>
         </div>
 
         <div className="space-y-1">
-          <div className="flex items-center justify-between">
-            <label className="block text-xs font-semibold text-slate-700">
-              Mật khẩu nội bộ
-            </label>
-            <span className="text-[10px] text-slate-400">
-              Mặc định: <code className="bg-slate-100 px-1 py-0.5 rounded text-slate-600 font-mono">KiotViet#2026</code>
-            </span>
-          </div>
+          <label className="block text-xs font-semibold text-slate-700">
+            Mật khẩu
+          </label>
           <div className="relative flex items-center">
             <span className="material-symbols-outlined absolute left-3 text-slate-400 text-[18px]">lock</span>
             <input
               type={showPassword ? 'text' : 'password'}
+              required
               value={password}
-              onChange={(e) => setPassword(e.target.value)}
+              onChange={(e) => {
+                setPassword(e.target.value);
+                setErrorMessage(null);
+              }}
               placeholder="Nhập mật khẩu..."
               className="w-full h-10 pl-9 pr-10 rounded-xl bg-white border border-slate-300 text-slate-900 text-xs sm:text-sm focus:outline-none focus:ring-2 focus:ring-primary/20"
             />
@@ -419,13 +326,13 @@ export const PortalSSOModal: React.FC<PortalSSOModalProps> = ({
         <button
           type="submit"
           disabled={isLoading}
-          className="w-full h-10 rounded-xl bg-slate-800 hover:bg-slate-900 active:scale-[0.99] text-white font-bold text-xs sm:text-sm flex items-center justify-center gap-2 transition-all shadow-xs mt-1 cursor-pointer disabled:opacity-70"
+          className="w-full h-10 rounded-xl bg-[#006195] hover:bg-[#004b74] active:scale-[0.99] text-white font-bold text-xs sm:text-sm flex items-center justify-center gap-2 transition-all shadow-xs mt-1 cursor-pointer disabled:opacity-70"
         >
           {isLoading ? (
             <span className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></span>
           ) : (
             <>
-              <span>Đăng nhập mật khẩu</span>
+              <span>Đăng nhập</span>
               <span className="material-symbols-outlined text-[16px]">arrow_forward</span>
             </>
           )}
@@ -472,26 +379,15 @@ export const PortalSSOModal: React.FC<PortalSSOModalProps> = ({
               </button>
             </div>
 
-            {/* Direct Solution Box */}
-            <div className="p-3.5 rounded-xl bg-emerald-50 border border-emerald-300 space-y-2">
-              <div className="text-xs font-bold text-emerald-900 flex items-center gap-1.5">
-                <span className="material-symbols-outlined text-[16px] text-emerald-600">flash_on</span>
-                <span>GIẢI PHÁP TỨC THÌ (KHÔNG CẦN CHỜ CẤU HÌNH GOOGLE CLOUD)</span>
+            {/* Notice */}
+            <div className="p-3.5 rounded-xl bg-sky-50 border border-sky-200 space-y-1.5">
+              <div className="text-xs font-bold text-sky-900 flex items-center gap-1.5">
+                <span className="material-symbols-outlined text-[16px] text-sky-700">info</span>
+                <span>Phương án đăng nhập thay thế:</span>
               </div>
-              <p className="text-xs text-emerald-800 leading-relaxed">
-                Bạn đã được thêm vào danh sách <b>Whitelist nội bộ</b>. Chỉ cần bấm nút bên dưới là vào thẳng hệ thống với đầy đủ dữ liệu 12 tháng:
+              <p className="text-xs text-sky-800 leading-relaxed">
+                Trong khi chờ cập nhật Origin trên Google Cloud Console, bạn có thể đăng nhập bằng <b>Tên đăng nhập / Email</b> và <b>Mật khẩu</b> ở biểu mẫu đăng nhập bên ngoài.
               </p>
-              <button
-                type="button"
-                onClick={() => {
-                  setShowOriginMismatchGuide(false);
-                  handleFastLogin('thuyettk42@gmail.com');
-                }}
-                className="w-full py-2.5 px-4 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs flex items-center justify-center gap-2 transition-all shadow-sm cursor-pointer"
-              >
-                <span>🚀 Vào ngay với tài khoản Vũ Minh Thuyết (thuyettk42@gmail.com)</span>
-                <span className="material-symbols-outlined text-[16px]">arrow_forward</span>
-              </button>
             </div>
 
             {/* Why Origin Mismatch Happens */}
@@ -670,7 +566,7 @@ export const PortalSSOModal: React.FC<PortalSSOModalProps> = ({
         <div className="mt-5 text-center text-xs text-slate-400 space-y-1">
           <p>© 2026 KiotViet Customer Care Enterprise • All rights reserved</p>
           <p className="text-[11px] text-slate-400">
-            Hệ thống phân quyền nội bộ dành cho Thuyết (Manager CS), Hải, Lâm, Yến
+            Hệ thống Báo cáo &amp; Điều hành CSKH KiotViet Enterprise
           </p>
         </div>
       </div>

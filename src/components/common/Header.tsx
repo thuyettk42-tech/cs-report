@@ -25,7 +25,7 @@ const TAB_BREADCRUMBS: Record<NavigationTab, { group: string; title: string }> =
   'danh-gia-kpi': { group: 'Lực Lượng Nhân Sự', title: 'Đánh giá & Theo dõi KPI Nhân sự' },
   'kiotviet-retail': { group: 'Phân Hệ Dự Án', title: 'KiotViet Retail - Sự cố & Bug/Incident' },
   'kiotviet-fnb': { group: 'Phân Hệ Dự Án', title: 'KiotViet FnB - Vận hành Nhà hàng & Cafe' },
-  'kat-fnb-bar': { group: 'Phân Hệ Dự Án', title: 'KAT - Vận hành Bar, Pub & TMĐT' },
+  'kat-fnb-bar': { group: 'Phân Hệ Dự Án', title: 'KAT' },
   'kiotviet-booking': { group: 'Phân Hệ Dự Án', title: 'KiotViet Booking / Hotel' },
   'kiotviet-employ': { group: 'Phân Hệ Dự Án', title: 'KiotViet Employ - Nhân sự & Chấm công' },
   'cau-hinh-bao-cao': { group: 'Cấu Hình & Báo Cáo', title: 'Cấu hình Mục tiêu KPI & Hệ thống' },

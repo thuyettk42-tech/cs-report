@@ -41,9 +41,9 @@ export const Sidebar: React.FC<SidebarProps> = ({
     {
       label: 'PHÂN HỆ DỰ ÁN',
       items: [
+        { id: 'kat-fnb-bar' as NavigationTab, label: 'KAT', icon: 'local_bar', badge: 'Active' },
         { id: 'kiotviet-retail' as NavigationTab, label: 'KiotViet Retail', icon: 'storefront' },
         { id: 'kiotviet-fnb' as NavigationTab, label: 'KiotViet FnB', icon: 'restaurant' },
-        { id: 'kat-fnb-bar' as NavigationTab, label: 'KAT (FnB/Bar)', icon: 'local_bar' },
         { id: 'kiotviet-booking' as NavigationTab, label: 'KiotViet Booking', icon: 'calendar_month' },
         { id: 'kiotviet-employ' as NavigationTab, label: 'KiotViet Employ', icon: 'assignment_ind' },
       ],
@@ -123,7 +123,22 @@ export const Sidebar: React.FC<SidebarProps> = ({
                       >
                         {item.icon}
                       </span>
-                      {!isCollapsed && <span className="truncate">{item.label}</span>}
+                      {!isCollapsed && (
+                        <div className="flex items-center justify-between flex-1 min-w-0">
+                          <span className="truncate">{item.label}</span>
+                          {'badge' in item && item.badge && (
+                            <span
+                              className={`px-1.5 py-0.5 rounded text-[10px] font-bold tracking-wide ${
+                                isActive
+                                  ? 'bg-emerald-400 text-slate-900'
+                                  : 'bg-emerald-100 text-emerald-800'
+                              }`}
+                            >
+                              {item.badge}
+                            </span>
+                          )}
+                        </div>
+                      )}
                     </button>
                   );
                 })}

@@ -23,6 +23,7 @@ import { OutsourcedStaffView } from './components/views/OutsourcedStaffView';
 import KpiEvaluationView from './components/views/KpiEvaluationView';
 import RetailIncidentView from './components/views/RetailIncidentView';
 import ProjectFnbView from './components/views/ProjectFnbView';
+import { ProjectKatView } from './components/views/ProjectKatView';
 import ProjectBookingEmployView from './components/views/ProjectBookingEmployView';
 import SettingsReportView from './components/views/SettingsReportView';
 
@@ -226,9 +227,8 @@ export default function App() {
           )}
 
           {currentTab === 'kat-fnb-bar' && (
-            <ProjectFnbView
-              subType="kat"
-              onOpenExport={() => handleOpenExport('Báo Cáo Vận Hành KAT Bar & Pub')}
+            <ProjectKatView
+              onOpenExport={() => handleOpenExport('Báo Cáo Vận Hành Dự Án KAT')}
             />
           )}
 
