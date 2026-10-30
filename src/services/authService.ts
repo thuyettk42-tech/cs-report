@@ -1,4 +1,5 @@
 import { UserProfile, AllowedUser } from '../types';
+import { getSupabaseClient, isSupabaseConfigured } from './supabaseClient';
 
 const STORAGE_KEY_AUTH_USER = 'kiotviet_auth_user_v1';
 const STORAGE_KEY_ALLOWED_USERS = 'kiotviet_allowed_users_v1';
@@ -562,4 +563,92 @@ export function loginWithWhitelistedEmail(
 
 export function signOut(): void {
   setCurrentUser(null);
+  if (isSupabaseConfigured()) {
+    getSupabaseClient().auth.signOut().catch((err) => console.warn('Supabase signOut error', err));
+  }
+}
+
+const NOT_CONFIGURED_MESSAGE =
+  'Hệ thống chưa được cấu hình kết nối Supabase (thiếu biến môi trường trên Vercel). Vui lòng liên hệ quản trị viên.';
+
+/**
+ * Mở trang đăng nhập Google qua Supabase Auth. Trình duyệt sẽ chuyển sang Google
+ * rồi quay lại trang báo cáo; completeSupabaseSignIn() xử lý phần còn lại khi tải trang.
+ */
+export async function startGoogleSignIn(): Promise<{ success: boolean; message?: string }> {
+  if (!isSupabaseConfigured()) return { success: false, message: NOT_CONFIGURED_MESSAGE };
+  const { error } = await getSupabaseClient().auth.signInWithOAuth({
+    provider: 'google',
+    options: {
+      redirectTo: getCurrentOrigin(),
+      queryParams: { prompt: 'select_account' },
+    },
+  });
+  if (error) return { success: false, message: `Không mở được đăng nhập Google: ${error.message}` };
+  return { success: true };
+}
+
+/**
+ * Đăng nhập bằng email + mật khẩu do Supabase Auth quản lý (tài khoản tạo trong
+ * Supabase → Authentication → Users). Sau đó đối chiếu allowed_users như đăng nhập Google.
+ */
+export async function signInWithSupabasePassword(
+  emailInput: string,
+  password: string
+): Promise<{ user?: UserProfile; message?: string }> {
+  if (!isSupabaseConfigured()) return { message: NOT_CONFIGURED_MESSAGE };
+  const email = emailInput.toLowerCase().trim();
+  if (!email || !password) return { message: 'Vui lòng nhập email và mật khẩu.' };
+
+  const { error } = await getSupabaseClient().auth.signInWithPassword({ email, password });
+  if (error) {
+    if (/invalid login credentials/i.test(error.message)) {
+      return { message: 'Email hoặc mật khẩu không đúng. Quên mật khẩu? Liên hệ quản lý CSKH để đặt lại.' };
+    }
+    return { message: `Không đăng nhập được: ${error.message}` };
+  }
+  return completeSupabaseSignIn();
+}
+
+/**
+ * Đọc phiên đăng nhập Supabase (sau khi Google chuyển về) và đối chiếu bảng allowed_users.
+ * Chỉ email có trong bảng và đang bật mới được vào báo cáo.
+ */
+export async function completeSupabaseSignIn(): Promise<{ user?: UserProfile; message?: string }> {
+  if (!isSupabaseConfigured()) return { message: NOT_CONFIGURED_MESSAGE };
+  const supabase = getSupabaseClient();
+  const { data: sessionData, error: sessionError } = await supabase.auth.getSession();
+  if (sessionError) return { message: `Lỗi phiên đăng nhập: ${sessionError.message}` };
+  const session = sessionData.session;
+  if (!session) return {};
+
+  const email = (session.user.email || '').toLowerCase().trim();
+  const { data, error } = await supabase
+    .from('allowed_users')
+    .select('name, role, is_active')
+    .eq('email', email)
+    .maybeSingle();
+
+  if (error) {
+    await supabase.auth.signOut();
+    return { message: `Không kiểm tra được quyền truy cập: ${error.message}` };
+  }
+  if (!data || !data.is_active) {
+    await supabase.auth.signOut();
+    return {
+      message: `Tài khoản Google "${email}" chưa được cấp quyền xem báo cáo. Vui lòng liên hệ quản lý để được thêm vào danh sách.`,
+    };
+  }
+
+  const name: string = data.name || session.user.user_metadata?.full_name || email.split('@')[0];
+  const authUser: UserProfile = {
+    name,
+    role: data.role || 'Quản lý CSKH',
+    email,
+    avatarText: name.split(' ').map((w: string) => w[0]).join('').slice(-2).toUpperCase(),
+    provider: session.user.app_metadata?.provider === 'google' ? 'google' : 'sso',
+    isAdmin: true,
+  };
+  setCurrentUser(authUser);
+  return { user: authUser };
 }

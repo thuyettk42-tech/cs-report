@@ -23,6 +23,13 @@ Trang báo cáo vận hành Call Center hotline 1900 6522 (repo này, deploy tr�
 - [x] Đã nạp 01/10–29/10: call_daily 29 dòng, call_team_daily 87, call_agent_daily ~2.2k, call_queue_daily ~240, call_timeslot_daily ~880, sync_log 29.
 - [x] Đã cài lịch tự động (`caiLichTuDong`): dongBoHangNgay chạy mỗi ngày ~9h30 (Apps Script → Triggers). Kiểm tra lần chạy ở Apps Script → Executions hoặc bảng sync_log.
 - [ ] BƯỚC 5: nối web với Supabase (xem cuối file).
+  - [x] Code (30/10): đăng nhập Google thật qua Supabase Auth (`authService.startGoogleSignIn` / `completeSupabaseSignIn`, đối chiếu bảng `allowed_users`); bỏ form mật khẩu viết cứng; `callCenterData.ts` + `CallCenterView.tsx` đọc số thật; bỏ fallback "thành công giả" trong googleSheetsSync.ts.
+  - [x] SQL quyền đọc: `buoc5_mo_quyen_doc_web.sql` (bảng allowed_users, hàm la_nguoi_xem_hop_le, policy SELECT "web_doc").
+  - [x] Người dùng đã chạy `buoc5_mo_quyen_doc_web.sql` thành công (30/10).
+  - Đổi phương án (30/10): tài khoản kiotviet.com không được tạo dự án Google Cloud → đăng nhập bằng **email + mật khẩu Supabase Auth** (`signInWithSupabasePassword`). Quản lý tạo tài khoản ở Supabase → Authentication → Users (Auto Confirm), tắt "Allow new users to sign up". Code Google OAuth (`startGoogleSignIn`) vẫn giữ để bật lại khi IT cấp được OAuth client.
+  - [ ] Người dùng: tạo tài khoản trên Supabase, tắt tự đăng ký, thêm env Vercel.
+  - [ ] Push lên GitHub → Vercel deploy → kiểm tra số ngày 01/10.
+- Cài đặt máy: Node 24 bản di động ở `%LOCALAPPDATA%\Programs\nodejs-portable` (không cần Admin). `npm install` cần `--legacy-peer-deps --no-package-lock` (xung đột esbuild có sẵn; Vercel dùng bun.lock).
 
 ## Quy tắc nghiệp vụ đã chốt (script đang áp dụng)
 - Tổng cuộc đến = cuộc Answered/Inbound trong `Call in` (bỏ hộp thư thoại "Voicemail", 1–4 cuộc/ngày) + mọi dòng `Miss call`.

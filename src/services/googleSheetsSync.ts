@@ -264,24 +264,10 @@ export async function fetchFromGoogleSheet(url: string, userEmail: string = 'thu
       }
     }
 
-    // Default authentic dataset fallback
-    const parsed = parseCsvToMetrics(DEFAULT_RAW_CSV);
-    saveMultiChannelData(parsed);
-    saveStoredSheetUrl(url);
-    addSyncAuditLog({
-      timestamp: new Date().toLocaleString('vi-VN'),
-      updatedBy: userEmail,
-      source: `Google Sheet KiotViet 2026 (${url.slice(0, 40)}...)`,
-      rowCount: parsed.length,
-      status: 'success',
-      notes: 'Đồng bộ tự động từ file dữ liệu gốc KiotViet',
-    });
-
-    return {
-      success: true,
-      rows: parsed,
-      message: `Đã đồng bộ thành công dữ liệu từ Google Sheet khối Tổng đài (27 chỉ số 10 tháng đầu năm 2026)!`,
-    };
+    // Không đọc được sheet: báo lỗi thật, giữ nguyên dữ liệu đang có (không ghi đè bằng số mẫu)
+    throw new Error(
+      'Không đọc được Google Sheet. Kiểm tra link đã được "Xuất bản lên web" (định dạng CSV) và có cột "Kênh".'
+    );
   } catch (err: any) {
     addSyncAuditLog({
       timestamp: new Date().toLocaleString('vi-VN'),

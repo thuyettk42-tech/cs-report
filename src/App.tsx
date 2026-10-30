@@ -5,7 +5,7 @@
 
 import React, { useState, useEffect } from 'react';
 import { NavigationTab, UserProfile } from './types';
-import { getCurrentUser, signOut, refreshSession, isSessionExpired } from './services/authService';
+import { getCurrentUser, signOut, refreshSession, isSessionExpired, completeSupabaseSignIn } from './services/authService';
 import { Sidebar } from './components/common/Sidebar';
 import { Header } from './components/common/Header';
 import { PortalSSOModal } from './components/common/PortalSSOModal';
@@ -38,6 +38,28 @@ export default function App() {
   const [exportTitle, setExportTitle] = useState('Báo Cáo Tiếp Nhận Đa Kênh CSKH KiotViet');
   const [syncNotice, setSyncNotice] = useState<string | null>(null);
   const [sessionExpiredNotice, setSessionExpiredNotice] = useState<string | null>(null);
+  const [isCheckingAuth, setIsCheckingAuth] = useState(true);
+  const [authError, setAuthError] = useState<string | null>(null);
+
+  // Chỉ coi là đã đăng nhập khi có phiên Supabase hợp lệ và email nằm trong allowed_users
+  useEffect(() => {
+    completeSupabaseSignIn()
+      .then((res) => {
+        if (res.user) {
+          setCurrentUserState(res.user);
+        } else {
+          signOut();
+          setCurrentUserState(null);
+          setAuthError(res.message || null);
+        }
+      })
+      .catch((err) => {
+        signOut();
+        setCurrentUserState(null);
+        setAuthError(`Không kiểm tra được đăng nhập: ${err?.message || err}`);
+      })
+      .finally(() => setIsCheckingAuth(false));
+  }, []);
 
   // Inactivity Session Tracker: 60 minutes
   // Extends session indefinitely on any user interaction (click, keydown, scroll, touch)
@@ -105,6 +127,15 @@ export default function App() {
     setTimeout(() => setSyncNotice(null), 4000);
   };
 
+  if (isCheckingAuth) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-surface text-slate-500 text-sm gap-2">
+        <span className="w-4 h-4 border-2 border-primary border-t-transparent rounded-full animate-spin"></span>
+        Đang kiểm tra đăng nhập...
+      </div>
+    );
+  }
+
   // If user is not logged in, render the Portal 2.4 SSO authentication portal matching image_93b94bf6.png
   if (!currentUser) {
     return (
@@ -112,6 +143,7 @@ export default function App() {
         isOpen={true}
         isFullPage={true}
         sessionExpiredNotice={sessionExpiredNotice}
+        authError={authError}
         onLoginSuccess={handleLoginSuccess}
       />
     );

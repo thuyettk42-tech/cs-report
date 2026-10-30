@@ -3,20 +3,29 @@ import { createClient, SupabaseClient } from '@supabase/supabase-js';
 const STORAGE_KEY_SUPABASE_URL = 'kiotviet_supabase_url_v1';
 const STORAGE_KEY_SUPABASE_ANON_KEY = 'kiotviet_supabase_anon_key_v1';
 
-// Default Demo / Placeholder Supabase configuration
-const DEFAULT_SUPABASE_URL = (import.meta as any).env?.VITE_SUPABASE_URL || 'https://kiotviet-care-portal.supabase.co';
-const DEFAULT_SUPABASE_ANON_KEY = (import.meta as any).env?.VITE_SUPABASE_ANON_KEY || 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.kiotviet-demo-anon-key';
+// Cấu hình thật lấy từ biến môi trường Vercel (VITE_SUPABASE_URL, VITE_SUPABASE_PUBLISHABLE_KEY).
+// Khóa publishable được phép công khai; quyền đọc dữ liệu do RLS trên Supabase quyết định.
+const ENV = (import.meta as any).env || {};
+const ENV_SUPABASE_URL: string = ENV.VITE_SUPABASE_URL || '';
+const ENV_SUPABASE_KEY: string = ENV.VITE_SUPABASE_PUBLISHABLE_KEY || ENV.VITE_SUPABASE_ANON_KEY || '';
+
+export function isSupabaseConfigured(): boolean {
+  const { url, anonKey } = getSupabaseCredentials();
+  return !!url && !!anonKey;
+}
 
 export function getSupabaseCredentials(): { url: string; anonKey: string } {
+  // Biến môi trường luôn được ưu tiên; localStorage chỉ dùng khi chưa khai báo trên Vercel
+  if (ENV_SUPABASE_URL && ENV_SUPABASE_KEY) {
+    return { url: ENV_SUPABASE_URL, anonKey: ENV_SUPABASE_KEY };
+  }
   try {
-    const customUrl = localStorage.getItem(STORAGE_KEY_SUPABASE_URL);
-    const customKey = localStorage.getItem(STORAGE_KEY_SUPABASE_ANON_KEY);
     return {
-      url: customUrl || DEFAULT_SUPABASE_URL,
-      anonKey: customKey || DEFAULT_SUPABASE_ANON_KEY,
+      url: localStorage.getItem(STORAGE_KEY_SUPABASE_URL) || '',
+      anonKey: localStorage.getItem(STORAGE_KEY_SUPABASE_ANON_KEY) || '',
     };
   } catch {
-    return { url: DEFAULT_SUPABASE_URL, anonKey: DEFAULT_SUPABASE_ANON_KEY };
+    return { url: '', anonKey: '' };
   }
 }
 
@@ -33,11 +42,16 @@ let supabaseInstance: SupabaseClient | null = null;
 
 export function getSupabaseClient(): SupabaseClient {
   const { url, anonKey } = getSupabaseCredentials();
+  if (!url || !anonKey) {
+    throw new Error('Chưa cấu hình Supabase: thiếu VITE_SUPABASE_URL hoặc VITE_SUPABASE_PUBLISHABLE_KEY trên Vercel.');
+  }
   if (!supabaseInstance) {
     supabaseInstance = createClient(url, anonKey, {
       auth: {
         autoRefreshToken: true,
         persistSession: true,
+        detectSessionInUrl: true,
+        flowType: 'pkce',
       },
     });
   }
