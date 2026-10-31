@@ -80,14 +80,16 @@ export interface QueueInfo {
 }
 
 export interface CallCenterData {
-  /** Ngày báo cáo đang xem (yyyy-mm-dd) */
-  date: string;
+  /** Kỳ báo cáo đang xem (yyyy-mm-dd), from = to khi xem 1 ngày */
+  from: string;
+  to: string;
   /** Các ngày có dữ liệu, mới nhất trước */
   availableDates: string[];
-  /** call_daily từ min(đầu tháng, date - 7) đến date, sắp tăng dần */
+  /** call_daily từ fetchFrom đến to (gồm cả kỳ so sánh, bảng theo ngày, lũy kế tháng), sắp tăng dần */
   daily: CallDailyRow[];
   /** call_team_daily cùng khoảng ngày như daily */
   team: CallTeamRow[];
+  /** Hàng đợi / khung giờ / ĐTV đã cộng dồn các ngày trong kỳ */
   queues: CallQueueRow[];
   slots: CallSlotRow[];
   agents: CallAgentRow[];
@@ -124,32 +126,69 @@ export async function loadAvailableDates(): Promise<string[]> {
   return rows.map((r) => r.report_date);
 }
 
-export async function loadCallCenterData(date: string, availableDates: string[]): Promise<CallCenterData> {
-  const supabase = getSupabaseClient();
-  const monthStart = date.slice(0, 8) + '01';
-  const weekStart = addDays(date, -7); // 7 ngày gần nhất + 1 ngày trước đó để so sánh
-  const rangeStart = weekStart < monthStart ? weekStart : monthStart;
+export function monthStart(date: string): string {
+  return date.slice(0, 8) + '01';
+}
 
-  const [daily, team, queues, slots, agents, queueInfo, agentDir, targets, lastSync] = await Promise.all([
-    fetchAll<CallDailyRow>((from, to) =>
-      supabase.from('call_daily').select('*').gte('report_date', rangeStart).lte('report_date', date)
-        .order('report_date').range(from, to)
+export function monthEnd(date: string): string {
+  const [y, m] = date.split('-').map(Number);
+  return new Date(Date.UTC(y, m, 0)).toISOString().slice(0, 10);
+}
+
+/** Số ngày từ a đến b (b - a). */
+export function daysBetween(a: string, b: string): number {
+  const [ya, ma, da] = a.split('-').map(Number);
+  const [yb, mb, db] = b.split('-').map(Number);
+  return Math.round((Date.UTC(yb, mb - 1, db) - Date.UTC(ya, ma - 1, da)) / 86400000);
+}
+
+/** Cộng dồn các cột số theo khóa; cột NULL ở mọi dòng giữ NULL (chưa có nguồn). */
+function groupSum<T extends Record<string, any>>(rows: T[], keyOf: (r: T) => string, fields: (keyof T)[]): T[] {
+  const map = new Map<string, T>();
+  rows.forEach((r) => {
+    const k = keyOf(r);
+    const cur = map.get(k);
+    if (!cur) {
+      map.set(k, { ...r });
+      return;
+    }
+    fields.forEach((f) => {
+      const a = cur[f];
+      const b = r[f];
+      (cur as any)[f] = a == null && b == null ? null : (Number(a) || 0) + (Number(b) || 0);
+    });
+  });
+  return [...map.values()];
+}
+
+/**
+ * fetchFrom..to: số theo ngày (call_daily, call_team_daily) cho thẻ KPI, kỳ so sánh, bảng theo ngày.
+ * from..to: kỳ đang xem – hàng đợi, khung giờ, ĐTV được cộng dồn các ngày trong kỳ.
+ */
+export async function loadCallCenterData(fetchFrom: string, from: string, to: string, availableDates: string[]): Promise<CallCenterData> {
+  const supabase = getSupabaseClient();
+
+  const [daily, team, queueDays, slotDays, agentDays, queueInfo, agentDir, targets, lastSync] = await Promise.all([
+    fetchAll<CallDailyRow>((a, b) =>
+      supabase.from('call_daily').select('*').gte('report_date', fetchFrom).lte('report_date', to)
+        .order('report_date').range(a, b)
     ),
-    fetchAll<CallTeamRow>((from, to) =>
-      supabase.from('call_team_daily').select('*').gte('report_date', rangeStart).lte('report_date', date)
-        .order('report_date').order('team').range(from, to)
+    fetchAll<CallTeamRow>((a, b) =>
+      supabase.from('call_team_daily').select('*').gte('report_date', fetchFrom).lte('report_date', to)
+        .order('report_date').order('team').range(a, b)
     ),
-    fetchAll<CallQueueRow>((from, to) =>
-      supabase.from('call_queue_daily').select('*').eq('report_date', date).order('queue').range(from, to)
+    fetchAll<CallQueueRow>((a, b) =>
+      supabase.from('call_queue_daily').select('*').gte('report_date', from).lte('report_date', to)
+        .order('report_date').order('queue').range(a, b)
     ),
-    fetchAll<CallSlotRow>((from, to) =>
-      supabase.from('call_timeslot_daily').select('slot_start, offered, answered, answered_ai, abandoned')
-        .eq('report_date', date).order('slot_start').range(from, to)
+    fetchAll<CallSlotRow & { report_date: string }>((a, b) =>
+      supabase.from('call_timeslot_daily').select('report_date, slot_start, offered, answered, answered_ai, abandoned')
+        .gte('report_date', from).lte('report_date', to).order('report_date').order('slot_start').range(a, b)
     ),
-    fetchAll<CallAgentRow>((from, to) =>
+    fetchAll<CallAgentRow & { report_date: string }>((a, b) =>
       supabase.from('call_agent_daily')
-        .select('ext, agent_name, team, handled, answered_within_sl, talk_seconds, acw_seconds, fcr_count, qa_avg')
-        .eq('report_date', date).order('ext').range(from, to)
+        .select('report_date, ext, agent_name, team, handled, answered_within_sl, talk_seconds, acw_seconds, fcr_count, qa_avg')
+        .gte('report_date', from).lte('report_date', to).order('report_date').order('ext').range(a, b)
     ),
     fetchAll<QueueInfo>((from, to) =>
       supabase.from('call_queues').select('queue, display_name, sort_order, is_active').order('queue').range(from, to)
@@ -165,8 +204,22 @@ export async function loadCallCenterData(date: string, availableDates: string[])
 
   if (lastSync.error) throw new Error(lastSync.error.message);
 
+  const queues = groupSum(queueDays, (q) => q.queue, [
+    'offered', 'abandoned', 'handled_inhouse', 'handled_os', 'handled_ai', 'answered_within_sl', 'handle_seconds',
+    'csat_responses', 'csat_satisfied',
+  ]);
+  const slots = groupSum(slotDays, (s) => s.slot_start, ['offered', 'answered', 'answered_ai', 'abandoned'])
+    .sort((a, b) => a.slot_start.localeCompare(b.slot_start));
+  // Điểm QA là điểm trung bình → cộng theo trọng số số cuộc rồi chia lại
+  const agents = groupSum(
+    agentDays.map((r) => ({ ...r, qa_w: r.qa_avg == null ? null : r.qa_avg * r.handled, qa_h: r.qa_avg == null ? null : r.handled })),
+    (r) => r.ext,
+    ['handled', 'answered_within_sl', 'talk_seconds', 'acw_seconds', 'fcr_count', 'qa_w', 'qa_h']
+  ).map(({ qa_w, qa_h, report_date, ...r }) => ({ ...r, qa_avg: qa_w != null && qa_h ? Math.round((qa_w / qa_h) * 10) / 10 : null }));
+
   return {
-    date,
+    from,
+    to,
     availableDates,
     daily,
     team,
@@ -206,6 +259,37 @@ export function sumNullable<T>(rows: T[], pick: (r: T) => number | null | undefi
     }
   });
   return seen ? total : null;
+}
+
+export interface DailyTotals {
+  days: number;
+  offered: number;
+  answered: number;
+  abandoned: number;
+  callbackNeeded: number | null;
+  callbackOnTime: number | null;
+  qaCount: number | null;
+  qaAvg: number | null;
+  csatResponses: number | null;
+  csatSatisfied: number | null;
+}
+
+/** Cộng call_daily của các ngày trong kỳ (điểm QA lấy trung bình theo số cuộc chấm). */
+export function totalDaily(rows: CallDailyRow[]): DailyTotals {
+  const qaRows = rows.filter((r) => r.qa_avg != null && r.qa_count);
+  const qaCount = sumBy(qaRows, (r) => r.qa_count);
+  return {
+    days: rows.length,
+    offered: sumBy(rows, (r) => r.offered),
+    answered: sumBy(rows, (r) => r.answered),
+    abandoned: sumBy(rows, (r) => r.abandoned),
+    callbackNeeded: sumNullable(rows, (r) => r.callback_needed),
+    callbackOnTime: sumNullable(rows, (r) => r.callback_on_time),
+    qaCount: sumNullable(rows, (r) => r.qa_count),
+    qaAvg: qaCount ? Math.round((sumBy(qaRows, (r) => (r.qa_avg as number) * (r.qa_count as number)) / qaCount) * 10) / 10 : null,
+    csatResponses: sumNullable(rows, (r) => r.csat_responses),
+    csatSatisfied: sumNullable(rows, (r) => r.csat_satisfied),
+  };
 }
 
 export interface TeamSummary {

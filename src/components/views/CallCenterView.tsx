@@ -2,6 +2,7 @@ import React, { useEffect, useMemo, useState } from 'react';
 import {
   CallCenterData,
   addDays,
+  daysBetween,
   formatDate,
   formatDateTime,
   formatDuration,
@@ -11,11 +12,14 @@ import {
   handleTimes,
   loadAvailableDates,
   loadCallCenterData,
+  monthEnd,
+  monthStart,
   ratio,
   serviceLevels,
   sumBy,
   sumNullable,
   summarizeTeams,
+  totalDaily,
   weekdayName,
 } from '../../services/callCenterData';
 
@@ -31,6 +35,56 @@ const TEAM_STYLE: Record<string, { short: string; title: string; subtitle: strin
 
 const AGENT_PAGE = 20;
 
+type FilterMode = 'day' | 'range' | 'month';
+
+const FILTER_MODES: { mode: FilterMode; label: string }[] = [
+  { mode: 'day', label: 'Ngày' },
+  { mode: 'range', label: 'Khoảng ngày' },
+  { mode: 'month', label: 'Tháng' },
+];
+
+interface Period {
+  from: string;
+  to: string;
+  /** Kỳ so sánh: ngày trước / số ngày bằng nhau liền trước / cùng kỳ tháng trước */
+  prevFrom: string;
+  prevTo: string;
+  compareLabel: string;
+  /** Bảng theo ngày: 7 ngày gần nhất khi xem 1 ngày, còn lại là các ngày trong kỳ */
+  tableFrom: string;
+}
+
+function minDate(...dates: string[]): string {
+  return dates.reduce((a, b) => (b < a ? b : a));
+}
+
+function buildPeriod(mode: FilterMode, day: string, rangeFrom: string, rangeTo: string, month: string, latest: string): Period | null {
+  if (mode === 'day') {
+    if (!day) return null;
+    return { from: day, to: day, prevFrom: addDays(day, -1), prevTo: addDays(day, -1), compareLabel: 'so với hôm trước', tableFrom: addDays(day, -6) };
+  }
+  if (mode === 'range') {
+    if (!rangeFrom || !rangeTo) return null;
+    const [from, to] = rangeFrom <= rangeTo ? [rangeFrom, rangeTo] : [rangeTo, rangeFrom];
+    const n = daysBetween(from, to) + 1;
+    if (n === 1) return buildPeriod('day', from, '', '', '', latest);
+    return { from, to, prevFrom: addDays(from, -n), prevTo: addDays(from, -1), compareLabel: `so với ${n} ngày trước đó`, tableFrom: from };
+  }
+  if (!month) return null;
+  const from = month + '-01';
+  const end = monthEnd(from);
+  const to = latest < end ? latest : end;
+  const prevFrom = monthStart(addDays(from, -1));
+  const prevEnd = monthEnd(prevFrom);
+  const prevSameDay = addDays(prevFrom, Number(to.slice(8)) - 1);
+  return { from, to, prevFrom, prevTo: prevSameDay < prevEnd ? prevSameDay : prevEnd, compareLabel: 'so với cùng kỳ tháng trước', tableFrom: from };
+}
+
+function formatPeriod(from: string, to: string): string {
+  if (from === to) return `ngày ${formatDate(from)}`;
+  return `${formatShortDate(from)} – ${formatDate(to)}`;
+}
+
 /** Đạt / không đạt mục tiêu; null khi thiếu số liệu hoặc mục tiêu. */
 function meets(value: number | null, target: number | undefined, direction: 'higher' | 'lower'): boolean | null {
   if (value == null || target == null) return null;
@@ -42,14 +96,14 @@ function statusClass(ok: boolean | null): string {
   return ok ? 'text-emerald-700' : 'text-rose-700';
 }
 
-function Delta({ current, previous, invert = false }: { current: number | null; previous: number | null; invert?: boolean }) {
+function Delta({ current, previous, label, invert = false }: { current: number | null; previous: number | null; label: string; invert?: boolean }) {
   if (current == null || previous == null || previous === 0) return null;
   const change = (current - previous) / previous;
   const up = change >= 0;
   const good = invert ? !up : up;
   return (
     <span className={`text-[11px] font-semibold ${good ? 'text-emerald-700' : 'text-rose-700'}`}>
-      {up ? '▲' : '▼'} {formatPercent(Math.abs(change))} so với hôm trước
+      {up ? '▲' : '▼'} {formatPercent(Math.abs(change))} {label}
     </span>
   );
 }
@@ -72,7 +126,11 @@ function NoSource({ text = 'Chưa có nguồn dữ liệu' }: { text?: string })
 
 export const CallCenterView: React.FC<CallCenterViewProps> = ({ onOpenExport }) => {
   const [availableDates, setAvailableDates] = useState<string[] | null>(null);
-  const [selectedDate, setSelectedDate] = useState<string | null>(null);
+  const [mode, setMode] = useState<FilterMode>('day');
+  const [selectedDate, setSelectedDate] = useState('');
+  const [rangeFrom, setRangeFrom] = useState('');
+  const [rangeTo, setRangeTo] = useState('');
+  const [selectedMonth, setSelectedMonth] = useState('');
   const [data, setData] = useState<CallCenterData | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -86,8 +144,15 @@ export const CallCenterView: React.FC<CallCenterViewProps> = ({ onOpenExport }) 
     loadAvailableDates()
       .then((dates) => {
         setAvailableDates(dates);
-        if (dates.length) setSelectedDate(dates[0]);
-        else setIsLoading(false);
+        if (dates.length) {
+          const latest = dates[0];
+          const oldest = dates[dates.length - 1];
+          const weekAgo = addDays(latest, -6);
+          setSelectedDate(latest);
+          setRangeFrom(weekAgo < oldest ? oldest : weekAgo);
+          setRangeTo(latest);
+          setSelectedMonth(latest.slice(0, 7));
+        } else setIsLoading(false);
       })
       .catch((err) => {
         setError(err?.message || String(err));
@@ -95,12 +160,28 @@ export const CallCenterView: React.FC<CallCenterViewProps> = ({ onOpenExport }) 
       });
   }, []);
 
+  const latestDate = availableDates?.[0] || '';
+  const oldestDate = availableDates?.[availableDates.length - 1] || '';
+  const months = useMemo(() => [...new Set((availableDates || []).map((d) => d.slice(0, 7)))], [availableDates]);
+
+  const period = useMemo(
+    () => (latestDate ? buildPeriod(mode, selectedDate, rangeFrom, rangeTo, selectedMonth, latestDate) : null),
+    [mode, selectedDate, rangeFrom, rangeTo, selectedMonth, latestDate]
+  );
+  // Đọc từ ngày sớm nhất cần dùng: kỳ so sánh, bảng theo ngày, lũy kế tháng
+  const fetchFrom = period ? minDate(period.prevFrom, period.tableFrom, monthStart(period.to)) : '';
+
   useEffect(() => {
-    if (!selectedDate || !availableDates) return;
+    setShowAllAgents(false);
+    setSelectedQueue('all');
+  }, [period?.from, period?.to]);
+
+  useEffect(() => {
+    if (!period || !availableDates) return;
     let cancelled = false;
     setIsLoading(true);
     setError(null);
-    loadCallCenterData(selectedDate, availableDates)
+    loadCallCenterData(fetchFrom, period.from, period.to, availableDates)
       .then((d) => {
         if (!cancelled) setData(d);
       })
@@ -113,20 +194,20 @@ export const CallCenterView: React.FC<CallCenterViewProps> = ({ onOpenExport }) 
     return () => {
       cancelled = true;
     };
-  }, [selectedDate, availableDates]);
+  }, [period?.from, period?.to, fetchFrom, availableDates]);
 
   const view = useMemo(() => {
-    if (!data) return null;
-    const { date, daily, team, targets } = data;
-    const day = daily.find((r) => r.report_date === date) || null;
-    const prevDay = daily.find((r) => r.report_date === addDays(date, -1)) || null;
-    const dayTeam = team.filter((r) => r.report_date === date);
-    const prevTeam = team.filter((r) => r.report_date === addDays(date, -1));
-    const monthStart = date.slice(0, 8) + '01';
-    const mtd = daily.filter((r) => r.report_date >= monthStart);
+    if (!data || !period || data.from !== period.from || data.to !== period.to) return null;
+    const { from, to, daily, team, targets } = data;
+    const inRange = (d: string, a: string, b: string) => d >= a && d <= b;
+    const periodDaily = daily.filter((r) => inRange(r.report_date, from, to));
+    const prevDaily = daily.filter((r) => inRange(r.report_date, period.prevFrom, period.prevTo));
+    const dayTeam = team.filter((r) => inRange(r.report_date, from, to));
+    const prevTeam = team.filter((r) => inRange(r.report_date, period.prevFrom, period.prevTo));
+    const mtd = daily.filter((r) => inRange(r.report_date, monthStart(to), to));
 
-    const weekStart = addDays(date, -6);
-    const weekDates = daily.filter((r) => r.report_date >= weekStart).map((r) => r.report_date);
+    const weekStart = period.tableFrom;
+    const weekDates = daily.filter((r) => inRange(r.report_date, weekStart, to)).map((r) => r.report_date);
     const weekRows = weekDates.map((d) => {
       const r = daily.find((x) => x.report_date === d)!;
       const t = team.filter((x) => x.report_date === d);
@@ -145,11 +226,11 @@ export const CallCenterView: React.FC<CallCenterViewProps> = ({ onOpenExport }) 
         csatResp: r.csat_responses,
       };
     });
-    const weekTeam = team.filter((r) => r.report_date >= weekStart);
+    const weekTeam = team.filter((r) => inRange(r.report_date, weekStart, to));
 
     return {
-      day,
-      prevDay,
+      day: periodDaily.length ? totalDaily(periodDaily) : null,
+      prevDay: prevDaily.length ? totalDaily(prevDaily) : null,
       dayTeam,
       prevTeam,
       mtd,
@@ -162,7 +243,7 @@ export const CallCenterView: React.FC<CallCenterViewProps> = ({ onOpenExport }) 
       prevTimes: handleTimes(prevTeam),
       targets,
     };
-  }, [data]);
+  }, [data, period]);
 
   const queueRows = useMemo(() => {
     if (!data) return [];
@@ -243,16 +324,18 @@ export const CallCenterView: React.FC<CallCenterViewProps> = ({ onOpenExport }) 
   // ---------------------------------------------------------------------
 
   const header = (
-    <div className="bg-white p-5 rounded-xl border border-slate-200 shadow-xs flex flex-col md:flex-row md:items-center justify-between gap-4">
+    <div className="bg-white p-5 rounded-xl border border-slate-200 shadow-xs flex flex-col xl:flex-row xl:items-center justify-between gap-4">
       <div>
         <div className="flex flex-wrap items-center gap-2">
           <span className="w-2.5 h-2.5 rounded-full bg-primary"></span>
           <span className="text-xs font-bold text-primary uppercase tracking-wider">Kênh Vận Hành Hotline 1900 6522</span>
-          {data && (
+          {period && (
             <>
               <span className="text-xs text-slate-400">·</span>
               <span className="px-2 py-0.5 rounded-full bg-sky-100 text-sky-800 text-[11px] font-semibold">
-                Ngày báo cáo {formatDate(data.date)} ({weekdayName(data.date)})
+                {period.from === period.to
+                  ? `Ngày báo cáo ${formatDate(period.from)} (${weekdayName(period.from)})`
+                  : `Kỳ báo cáo ${formatPeriod(period.from, period.to)} (${daysBetween(period.from, period.to) + 1} ngày)`}
               </span>
             </>
           )}
@@ -270,24 +353,81 @@ export const CallCenterView: React.FC<CallCenterViewProps> = ({ onOpenExport }) 
           )}
         </p>
       </div>
-      <div className="flex items-center gap-2 shrink-0">
+      <div className="flex flex-wrap items-center gap-2 shrink-0">
         {availableDates && availableDates.length > 0 && (
-          <select
-            value={selectedDate || ''}
-            onChange={(e) => {
-              setSelectedDate(e.target.value);
-              setShowAllAgents(false);
-              setSelectedQueue('all');
-            }}
-            className="px-3 py-2 rounded-lg border border-slate-200 text-xs text-slate-700 bg-slate-50 focus:outline-none font-semibold"
-            title="Chọn ngày báo cáo"
-          >
-            {availableDates.map((d) => (
-              <option key={d} value={d}>
-                {formatDate(d)} ({weekdayName(d)})
-              </option>
-            ))}
-          </select>
+          <>
+            <div className="flex rounded-lg border border-slate-200 bg-slate-50 p-0.5" role="tablist" aria-label="Kiểu lọc">
+              {FILTER_MODES.map((m) => (
+                <button
+                  key={m.mode}
+                  type="button"
+                  role="tab"
+                  aria-selected={mode === m.mode}
+                  onClick={() => setMode(m.mode)}
+                  className={`px-3 py-1.5 rounded-md text-xs font-semibold transition-colors ${
+                    mode === m.mode ? 'bg-white text-primary shadow-xs' : 'text-slate-500 hover:text-slate-700'
+                  }`}
+                >
+                  {m.label}
+                </button>
+              ))}
+            </div>
+
+            {mode === 'day' && (
+              <select
+                value={selectedDate}
+                onChange={(e) => setSelectedDate(e.target.value)}
+                className="px-3 py-2 rounded-lg border border-slate-200 text-xs text-slate-700 bg-slate-50 focus:outline-none font-semibold"
+                title="Chọn ngày báo cáo"
+              >
+                {availableDates.map((d) => (
+                  <option key={d} value={d}>
+                    {formatDate(d)} ({weekdayName(d)})
+                  </option>
+                ))}
+              </select>
+            )}
+
+            {mode === 'range' && (
+              <div className="flex items-center gap-1.5 text-xs text-slate-600">
+                <span>Từ</span>
+                <input
+                  type="date"
+                  value={rangeFrom}
+                  min={oldestDate}
+                  max={latestDate}
+                  onChange={(e) => e.target.value && setRangeFrom(e.target.value)}
+                  className="px-2 py-1.5 rounded-lg border border-slate-200 bg-slate-50 font-semibold text-slate-700 focus:outline-none"
+                  title="Từ ngày"
+                />
+                <span>đến</span>
+                <input
+                  type="date"
+                  value={rangeTo}
+                  min={oldestDate}
+                  max={latestDate}
+                  onChange={(e) => e.target.value && setRangeTo(e.target.value)}
+                  className="px-2 py-1.5 rounded-lg border border-slate-200 bg-slate-50 font-semibold text-slate-700 focus:outline-none"
+                  title="Đến ngày"
+                />
+              </div>
+            )}
+
+            {mode === 'month' && (
+              <select
+                value={selectedMonth}
+                onChange={(e) => setSelectedMonth(e.target.value)}
+                className="px-3 py-2 rounded-lg border border-slate-200 text-xs text-slate-700 bg-slate-50 focus:outline-none font-semibold"
+                title="Chọn tháng báo cáo"
+              >
+                {months.map((m) => (
+                  <option key={m} value={m}>
+                    Tháng {Number(m.slice(5))}/{m.slice(0, 4)}
+                  </option>
+                ))}
+              </select>
+            )}
+          </>
         )}
         <button
           onClick={onOpenExport}
@@ -327,7 +467,7 @@ export const CallCenterView: React.FC<CallCenterViewProps> = ({ onOpenExport }) 
     );
   }
 
-  if (isLoading || !data || !view) {
+  if (isLoading || !data || !view || !period) {
     return (
       <div className="space-y-6">
         {header}
@@ -341,12 +481,16 @@ export const CallCenterView: React.FC<CallCenterViewProps> = ({ onOpenExport }) 
 
   const { day, prevDay, mtd, weekRows, weekTeam, teams, sl, prevSl, times, prevTimes, targets } = view;
 
+  const periodText = formatPeriod(period.from, period.to);
+  const isSingleDay = period.from === period.to;
+  const compareLabel = period.compareLabel;
+
   if (!day) {
     return (
       <div className="space-y-6">
         {header}
         <div className="bg-amber-50 border border-amber-200 text-amber-900 rounded-xl p-5 text-sm">
-          Chưa có dữ liệu cho ngày {formatDate(data.date)}.
+          Chưa có dữ liệu cho {isSingleDay ? periodText : `kỳ ${periodText}`}.
         </div>
       </div>
     );
@@ -354,7 +498,8 @@ export const CallCenterView: React.FC<CallCenterViewProps> = ({ onOpenExport }) 
 
   const answerRate = ratio(day.answered, day.offered);
   const abandonRate = ratio(day.abandoned, day.offered);
-  const callbackRate = ratio(day.callback_on_time, day.callback_needed);
+  const prevAbandonRate = prevDay ? ratio(prevDay.abandoned, prevDay.offered) : null;
+  const callbackRate = ratio(day.callbackOnTime, day.callbackNeeded);
   const aht = times.talkAvg == null ? null : times.talkAvg + (times.acwAvg || 0);
   const prevAht = prevTimes.talkAvg == null ? null : prevTimes.talkAvg + (prevTimes.acwAvg || 0);
   const totalHandled = sumBy(teams, (t) => t.handled);
@@ -386,10 +531,19 @@ export const CallCenterView: React.FC<CallCenterViewProps> = ({ onOpenExport }) 
           <div className="flex items-baseline gap-2">
             <span className="text-2xl sm:text-3xl font-extrabold text-slate-900 font-mono">{formatNumber(day.offered)}</span>
           </div>
-          <Delta current={day.offered} previous={prevDay?.offered ?? null} />
+          <Delta current={day.offered} previous={prevDay?.offered ?? null} label={compareLabel} />
           <div className="mt-2 pt-2 border-t border-slate-100 text-xs text-slate-500 flex justify-between">
-            <span>Lũy kế tháng (MTD):</span>
-            <span className="font-mono font-bold text-slate-800">{formatNumber(sumBy(mtd, (r) => r.offered))} cuộc</span>
+            {isSingleDay ? (
+              <>
+                <span>Lũy kế tháng (MTD):</span>
+                <span className="font-mono font-bold text-slate-800">{formatNumber(sumBy(mtd, (r) => r.offered))} cuộc</span>
+              </>
+            ) : (
+              <>
+                <span>Trung bình / ngày ({day.days} ngày):</span>
+                <span className="font-mono font-bold text-slate-800">{formatNumber(day.offered / day.days)} cuộc</span>
+              </>
+            )}
           </div>
         </KpiCard>
 
@@ -416,12 +570,21 @@ export const CallCenterView: React.FC<CallCenterViewProps> = ({ onOpenExport }) 
               {formatPercent(abandonRate)} (≤{formatPercent(targets.TARGET_ABANDON_RATE)})
             </span>
           </div>
-          <Delta current={day.abandoned} previous={prevDay?.abandoned ?? null} invert />
+          <Delta current={day.abandoned} previous={prevDay?.abandoned ?? null} label={compareLabel} invert />
           <div className="mt-2 pt-2 border-t border-slate-100 text-xs text-slate-500 flex justify-between">
-            <span>Tỷ lệ nhỡ MTD:</span>
-            <span className="font-mono font-bold text-slate-800">
-              {formatPercent(ratio(sumBy(mtd, (r) => r.abandoned), sumBy(mtd, (r) => r.offered)))}
-            </span>
+            {isSingleDay ? (
+              <>
+                <span>Tỷ lệ nhỡ MTD:</span>
+                <span className="font-mono font-bold text-slate-800">
+                  {formatPercent(ratio(sumBy(mtd, (r) => r.abandoned), sumBy(mtd, (r) => r.offered)))}
+                </span>
+              </>
+            ) : (
+              <>
+                <span>Tỷ lệ nhỡ kỳ so sánh:</span>
+                <span className="font-mono font-bold text-slate-800">{formatPercent(prevAbandonRate)}</span>
+              </>
+            )}
           </div>
         </KpiCard>
 
@@ -435,8 +598,8 @@ export const CallCenterView: React.FC<CallCenterViewProps> = ({ onOpenExport }) 
             </div>
           )}
           <div className="mt-2 pt-2 border-t border-slate-100 text-xs text-slate-500 flex justify-between">
-            <span>Khách nhỡ cần gọi lại:</span>
-            <span className="font-mono font-bold text-slate-800">{formatNumber(day.callback_needed)} số</span>
+            <span>{isSingleDay ? 'Khách nhỡ cần gọi lại:' : 'Khách nhỡ cần gọi lại (cộng các ngày):'}</span>
+            <span className="font-mono font-bold text-slate-800">{formatNumber(day.callbackNeeded)} số</span>
           </div>
         </KpiCard>
 
@@ -447,7 +610,7 @@ export const CallCenterView: React.FC<CallCenterViewProps> = ({ onOpenExport }) 
               Mục tiêu ≥{formatPercent(targets.TARGET_SL, 0)}
             </span>
           </div>
-          <Delta current={sl.agentSl} previous={prevSl.agentSl} />
+          <Delta current={sl.agentSl} previous={prevSl.agentSl} label={compareLabel} />
           <p className="text-xs text-slate-500 mt-1.5">
             Cuộc ĐTV nghe máy trong 20 giây (chờ + đổ chuông). Tính cả Voice AI: {formatPercent(sl.allSl)}
           </p>
@@ -477,23 +640,23 @@ export const CallCenterView: React.FC<CallCenterViewProps> = ({ onOpenExport }) 
               Trần {formatDuration(targets.TARGET_AHT_SEC)}
             </span>
           </div>
-          <Delta current={aht} previous={prevAht} invert />
+          <Delta current={aht} previous={prevAht} label={compareLabel} invert />
           <p className="text-xs text-slate-500 mt-1.5">
             {times.acwAvg == null ? 'Hiện bằng thời gian đàm thoại (chưa có ACW).' : 'Đàm thoại + xử lý sau gọi.'}
           </p>
         </KpiCard>
 
         <KpiCard title="Điểm Chất Lượng QA" icon="grade" iconClass="text-amber-500">
-          {day.qa_avg == null ? (
+          {day.qaAvg == null ? (
             <NoSource />
           ) : (
             <div className="flex items-baseline gap-2">
-              <span className="text-2xl sm:text-3xl font-extrabold text-emerald-600 font-mono">{day.qa_avg}</span>
+              <span className="text-2xl sm:text-3xl font-extrabold text-emerald-600 font-mono">{day.qaAvg}</span>
               <span className="text-xs text-slate-400 font-normal">/ 100 điểm</span>
             </div>
           )}
           <p className="text-xs text-slate-500 mt-1.5">
-            {day.qa_count ? `Chấm ${formatNumber(day.qa_count)} cuộc.` : `Mục tiêu ≥${formatNumber(targets.TARGET_QA)} điểm.`}
+            {day.qaCount ? `Chấm ${formatNumber(day.qaCount)} cuộc.` : `Mục tiêu ≥${formatNumber(targets.TARGET_QA)} điểm.`}
           </p>
         </KpiCard>
       </div>
@@ -504,7 +667,7 @@ export const CallCenterView: React.FC<CallCenterViewProps> = ({ onOpenExport }) 
           <div>
             <h2 className="text-base font-bold text-slate-900">Phân Bổ &amp; Hiệu Suất Tiếp Nhận Cuộc Gọi Theo 3 Đội Ngũ</h2>
             <p className="text-xs text-slate-500 mt-0.5">
-              So sánh sản lượng và chỉ số phục vụ giữa Inhouse KiotViet, Đối tác OS và Voice AI Bot – ngày {formatDate(data.date)}
+              So sánh sản lượng và chỉ số phục vụ giữa Inhouse KiotViet, Đối tác OS và Voice AI Bot – {periodText}
             </p>
           </div>
           <span className="text-xs font-mono font-bold text-slate-700 bg-slate-100 px-3 py-1 rounded-md">
@@ -548,7 +711,12 @@ export const CallCenterView: React.FC<CallCenterViewProps> = ({ onOpenExport }) 
                   ['Sản lượng:', formatNumber(t.handled), style.color],
                   ['Đàm thoại TB:', formatDuration(t.talkAvg)],
                   ['SL ≤20s:', formatPercent(t.sl)],
-                  ['ĐTV trực / cuộc mỗi ĐTV:', `${formatNumber(t.agentsOnDuty)} / ${formatNumber(t.callsPerAgent)}`],
+                  isSingleDay
+                    ? ['ĐTV trực / cuộc mỗi ĐTV:', `${formatNumber(t.agentsOnDuty)} / ${formatNumber(t.callsPerAgent)}`]
+                    : [
+                        'ĐTV trực TB / cuộc mỗi ĐTV/ngày:',
+                        `${formatNumber(t.agentsOnDuty == null ? null : t.agentsOnDuty / day.days)} / ${formatNumber(t.callsPerAgent)}`,
+                      ],
                   ['Giải quyết lần đầu:', formatPercent(t.fcr)],
                   ['CSAT:', formatPercent(t.csat)],
                 ];
@@ -589,7 +757,9 @@ export const CallCenterView: React.FC<CallCenterViewProps> = ({ onOpenExport }) 
       <div className="bg-white rounded-xl p-5 border border-slate-200 shadow-xs space-y-4">
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-slate-100 pb-3">
           <div>
-            <h2 className="text-base font-bold text-slate-900">Tổng Hợp Sản Lượng Call Theo Từng Ngày (7 Ngày Gần Nhất)</h2>
+            <h2 className="text-base font-bold text-slate-900">
+              Tổng Hợp Sản Lượng Call Theo Từng Ngày ({isSingleDay ? '7 Ngày Gần Nhất' : `${weekRows.length} Ngày Trong Kỳ`})
+            </h2>
             <p className="text-xs text-slate-500 mt-0.5">Theo dõi biến động số cuộc đến, tỷ lệ phục vụ, cuộc nhỡ và Service Level</p>
           </div>
           <span className="text-xs font-mono font-bold text-primary bg-sky-50 px-2.5 py-1 rounded">
@@ -615,7 +785,7 @@ export const CallCenterView: React.FC<CallCenterViewProps> = ({ onOpenExport }) 
             </thead>
             <tbody className="divide-y divide-slate-100 font-mono">
               {weekRows.map((row) => {
-                const isCurrent = row.date === data.date;
+                const isCurrent = isSingleDay && row.date === period.to;
                 const rowAbandon = ratio(row.abandoned, row.offered);
                 return (
                   <tr key={row.date} className={`hover:bg-slate-50/70 transition-colors ${isCurrent ? 'bg-sky-50/60 font-bold border-l-4 border-primary' : ''}`}>
@@ -664,7 +834,7 @@ export const CallCenterView: React.FC<CallCenterViewProps> = ({ onOpenExport }) 
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-slate-100 pb-3">
             <div>
               <h2 className="text-base font-bold text-slate-900">Hiệu Năng Theo Hàng Đợi ({queueRows.length} hàng đợi)</h2>
-              <p className="text-xs text-slate-500 mt-0.5">Phân bổ tiếp nhận giữa Inhouse, OS Partner và Voice AI – ngày {formatDate(data.date)}</p>
+              <p className="text-xs text-slate-500 mt-0.5">Phân bổ tiếp nhận giữa Inhouse, OS Partner và Voice AI – {periodText}</p>
             </div>
             <select
               value={selectedQueue}
@@ -733,7 +903,10 @@ export const CallCenterView: React.FC<CallCenterViewProps> = ({ onOpenExport }) 
         <div className="xl:col-span-2 bg-white rounded-xl p-5 border border-slate-200 shadow-xs space-y-4">
           <div className="border-b border-slate-100 pb-3">
             <h2 className="text-base font-bold text-slate-900">Lưu Lượng Cuộc Gọi Theo Khung Giờ</h2>
-            <p className="text-xs text-slate-500 mt-0.5">Cuộc được phục vụ và cuộc nhỡ theo giờ – ngày {formatDate(data.date)}</p>
+            <p className="text-xs text-slate-500 mt-0.5">
+              Cuộc được phục vụ và cuộc nhỡ theo giờ – {periodText}
+              {!isSingleDay && ` (cộng dồn ${day.days} ngày)`}
+            </p>
           </div>
           {hourly.length === 0 ? (
             <div className="text-xs text-slate-400 py-10 text-center">Chưa có dữ liệu khung giờ.</div>
@@ -772,7 +945,8 @@ export const CallCenterView: React.FC<CallCenterViewProps> = ({ onOpenExport }) 
           <div>
             <h2 className="text-base font-bold text-slate-900">Bảng Xếp Hạng Năng Suất Điện Thoại Viên</h2>
             <p className="text-xs text-slate-500 mt-0.5">
-              {formatNumber(rankedAgents.length)} ĐTV có nghe máy ngày {formatDate(data.date)}, xếp theo số cuộc đã nghe
+              {formatNumber(rankedAgents.length)} ĐTV có nghe máy {isSingleDay ? periodText : `trong kỳ ${periodText}`}, xếp theo
+              tổng số cuộc đã nghe
             </p>
           </div>
           <div className="flex flex-wrap items-center gap-2">

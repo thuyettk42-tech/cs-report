@@ -23,6 +23,7 @@ const CAU_HINH = {
   SHEET_CALL_IN: 'Call in',
   SHEET_MISS: 'Miss call',
   NGUONG_SL_GIAY: 20,          // trả lời trong 20 giây (chờ queue + đổ chuông) = đạt SL
+  NGUONG_NHO_GIAY: 5,          // chỉ tính là nhỡ khi chờ trong queue > 5 giây (vẫn tính vào tổng cuộc đến)
   SO_NGAY_DONG_BO_LAI: 3,      // mỗi sáng đồng bộ lại 3 ngày gần nhất (bắt kịp data dán muộn)
   GIO_CHAY: 9,                 // giờ chạy tự động mỗi sáng
   PHUT_CHAY: 30,               // phút chạy (Google chạy lệch ±15 phút) → khoảng 9h30
@@ -53,6 +54,7 @@ const COT_MISS = {
   phone:  { ten: ['nguoi goi', 'dt', 'so dien thoai'], duPhong: 1 },
   queue:  { ten: ['queue'],                            duPhong: 3 },
   time:   { ten: ['thoi gian goi'],                    duPhong: 4 },
+  wait:   { ten: ['cho trong queue', 'thoi gian cho'], duPhong: null }, // bắt buộc có tiêu đề
   status: { ten: ['tinh trang'],                       duPhong: 8 },
 };
 const DOI_NGU = ['Inhouse', 'OS Partner', 'Voice AI Bot'];
@@ -95,8 +97,9 @@ function chayThuMotNgay() {
   const r = taoDongGhi_(ngay, d);
   const tong = r.daily[0];
   Logger.log('===== CHẠY THỬ NGÀY ' + ngay + ' (không ghi vào Supabase) =====');
-  Logger.log('Tổng cuộc đến: ' + tong.offered + ' | Đã nghe: ' + tong.answered + ' | Nhỡ: ' + tong.abandoned +
-    ' | Tỷ lệ nhỡ: ' + phanTram_(tong.abandoned, tong.offered));
+  Logger.log('Tổng cuộc đến: ' + tong.offered + ' | Đã nghe: ' + tong.answered + ' | Nhỡ (chờ >' +
+    CAU_HINH.NGUONG_NHO_GIAY + 's): ' + tong.abandoned + ' | Tỷ lệ nhỡ: ' + phanTram_(tong.abandoned, tong.offered));
+  Logger.log('Khách gác máy khi chờ ≤' + CAU_HINH.NGUONG_NHO_GIAY + 's (không tính nhỡ): ' + d.nhoNgan);
   Logger.log('Khách nhỡ cần gọi lại (đã loại trùng, chưa tự gọi lại được nghe): ' + tong.callback_needed);
   r.team.forEach(t => Logger.log('  ' + t.team + ': ' + t.handled + ' cuộc' +
     (t.agents_on_duty ? ', ' + t.agents_on_duty + ' ĐTV' : '') +
@@ -161,6 +164,7 @@ function dongBo_(cacNgay, nhan) {
       nhatKy.push({ report_date: ngay, status: 'success',
         rows_written: r.team.length + r.queue.length + r.slot.length + r.agent.length + 1,
         message: nhan + ': đến ' + t.offered + ', nghe ' + t.answered + ', nhỡ ' + t.abandoned +
+          (d.nhoNgan ? ', gác máy ≤' + CAU_HINH.NGUONG_NHO_GIAY + 's ' + d.nhoNgan : '') +
           (d.boQua ? ', bỏ qua ' + d.boQua + ' dòng' : '') });
     });
     ghiBang_('agents', 'ext', gopTheoKhoa_(gom.dmAgent, 'ext'), 'ignore');
@@ -216,7 +220,7 @@ function tongHopCacNgay_(cacNgay) {
 function taoNgayMoi_() {
   const team = {};
   DOI_NGU.forEach(t => { team[t] = { handled: 0, sl: 0, talk: 0, ext: {} }; });
-  return { answered: 0, abandoned: 0, talk: 0, boQua: 0, team, queue: {}, slot: {}, agent: {},
+  return { answered: 0, abandoned: 0, nhoNgan: 0, talk: 0, boQua: 0, team, queue: {}, slot: {}, agent: {},
            ngheLuc: {}, nhoCuoi: {}, trangThaiNho: {} };
 }
 
@@ -269,13 +273,15 @@ function themCuocNghe_(d, tg, get) {
 function themCuocNho_(d, tg, get) {
   const st = String(get('status') || '').trim() || '(trống)';
   d.trangThaiNho[st] = (d.trangThaiNho[st] || 0) + 1;
-  d.abandoned++;
+  // Khách gác máy khi chờ ≤ 5 giây: vẫn tính vào tổng cuộc đến và khách cần gọi lại, nhưng không tính là nhỡ
+  const laNho = docGiay_(get('wait')) > CAU_HINH.NGUONG_NHO_GIAY ? 1 : 0;
+  if (laNho) d.abandoned++; else d.nhoNgan++;
   const q = docQueue_(String(get('queue') || '').trim());
   const laAI = q.ext.indexOf(CAU_HINH.TIEN_TO_AI) === 0;           // nhỡ ở máy AI 84000xx
   const qKey = laAI ? CAU_HINH.QUEUE_AI : (q.ten || '(không rõ)');
   const qq = d.queue[qKey] = d.queue[qKey] || { ext: laAI ? '' : q.ext, offered: 0, abandoned: 0, ih: 0, os: 0, ai: 0, sl: 0, talk: 0 };
-  qq.offered++; qq.abandoned++;
-  const s = layKhung_(d, tg); s.offered++; s.abandoned++;
+  qq.offered++; qq.abandoned += laNho;
+  const s = layKhung_(d, tg); s.offered++; s.abandoned += laNho;
   const sdt = String(get('phone') || '').replace(/\D/g, '');
   if (sdt) d.nhoCuoi[sdt] = Math.max(d.nhoCuoi[sdt] || 0, tg.phutTrongNgay);
 }
@@ -295,7 +301,7 @@ function taoDongGhi_(ngay, d) {
     const nghe = d.ngheLuc[sdt] || [];
     if (!nghe.some(p => p >= d.nhoCuoi[sdt])) canGoiLai++;
   });
-  const daily = [{ report_date: ngay, offered: d.answered + d.abandoned, answered: d.answered,
+  const daily = [{ report_date: ngay, offered: d.answered + d.abandoned + d.nhoNgan, answered: d.answered,
     abandoned: d.abandoned, callback_needed: canGoiLai, talk_seconds: d.talk, source: src, updated_at: now }];
   const team = DOI_NGU.map(t => ({ report_date: ngay, team: t,
     agents_on_duty: t === 'Voice AI Bot' ? null : Object.keys(d.team[t].ext).length,
@@ -380,6 +386,9 @@ function timCot_(header, spec) {
     let i = -1;
     spec[k].ten.some(ten => (i = chuan.indexOf(ten)) >= 0);
     thay[k] = i >= 0;
+    if (i < 0 && spec[k].duPhong === null) {
+      throw new Error('Không thấy cột "' + spec[k].ten[0] + '" trong dòng tiêu đề. Kiểm tra lại tên cột trong sheet.');
+    }
     viTri[k] = i >= 0 ? i : spec[k].duPhong;
   });
   return { viTri, thay };

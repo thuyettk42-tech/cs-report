@@ -27,8 +27,12 @@ Trang báo cáo vận hành Call Center hotline 1900 6522 (repo này, deploy tr�
   - [x] SQL quyền đọc: `buoc5_mo_quyen_doc_web.sql` (bảng allowed_users, hàm la_nguoi_xem_hop_le, policy SELECT "web_doc").
   - [x] Người dùng đã chạy `buoc5_mo_quyen_doc_web.sql` thành công (30/10).
   - Đổi phương án (30/10): tài khoản kiotviet.com không được tạo dự án Google Cloud → đăng nhập bằng **email + mật khẩu Supabase Auth** (`signInWithSupabasePassword`). Quản lý tạo tài khoản ở Supabase → Authentication → Users (Auto Confirm), tắt "Allow new users to sign up". Code Google OAuth (`startGoogleSignIn`) vẫn giữ để bật lại khi IT cấp được OAuth client.
-  - [ ] Người dùng: tạo tài khoản trên Supabase, tắt tự đăng ký, thêm env Vercel.
-  - [ ] Push lên GitHub → Vercel deploy → kiểm tra số ngày 01/10.
+  - [x] Người dùng đã thêm env Vercel (VITE_SUPABASE_URL, VITE_SUPABASE_PUBLISHABLE_KEY) và tạo tài khoản Supabase.
+  - [x] Push commit 714457f (31/10) → Vercel deploy. Người dùng đăng nhập bằng yendao@kiotviet.com, màn Call Center hiện số thật đến 30/10.
+  - [ ] Còn lại: đối chiếu chi tiết số ngày 01/10 với sheet TH; xác nhận đã tắt "Allow new users to sign up".
+- [x] (31/10) Quy tắc nhỡ > 5 giây: người dùng đã dán script mới vào Apps Script và nạp lại tháng 10.
+- [x] (31/10) Bộ lọc màn Call Center: Ngày / Khoảng ngày / Tháng (`buildPeriod` trong CallCenterView). Kỳ so sánh: hôm trước / số ngày bằng nhau liền trước / cùng kỳ tháng trước. Hàng đợi, khung giờ, ĐTV cộng dồn cả kỳ trong `loadCallCenterData`.
+- Chạy thử trên máy: `.env.local` (đã gitignore) chứa URL + khóa publishable lấy từ web thật.
 - Cài đặt máy: Node 24 bản di động ở `%LOCALAPPDATA%\Programs\nodejs-portable` (không cần Admin). `npm install` cần `--legacy-peer-deps --no-package-lock` (xung đột esbuild có sẵn; Vercel dùng bun.lock).
 
 ## Quy tắc nghiệp vụ đã chốt (script đang áp dụng)
@@ -36,7 +40,8 @@ Trang báo cáo vận hành Call Center hotline 1900 6522 (repo này, deploy tr�
 - Đội ngũ lấy từ cột "Nhân Viên Tiếp Nhận" dạng `Tên, DVKH <SITE> (<EXT>)`: SITE `OUT` → **OS Partner**; HNI, HCM, DNG, CTO, KAT, `HNI CTV` → **Inhouse** (CTV đang tính Inhouse – có thể tách sau).
 - Máy **8400001–8400007 = tổng đài AI trả lời → Voice AI Bot**, tính là đã phục vụ. Cuộc AI không có thời gian đàm thoại trong 3CX; đa số chờ trong queue ~30 giây rồi mới sang AI. Cuộc nhỡ ở máy 84000xx gộp vào hàng đợi `VOICE_AI_BOT`.
 - SL: (Chờ trong queue + Đổ chuông) ≤ 20 giây, lưu theo đội (`call_team_daily.answered_within_sl`).
-- `Miss call` có 3 trạng thái ("Miss Call(Abandoned Queue)", "NoAnswer (Abandoned Queue)", "NoAnswer") – đều tính là nhỡ.
+- `Miss call` có 3 trạng thái ("Miss Call(Abandoned Queue)", "NoAnswer (Abandoned Queue)", "NoAnswer") – đều có thể là nhỡ.
+- (31/10) Chỉ tính **nhỡ** khi "Chờ trong queue" > 5 giây (`NGUONG_NHO_GIAY`). Cuộc gác máy ≤ 5 giây vẫn tính vào **tổng cuộc đến** và **khách cần gọi lại** (người dùng chọn), nên offered = nghe + nhỡ + gác máy ≤5s (offered ≠ answered + abandoned).
 - `callback_needed` = số điện thoại khác nhau bị nhỡ trong ngày mà sau lần nhỡ cuối không có cuộc nào được nghe.
 - Khung giờ: 30 phút (`call_timeslot_daily.slot_start` = 09:00, 09:30…). Tổng đài chạy ~7h–22h.
 - Không lưu số điện thoại khách ở Supabase.
