@@ -235,7 +235,8 @@ const RATE_COLOR = '#334155';
 
 export const CallCenterView: React.FC<CallCenterViewProps> = ({ onOpenExport }) => {
   const [availableDates, setAvailableDates] = useState<string[] | null>(null);
-  const [mode, setMode] = useState<FilterMode>('day');
+  // Mặc định xem theo tháng: nhiều chỉ số (QA, Voice AI, gọi lại) theo ngày quá ít mẫu để đọc
+  const [mode, setMode] = useState<FilterMode>('month');
   const [selectedDate, setSelectedDate] = useState('');
   const [rangeFrom, setRangeFrom] = useState('');
   const [rangeTo, setRangeTo] = useState('');

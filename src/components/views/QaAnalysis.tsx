@@ -11,15 +11,16 @@ import {
   severityOfCriterion,
   summarizeQa,
 } from '../../services/callCenterData';
-import { Legend, StackedBarChart } from './callCenterCharts';
+import { Legend, LineChart, SERIES_COLORS } from './callCenterCharts';
 
-/** Một tông đỏ, đậm = nghiêm trọng hơn (thứ tự, không phải nhóm ngang hàng) */
+/** 4 màu phân biệt rõ (bảng màu chung của các biểu đồ), cùng màu ở thanh, biểu đồ và bảng lý do */
 const SEV_COLOR: Record<QaSeverityKey, string> = {
-  sev_attitude: '#881337',
-  sev_unresolved: '#be123c',
-  sev_process: '#f43f5e',
-  sev_communication: '#fda4af',
+  sev_attitude: SERIES_COLORS[0],
+  sev_unresolved: SERIES_COLORS[1],
+  sev_process: SERIES_COLORS[2],
+  sev_communication: SERIES_COLORS[3],
 };
+const TOTAL_COLOR = '#334155';
 
 const TOP_REASONS = 5;
 
@@ -246,16 +247,34 @@ export default function QaAnalysis({ data, trend, from, to, prevFrom, prevTo, pe
                 <div className="text-xs text-slate-400 py-10 text-center">Chưa có dữ liệu theo tháng.</div>
               ) : (
                 <>
-                  <Legend items={QA_SEVERITY.map((s) => ({ label: s.label, color: SEV_COLOR[s.key] }))} />
-                  <StackedBarChart
+                  <Legend
+                    items={[
+                      ...QA_SEVERITY.map((s) => ({ label: s.label, color: SEV_COLOR[s.key] })),
+                      { label: 'Tổng cuộc lỗi', color: TOTAL_COLOR, dashed: true },
+                    ]}
+                  />
+                  <LineChart
                     height={250}
+                    dots
                     xLabels={monthly.map((m) => 'T' + Number(m.month.slice(5)))}
-                    titles={monthly.map((m) => `Tháng ${Number(m.month.slice(5))}/${m.month.slice(0, 4)} – ${formatNumber(m.s.count)} cuộc chấm`)}
-                    segments={QA_SEVERITY.map((s) => ({ key: s.key, label: s.label, color: SEV_COLOR[s.key] }))}
-                    values={monthly.map((m) => QA_SEVERITY.map((s) => m.s.bySeverity[s.key] / m.s.count))}
+                    series={[
+                      ...QA_SEVERITY.map((s) => ({
+                        key: s.key,
+                        label: s.label,
+                        color: SEV_COLOR[s.key],
+                        values: monthly.map((m) => m.s.bySeverity[s.key] / m.s.count),
+                      })),
+                      {
+                        key: 'total',
+                        label: 'Tổng cuộc lỗi',
+                        color: TOTAL_COLOR,
+                        dashed: true,
+                        values: monthly.map((m) => m.s.errorCalls / m.s.count),
+                      },
+                    ]}
                     format={(v) => formatPercent(v)}
                   />
-                  <p className="text-[11px] text-slate-500">Chiều cao cột = tỷ lệ cuộc lỗi trên số cuộc được chấm trong tháng.</p>
+                  <p className="text-[11px] text-slate-500">Mỗi đường = số cuộc lỗi của nhóm / số cuộc được chấm trong tháng. Đường nét đứt = tổng cuộc lỗi.</p>
                 </>
               )}
             </div>

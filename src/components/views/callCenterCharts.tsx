@@ -29,11 +29,11 @@ function useWidth<T extends HTMLElement>(): [React.RefObject<T | null>, number] 
   return [ref, width];
 }
 
-/** Giá trị trục tung "tròn" (1, 2, 2.5, 5 × 10ⁿ) không nhỏ hơn v. */
+/** Giá trị trục tung "tròn" (1, 1.2, 1.6, 2 … 8 × 10ⁿ – chia 4 vạch vẫn tròn) không nhỏ hơn v, để biểu đồ không bị dồn sát đáy. */
 function niceMax(v: number): number {
   if (!(v > 0)) return 1;
   const pow = Math.pow(10, Math.floor(Math.log10(v)));
-  for (const m of [1, 2, 2.5, 5, 10]) if (m * pow >= v) return m * pow;
+  for (const m of [1, 1.2, 1.6, 2, 2.4, 3, 4, 5, 6, 8, 10]) if (m * pow >= v) return m * pow;
   return 10 * pow;
 }
 
