@@ -40,6 +40,19 @@ export interface CallbackRow {
   no_interaction: number;
 }
 
+/** call_qa_daily: điểm QA chấm theo ngày chấm × máy ĐTV (chỉ kênh Call) */
+export interface QaRow {
+  report_date: string;
+  ext: string;
+  qa_count: number;
+  score_sum: number;
+  good_count: number;
+  fair_count: number;
+  poor_count: number;
+  resolved_count: number;
+  repeat_count: number;
+}
+
 export interface CallTeamRow {
   report_date: string;
   team: TeamName;
@@ -220,17 +233,18 @@ export interface DayDetail {
   queueDays: CallQueueRow[];
   aiDays: AiDayRow[];
   callbackDays: CallbackRow[];
+  qaDays: QaRow[];
 }
 
-/** Bảng gọi lại có thể chưa được tạo trên Supabase → coi như chưa có dữ liệu thay vì làm hỏng cả trang. */
-async function fetchCallbacks(lo: string, hi: string): Promise<CallbackRow[]> {
+/** Bảng gọi lại / QA có thể chưa được tạo trên Supabase → coi như chưa có dữ liệu thay vì làm hỏng cả trang. */
+async function fetchOptional<T>(table: string, columns: string, order: string, lo: string, hi: string): Promise<T[]> {
   try {
-    return await fetchAll<CallbackRow>((a, b) =>
-      getSupabaseClient().from('call_callback_daily').select('report_date, queue, queue_ext, missed, on_time, late, no_interaction')
-        .gte('report_date', lo).lte('report_date', hi).order('report_date').order('queue').range(a, b)
+    return await fetchAll<T>((a, b) =>
+      getSupabaseClient().from(table).select(columns)
+        .gte('report_date', lo).lte('report_date', hi).order('report_date').order(order).range(a, b) as any
     );
   } catch (err) {
-    console.warn('Không đọc được call_callback_daily:', err);
+    console.warn(`Không đọc được ${table}:`, err);
     return [];
   }
 }
@@ -256,22 +270,32 @@ async function loadDayDetail(ranges: [string, string][]): Promise<DayDetail> {
           supabase.from('call_agent_daily').select('report_date, ext, handled').eq('team', 'Voice AI Bot')
             .gte('report_date', lo).lte('report_date', hi).order('report_date').order('ext').range(a, b)
         ),
-        fetchCallbacks(lo, hi),
+        fetchOptional<CallbackRow>('call_callback_daily', 'report_date, queue, queue_ext, missed, on_time, late, no_interaction', 'queue', lo, hi),
+        fetchOptional<QaRow>('call_qa_daily',
+          'report_date, ext, qa_count, score_sum, good_count, fair_count, poor_count, resolved_count, repeat_count', 'ext', lo, hi),
       ])
     )
   );
   const callbackDays = parts.flatMap((p) => p[4]);
-  const cbByDate = groupSum(callbackDays, (c) => c.report_date, ['missed', 'on_time', 'late']);
-  const cbMap = new Map(cbByDate.map((c) => [c.report_date, c]));
+  const qaDays = parts.flatMap((p) => p[5]);
+  const cbMap = new Map(groupSum(callbackDays, (c) => c.report_date, ['missed', 'on_time', 'late']).map((c) => [c.report_date, c]));
+  const qaMap = new Map(groupSum(qaDays, (q) => q.report_date, ['qa_count', 'score_sum']).map((q) => [q.report_date, q]));
   return {
     daily: parts.flatMap((p) => p[0]).map((d) => {
       const cb = cbMap.get(d.report_date);
-      return cb ? { ...d, cb_missed: cb.missed, cb_on_time: cb.on_time, cb_late: cb.late } : d;
+      const qa = qaMap.get(d.report_date);
+      return {
+        ...d,
+        ...(cb ? { cb_missed: cb.missed, cb_on_time: cb.on_time, cb_late: cb.late } : {}),
+        // Điểm QA theo ngày chấm; totalDaily cộng theo trọng số số cuộc chấm
+        ...(qa && qa.qa_count ? { qa_count: qa.qa_count, qa_avg: Number(qa.score_sum) / qa.qa_count } : {}),
+      };
     }),
     team: parts.flatMap((p) => p[1]),
     queueDays: parts.flatMap((p) => p[2]),
     aiDays: parts.flatMap((p) => p[3]),
     callbackDays,
+    qaDays,
   };
 }
 
@@ -325,6 +349,15 @@ export async function loadCallCenterData(ranges: [string, string][], from: strin
     (r) => r.ext,
     ['handled', 'answered_within_sl', 'talk_seconds', 'acw_seconds', 'fcr_count', 'qa_w', 'qa_h']
   ).map(({ qa_w, qa_h, report_date, ...r }) => ({ ...r, qa_avg: qa_w != null && qa_h ? Math.round((qa_w / qa_h) * 10) / 10 : null }));
+  // Điểm QA từ file chấm của QA (call_qa_daily) – cộng các ngày chấm trong kỳ
+  const qaByExt = new Map(
+    groupSum(detail.qaDays.filter((q) => q.report_date >= from && q.report_date <= to), (q) => q.ext, ['qa_count', 'score_sum'])
+      .filter((q) => q.qa_count)
+      .map((q) => [q.ext, Math.round((Number(q.score_sum) / q.qa_count) * 10) / 10])
+  );
+  agents.forEach((a) => {
+    if (qaByExt.has(a.ext)) a.qa_avg = qaByExt.get(a.ext) as number;
+  });
 
   return {
     from,

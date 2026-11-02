@@ -244,7 +244,7 @@ export function LineChart({ xLabels, series, format, height = 220, target, targe
           rows={series.map((s) => ({
             color: s.color,
             dashed: s.dashed,
-            label: s.pointLabels ? `${s.label} (${s.pointLabels[hover]})` : s.label,
+            label: s.pointLabels?.[hover] ? `${s.label} (${s.pointLabels[hover]})` : s.label,
             value: s.values[hover] == null ? '—' : format(s.values[hover] as number),
           }))}
         />

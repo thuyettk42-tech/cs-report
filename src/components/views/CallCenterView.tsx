@@ -428,7 +428,8 @@ export const CallCenterView: React.FC<CallCenterViewProps> = ({ onOpenExport }) 
     if (!view || !period || !data) return null;
     const n = daysBetween(period.tableFrom, period.to) + 1;
     const dates = Array.from({ length: n }, (_, i) => addDays(period.tableFrom, i));
-    const cmpDates = dates.map((_, i) => addDays(period.cmpTableFrom, i));
+    // Kỳ so sánh có thể ngắn hơn (tháng 9 có 30 ngày so với tháng 10 có 31) → không lấn sang ngày ngoài kỳ
+    const cmpDates = dates.map((_, i) => addDays(period.cmpTableFrom, i)).filter((d) => d <= period.prevTo);
     const dailyBy = new Map(data.daily.map((r) => [r.report_date, r]));
     const metricOf = (d: string): number | null => {
       const r = dailyBy.get(d);
@@ -872,12 +873,20 @@ export const CallCenterView: React.FC<CallCenterViewProps> = ({ onOpenExport }) 
             <NoSource />
           ) : (
             <div className="flex items-baseline gap-2">
-              <span className="text-2xl sm:text-3xl font-extrabold text-emerald-600 font-mono">{day.qaAvg}</span>
-              <span className="text-xs text-slate-400 font-normal">/ 100 điểm</span>
+              <span
+                className={`text-2xl sm:text-3xl font-extrabold font-mono ${
+                  targets.TARGET_QA == null ? 'text-emerald-600' : statusClass(meets(day.qaAvg, targets.TARGET_QA, 'higher'))
+                }`}
+              >
+                {day.qaAvg}
+              </span>
+              <span className="text-xs text-slate-400 font-normal">/ 100 · mục tiêu ≥{formatNumber(targets.TARGET_QA)}</span>
             </div>
           )}
           <p className="text-xs text-slate-500 mt-1.5">
-            {day.qaCount ? `Chấm ${formatNumber(day.qaCount)} cuộc.` : `Mục tiêu ≥${formatNumber(targets.TARGET_QA)} điểm.`}
+            {day.qaCount
+              ? `QA chấm ${formatNumber(day.qaCount)} cuộc${isSingleDay ? ' trong ngày' : ' trong kỳ'} (theo ngày chấm).`
+              : `Chưa có cuộc được chấm. Mục tiêu ≥${formatNumber(targets.TARGET_QA)} điểm.`}
           </p>
         </KpiCard>
       </div>
