@@ -61,6 +61,25 @@ export interface QaRow {
   praise_count: number;
 }
 
+/** call_ai_qa_daily: kết quả chấm call Voice AI theo ngày gọi × line (Retail / FnB / Kỹ thuật / HDDT) */
+export interface AiQaRow {
+  report_date: string;
+  line: string;
+  checked: number;
+  hangup: number;
+  transferred: number;
+  self_resolved: number;
+  correct: number;
+}
+
+/** Line chấm AI ↔ hàng đợi 3CX (máy AI 8400001 → 8024, 8400002 → 8025, 8400006 → 8001, 8400007 → 8009) */
+export const AI_QA_LINES = [
+  { line: 'Retail', label: 'Retail', ext: '8024' },
+  { line: 'FnB', label: 'FnB', ext: '8025' },
+  { line: 'Kỹ thuật', label: 'Kỹ thuật', ext: '8001' },
+  { line: 'HDDT', label: 'HĐĐT', ext: '8009' },
+] as const;
+
 /** call_qa_reason_daily: số cuộc gặp từng lý do lỗi, theo ngày chấm × máy ĐTV */
 export interface QaReasonRow {
   report_date: string;
@@ -189,6 +208,7 @@ export interface CallCenterData {
   callbackDays: CallbackRow[];
   qaDays: QaRow[];
   qaReasons: QaReasonRow[];
+  aiQaDays: AiQaRow[];
   /** Hàng đợi / khung giờ / ĐTV đã cộng dồn các ngày trong kỳ */
   queues: CallQueueRow[];
   slots: CallSlotRow[];
@@ -303,6 +323,7 @@ export interface DayDetail {
   callbackDays: CallbackRow[];
   qaDays: QaRow[];
   qaReasons: QaReasonRow[];
+  aiQaDays: AiQaRow[];
 }
 
 /** Bảng gọi lại / QA có thể chưa được tạo trên Supabase → coi như chưa có dữ liệu thay vì làm hỏng cả trang. */
@@ -344,6 +365,7 @@ async function loadDayDetail(ranges: [string, string][]): Promise<DayDetail> {
           'report_date, ext, qa_count, score_sum, good_count, fair_count, poor_count, resolved_count, repeat_count, ' +
             'error_calls, sev_attitude, sev_unresolved, sev_process, sev_communication, praise_count', 'ext', lo, hi),
         fetchOptional<QaReasonRow>('call_qa_reason_daily', 'report_date, ext, criterion, reason, calls', 'ext', lo, hi),
+        fetchOptional<AiQaRow>('call_ai_qa_daily', 'report_date, line, checked, hangup, transferred, self_resolved, correct', 'line', lo, hi),
       ])
     )
   );
@@ -379,6 +401,7 @@ async function loadDayDetail(ranges: [string, string][]): Promise<DayDetail> {
     callbackDays,
     qaDays,
     qaReasons,
+    aiQaDays: parts.flatMap((p) => p[7]),
   };
 }
 
@@ -453,6 +476,7 @@ export async function loadCallCenterData(ranges: [string, string][], from: strin
     callbackDays,
     qaDays: detail.qaDays,
     qaReasons: detail.qaReasons,
+    aiQaDays: detail.aiQaDays,
     queues,
     slots,
     agents,

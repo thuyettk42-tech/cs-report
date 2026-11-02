@@ -35,6 +35,7 @@ import {
 } from '../../services/callCenterData';
 import { COMPARE_COLOR, Legend, LineChart, OTHER_COLOR, SERIES_COLORS, StackedBarChart } from './callCenterCharts';
 import QaAnalysis from './QaAnalysis';
+import AiAnalysis from './AiAnalysis';
 
 interface CallCenterViewProps {
   onOpenExport: () => void;
@@ -1301,6 +1302,20 @@ export const CallCenterView: React.FC<CallCenterViewProps> = ({ onOpenExport }) 
         periodText={periodText}
         compareLabel={period.compareLabel}
         target={targets.TARGET_QA}
+      />
+
+      {/* Phân tích Voice AI */}
+      <AiAnalysis
+        data={data}
+        trend={trend}
+        from={period.from}
+        to={period.to}
+        prevFrom={period.prevFrom}
+        prevTo={period.prevTo}
+        periodText={periodText}
+        compareLabel={period.compareLabel}
+        targetSelf={targets.TARGET_AI_SELF_RESOLVE}
+        targetCorrect={targets.TARGET_AI_CORRECT}
       />
 
       {/* Chi tiết (thu gọn): bảng theo ngày + xếp hạng ĐTV */}
