@@ -32,6 +32,9 @@ Trang báo cáo vận hành Call Center hotline 1900 6522 (repo này, deploy tr�
   - [ ] Còn lại: đối chiếu chi tiết số ngày 01/10 với sheet TH; xác nhận đã tắt "Allow new users to sign up".
 - [x] (31/10) Quy tắc nhỡ > 5 giây: người dùng đã dán script mới vào Apps Script và nạp lại tháng 10.
 - [x] (31/10) Bộ lọc màn Call Center: Ngày / Khoảng ngày / Tháng (`buildPeriod` trong CallCenterView). Kỳ so sánh: hôm trước / số ngày bằng nhau liền trước / cùng kỳ tháng trước. Hàng đợi, khung giờ, ĐTV cộng dồn cả kỳ trong `loadCallCenterData`.
+- [x] (02/11) Đã nạp đủ tháng 1–10/2026. Mỗi đầu tháng phải có file "Thang M" mới (2 sheet Call in, Miss call) trước sáng ngày 02, nếu không lượt đồng bộ lỗi cả các ngày cuối tháng trước (chưa sửa script).
+- [x] (02/11) Biểu đồ: xu hướng 12 tháng theo line (`StackedBarChart`) + tỷ lệ nhỡ/SL theo tháng; kỳ này vs kỳ so sánh theo ngày; Cuộc gọi theo Line (bảng + biểu đồ). Lọc thêm Quý; ô "So sánh với": kỳ liền trước / cùng kỳ quý trước / cùng kỳ năm trước (`shiftMonths`). Biểu đồ SVG tự vẽ trong `callCenterCharts.tsx`, không dùng thư viện.
+- Line: Phần mềm = 8024/8025/8026/8028, Kỹ thuật = 8001/8027, HĐĐT = 8009 (`LINES`). Cuộc AI gán line theo máy (`AI_EXT_QUEUE`): 8400001–04 → 8024/8025/8026/8028, 8400006 → 8001, 8400007 → 8009; 8400005 = Knote, không thống kê. Mùa vụ: tháng đầu quý (T1, T4, T7, T10) tăng mạnh do kê khai HĐĐT.
 - Chạy thử trên máy: `.env.local` (đã gitignore) chứa URL + khóa publishable lấy từ web thật.
 - Cài đặt máy: Node 24 bản di động ở `%LOCALAPPDATA%\Programs\nodejs-portable` (không cần Admin). `npm install` cần `--legacy-peer-deps --no-package-lock` (xung đột esbuild có sẵn; Vercel dùng bun.lock).
 

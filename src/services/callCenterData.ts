@@ -74,6 +74,7 @@ export interface CallAgentRow {
 
 export interface QueueInfo {
   queue: string;
+  queue_ext: string | null;
   display_name: string | null;
   sort_order: number | null;
   is_active: boolean;
@@ -85,10 +86,12 @@ export interface CallCenterData {
   to: string;
   /** Các ngày có dữ liệu, mới nhất trước */
   availableDates: string[];
-  /** call_daily từ fetchFrom đến to (gồm cả kỳ so sánh, bảng theo ngày, lũy kế tháng), sắp tăng dần */
+  /** call_daily của các khoảng ngày cần dùng (kỳ này, kỳ so sánh, biểu đồ theo ngày, lũy kế tháng), sắp tăng dần */
   daily: CallDailyRow[];
-  /** call_team_daily cùng khoảng ngày như daily */
+  /** call_team_daily / call_queue_daily / cuộc Voice AI theo máy – cùng các khoảng ngày như daily */
   team: CallTeamRow[];
+  queueDays: CallQueueRow[];
+  aiDays: AiDayRow[];
   /** Hàng đợi / khung giờ / ĐTV đã cộng dồn các ngày trong kỳ */
   queues: CallQueueRow[];
   slots: CallSlotRow[];
@@ -161,26 +164,93 @@ function groupSum<T extends Record<string, any>>(rows: T[], keyOf: (r: T) => str
   return [...map.values()];
 }
 
+export function maxDate(...dates: string[]): string {
+  return dates.reduce((a, b) => (b > a ? b : a));
+}
+
+export function minDate(...dates: string[]): string {
+  return dates.reduce((a, b) => (b < a ? b : a));
+}
+
+/** Lùi/tiến n tháng, giữ ngày trong tháng (31/10 lùi 1 tháng → 30/09). */
+export function shiftMonths(date: string, n: number): string {
+  const [y, m, d] = date.split('-').map(Number);
+  const first = new Date(Date.UTC(y, m - 1 + n, 1)).toISOString().slice(0, 10);
+  const last = Number(monthEnd(first).slice(8));
+  return first.slice(0, 8) + String(Math.min(d, last)).padStart(2, '0');
+}
+
+/** Gộp các khoảng ngày chồng hoặc liền nhau để không đọc trùng; kết quả sắp tăng dần. */
+export function mergeRanges(ranges: [string, string][]): [string, string][] {
+  const out: [string, string][] = [];
+  [...ranges].sort((a, b) => a[0].localeCompare(b[0])).forEach(([a, b]) => {
+    const last = out[out.length - 1];
+    if (last && a <= addDays(last[1], 1)) {
+      if (b > last[1]) last[1] = b;
+    } else out.push([a, b]);
+  });
+  return out;
+}
+
+export interface AiDayRow {
+  report_date: string;
+  ext: string;
+  handled: number;
+}
+
+export interface DayDetail {
+  daily: CallDailyRow[];
+  team: CallTeamRow[];
+  queueDays: CallQueueRow[];
+  aiDays: AiDayRow[];
+}
+
+/** Số theo ngày (tổng, đội, hàng đợi, cuộc Voice AI theo máy) cho các khoảng ngày. */
+async function loadDayDetail(ranges: [string, string][]): Promise<DayDetail> {
+  const supabase = getSupabaseClient();
+  const parts = await Promise.all(
+    mergeRanges(ranges).map(([lo, hi]) =>
+      Promise.all([
+        fetchAll<CallDailyRow>((a, b) =>
+          supabase.from('call_daily').select('*').gte('report_date', lo).lte('report_date', hi).order('report_date').range(a, b)
+        ),
+        fetchAll<CallTeamRow>((a, b) =>
+          supabase.from('call_team_daily').select('*').gte('report_date', lo).lte('report_date', hi)
+            .order('report_date').order('team').range(a, b)
+        ),
+        fetchAll<CallQueueRow>((a, b) =>
+          supabase.from('call_queue_daily').select('*').gte('report_date', lo).lte('report_date', hi)
+            .order('report_date').order('queue').range(a, b)
+        ),
+        fetchAll<AiDayRow>((a, b) =>
+          supabase.from('call_agent_daily').select('report_date, ext, handled').eq('team', 'Voice AI Bot')
+            .gte('report_date', lo).lte('report_date', hi).order('report_date').order('ext').range(a, b)
+        ),
+      ])
+    )
+  );
+  return {
+    daily: parts.flatMap((p) => p[0]),
+    team: parts.flatMap((p) => p[1]),
+    queueDays: parts.flatMap((p) => p[2]),
+    aiDays: parts.flatMap((p) => p[3]),
+  };
+}
+
+/** Số theo ngày cho biểu đồ xu hướng theo tháng. */
+export function loadMonthlyTrend(from: string, to: string): Promise<DayDetail> {
+  return loadDayDetail([[from, to]]);
+}
+
 /**
- * fetchFrom..to: số theo ngày (call_daily, call_team_daily) cho thẻ KPI, kỳ so sánh, bảng theo ngày.
+ * ranges: các khoảng ngày cần số theo ngày (kỳ này, kỳ so sánh, biểu đồ theo ngày, lũy kế tháng).
  * from..to: kỳ đang xem – hàng đợi, khung giờ, ĐTV được cộng dồn các ngày trong kỳ.
  */
-export async function loadCallCenterData(fetchFrom: string, from: string, to: string, availableDates: string[]): Promise<CallCenterData> {
+export async function loadCallCenterData(ranges: [string, string][], from: string, to: string, availableDates: string[]): Promise<CallCenterData> {
   const supabase = getSupabaseClient();
 
-  const [daily, team, queueDays, slotDays, agentDays, queueInfo, agentDir, targets, lastSync] = await Promise.all([
-    fetchAll<CallDailyRow>((a, b) =>
-      supabase.from('call_daily').select('*').gte('report_date', fetchFrom).lte('report_date', to)
-        .order('report_date').range(a, b)
-    ),
-    fetchAll<CallTeamRow>((a, b) =>
-      supabase.from('call_team_daily').select('*').gte('report_date', fetchFrom).lte('report_date', to)
-        .order('report_date').order('team').range(a, b)
-    ),
-    fetchAll<CallQueueRow>((a, b) =>
-      supabase.from('call_queue_daily').select('*').gte('report_date', from).lte('report_date', to)
-        .order('report_date').order('queue').range(a, b)
-    ),
+  const [detail, slotDays, agentDays, queueInfo, agentDir, targets, lastSync] = await Promise.all([
+    loadDayDetail([...ranges, [from, to]]),
     fetchAll<CallSlotRow & { report_date: string }>((a, b) =>
       supabase.from('call_timeslot_daily').select('report_date, slot_start, offered, answered, answered_ai, abandoned')
         .gte('report_date', from).lte('report_date', to).order('report_date').order('slot_start').range(a, b)
@@ -191,7 +261,7 @@ export async function loadCallCenterData(fetchFrom: string, from: string, to: st
         .gte('report_date', from).lte('report_date', to).order('report_date').order('ext').range(a, b)
     ),
     fetchAll<QueueInfo>((from, to) =>
-      supabase.from('call_queues').select('queue, display_name, sort_order, is_active').order('queue').range(from, to)
+      supabase.from('call_queues').select('queue, queue_ext, display_name, sort_order, is_active').order('queue').range(from, to)
     ),
     fetchAll<{ ext: string; skill_group: string | null }>((from, to) =>
       supabase.from('agents').select('ext, skill_group').order('ext').range(from, to)
@@ -204,7 +274,8 @@ export async function loadCallCenterData(fetchFrom: string, from: string, to: st
 
   if (lastSync.error) throw new Error(lastSync.error.message);
 
-  const queues = groupSum(queueDays, (q) => q.queue, [
+  const { daily, team, queueDays, aiDays } = detail;
+  const queues = groupSum(queueDays.filter((q) => q.report_date >= from && q.report_date <= to), (q) => q.queue, [
     'offered', 'abandoned', 'handled_inhouse', 'handled_os', 'handled_ai', 'answered_within_sl', 'handle_seconds',
     'csat_responses', 'csat_satisfied',
   ]);
@@ -223,6 +294,8 @@ export async function loadCallCenterData(fetchFrom: string, from: string, to: st
     availableDates,
     daily,
     team,
+    queueDays,
+    aiDays,
     queues,
     slots,
     agents,
@@ -342,6 +415,128 @@ export function handleTimes(rows: CallTeamRow[]): { talkAvg: number | null; acwA
     talkAvg: ratio(sumBy(human, (r) => r.talk_seconds), handled),
     acwAvg: ratio(sumNullable(human, (r) => r.acw_seconds), handled),
   };
+}
+
+// ---------------------------------------------------------------------
+// Line (nhóm hàng đợi) và cuộc Voice AI theo line
+// ---------------------------------------------------------------------
+
+export interface LineQueue {
+  ext: string;
+  name: string;
+  label: string;
+}
+
+export interface LineDef {
+  key: string;
+  name: string;
+  queues: LineQueue[];
+}
+
+export const LINES: LineDef[] = [
+  {
+    key: 'software',
+    name: 'Phần mềm',
+    queues: [
+      { ext: '8024', name: 'CS_Line1_Feature_Retail', label: 'Retail' },
+      { ext: '8025', name: 'CS_Line1_Feature_F&B', label: 'F&B' },
+      { ext: '8026', name: 'CS_Line1_Feature_Salon', label: 'Salon' },
+      { ext: '8028', name: 'CS_Line1_Feature_Hotel', label: 'Hotel' },
+    ],
+  },
+  {
+    key: 'tech',
+    name: 'Kỹ thuật',
+    queues: [
+      { ext: '8001', name: 'CS_Line2_Technology', label: 'Technology' },
+      { ext: '8027', name: 'CS_Line2_Warranty', label: 'Warranty' },
+    ],
+  },
+  { key: 'hddt', name: 'HĐĐT', queues: [{ ext: '8009', name: 'CS_Line4_HDDT_CKS', label: 'HĐĐT – CKS' }] },
+];
+
+/** Máy Voice AI → hàng đợi AI hỗ trợ. 8400005 (CS_Line_Knote) không thống kê theo line. */
+export const AI_EXT_QUEUE: Record<string, string> = {
+  '8400001': '8024',
+  '8400002': '8025',
+  '8400003': '8026',
+  '8400004': '8028',
+  '8400006': '8001',
+  '8400007': '8009',
+};
+
+export interface QueueStat {
+  offered: number;
+  abandoned: number;
+  /** Cuộc ĐTV nghe (Inhouse + OS) */
+  human: number;
+  /** Cuộc Voice AI nghe, đã gán về hàng đợi theo máy AI */
+  ai: number;
+  /** Cuộc ĐTV nghe trong 20 giây */
+  sl: number;
+  talk: number;
+}
+
+export function emptyStat(): QueueStat {
+  return { offered: 0, abandoned: 0, human: 0, ai: 0, sl: 0, talk: 0 };
+}
+
+export function addStat(a: QueueStat, b: QueueStat): QueueStat {
+  return {
+    offered: a.offered + b.offered,
+    abandoned: a.abandoned + b.abandoned,
+    human: a.human + b.human,
+    ai: a.ai + b.ai,
+    sl: a.sl + b.sl,
+    talk: a.talk + b.talk,
+  };
+}
+
+/**
+ * Số theo ngày × máy nhánh hàng đợi của các line. Cuộc AI nghe được cộng vào hàng đợi theo AI_EXT_QUEUE
+ * (vừa tính cuộc đến, vừa tính đã nghe). Hàng đợi chung VOICE_AI_BOT và hàng đợi ngoài line bị bỏ qua.
+ */
+export function queueStatsByDay(queueDays: CallQueueRow[], aiDays: AiDayRow[], queueInfo: Record<string, QueueInfo>): Map<string, Record<string, QueueStat>> {
+  const extByName: Record<string, string> = {};
+  LINES.forEach((l) => l.queues.forEach((q) => (extByName[q.name] = q.ext)));
+  const lineExts = new Set(Object.values(extByName));
+  const out = new Map<string, Record<string, QueueStat>>();
+  const cell = (date: string, ext: string) => {
+    const day = out.get(date) || {};
+    out.set(date, day);
+    return (day[ext] = day[ext] || emptyStat());
+  };
+  queueDays.forEach((q) => {
+    const ext = extByName[q.queue] || queueInfo[q.queue]?.queue_ext || '';
+    if (!lineExts.has(ext)) return;
+    const s = cell(q.report_date, ext);
+    s.offered += q.offered;
+    s.abandoned += q.abandoned;
+    s.human += q.handled_inhouse + q.handled_os;
+    s.ai += q.handled_ai;
+    s.sl += q.answered_within_sl;
+    s.talk += q.handle_seconds;
+  });
+  aiDays.forEach((a) => {
+    const ext = AI_EXT_QUEUE[a.ext];
+    if (!ext) return;
+    const s = cell(a.report_date, ext);
+    s.offered += a.handled;
+    s.ai += a.handled;
+  });
+  return out;
+}
+
+/** Cộng số các hàng đợi (exts) trong những ngày thỏa điều kiện. */
+export function sumStats(byDay: Map<string, Record<string, QueueStat>>, exts: string[], keep: (date: string) => boolean): QueueStat {
+  let total = emptyStat();
+  byDay.forEach((day, date) => {
+    if (!keep(date)) return;
+    exts.forEach((e) => {
+      if (day[e]) total = addStat(total, day[e]);
+    });
+  });
+  return total;
 }
 
 // ---------------------------------------------------------------------

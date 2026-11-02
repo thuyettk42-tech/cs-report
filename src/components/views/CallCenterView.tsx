@@ -1,7 +1,14 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import {
   CallCenterData,
+  DayDetail,
+  LINES,
+  QueueStat,
   addDays,
+  emptyStat,
+  addStat,
+  queueStatsByDay,
+  sumStats,
   daysBetween,
   formatDate,
   formatDateTime,
@@ -12,9 +19,13 @@ import {
   handleTimes,
   loadAvailableDates,
   loadCallCenterData,
+  loadMonthlyTrend,
+  maxDate,
+  minDate,
   monthEnd,
   monthStart,
   ratio,
+  shiftMonths,
   serviceLevels,
   sumBy,
   sumNullable,
@@ -22,6 +33,7 @@ import {
   totalDaily,
   weekdayName,
 } from '../../services/callCenterData';
+import { COMPARE_COLOR, Legend, LineChart, OTHER_COLOR, SERIES_COLORS, StackedBarChart } from './callCenterCharts';
 
 interface CallCenterViewProps {
   onOpenExport: () => void;
@@ -35,49 +47,106 @@ const TEAM_STYLE: Record<string, { short: string; title: string; subtitle: strin
 
 const AGENT_PAGE = 20;
 
-type FilterMode = 'day' | 'range' | 'month';
+type FilterMode = 'day' | 'range' | 'month' | 'quarter';
+type CompareMode = 'prev' | 'quarter' | 'year';
 
 const FILTER_MODES: { mode: FilterMode; label: string }[] = [
   { mode: 'day', label: 'Ngày' },
   { mode: 'range', label: 'Khoảng ngày' },
   { mode: 'month', label: 'Tháng' },
+  { mode: 'quarter', label: 'Quý' },
 ];
 
+const PREV_LABEL: Record<FilterMode, string> = { day: 'Hôm trước', range: 'Kỳ liền trước', month: 'Tháng trước', quarter: 'Quý trước' };
+
+function compareOptions(mode: FilterMode): { value: CompareMode; label: string }[] {
+  return [
+    { value: 'prev', label: PREV_LABEL[mode] },
+    ...(mode === 'quarter' ? [] : [{ value: 'quarter' as CompareMode, label: 'Cùng kỳ quý trước' }]),
+    { value: 'year', label: 'Cùng kỳ năm trước' },
+  ];
+}
+
 interface Period {
+  kind: FilterMode;
   from: string;
   to: string;
-  /** Kỳ so sánh: ngày trước / số ngày bằng nhau liền trước / cùng kỳ tháng trước */
+  /** Kỳ so sánh, cùng số ngày với kỳ đang xem */
   prevFrom: string;
   prevTo: string;
   compareLabel: string;
-  /** Bảng theo ngày: 7 ngày gần nhất khi xem 1 ngày, còn lại là các ngày trong kỳ */
+  /** Bảng + biểu đồ theo ngày: 7 ngày gần nhất khi xem 1 ngày, còn lại là các ngày trong kỳ */
   tableFrom: string;
+  /** Ngày đầu của đường so sánh trên biểu đồ theo ngày */
+  cmpTableFrom: string;
 }
 
-function minDate(...dates: string[]): string {
-  return dates.reduce((a, b) => (b < a ? b : a));
+function quarterStart(q: string): string {
+  const [y, n] = q.split('-Q').map(Number);
+  return `${y}-${String(3 * n - 2).padStart(2, '0')}-01`;
 }
 
-function buildPeriod(mode: FilterMode, day: string, rangeFrom: string, rangeTo: string, month: string, latest: string): Period | null {
+function quarterOf(date: string): string {
+  return `${date.slice(0, 4)}-Q${Math.ceil(Number(date.slice(5, 7)) / 3)}`;
+}
+
+function buildPeriod(
+  mode: FilterMode,
+  compare: CompareMode,
+  day: string,
+  rangeFrom: string,
+  rangeTo: string,
+  month: string,
+  quarter: string,
+  latest: string
+): Period | null {
+  let kind = mode;
+  let from: string;
+  let to: string;
+  let tableFrom: string;
   if (mode === 'day') {
     if (!day) return null;
-    return { from: day, to: day, prevFrom: addDays(day, -1), prevTo: addDays(day, -1), compareLabel: 'so với hôm trước', tableFrom: addDays(day, -6) };
-  }
-  if (mode === 'range') {
+    from = to = day;
+    tableFrom = addDays(day, -6);
+  } else if (mode === 'range') {
     if (!rangeFrom || !rangeTo) return null;
-    const [from, to] = rangeFrom <= rangeTo ? [rangeFrom, rangeTo] : [rangeTo, rangeFrom];
-    const n = daysBetween(from, to) + 1;
-    if (n === 1) return buildPeriod('day', from, '', '', '', latest);
-    return { from, to, prevFrom: addDays(from, -n), prevTo: addDays(from, -1), compareLabel: `so với ${n} ngày trước đó`, tableFrom: from };
+    [from, to] = rangeFrom <= rangeTo ? [rangeFrom, rangeTo] : [rangeTo, rangeFrom];
+    if (from === to) return buildPeriod('day', compare, from, '', '', '', '', latest);
+    tableFrom = from;
+  } else {
+    const start = mode === 'month' ? (month ? month + '-01' : '') : quarter ? quarterStart(quarter) : '';
+    if (!start) return null;
+    const end = monthEnd(mode === 'month' ? start : shiftMonths(start, 2));
+    from = tableFrom = start;
+    to = minDate(latest, end);
   }
-  if (!month) return null;
-  const from = month + '-01';
-  const end = monthEnd(from);
-  const to = latest < end ? latest : end;
-  const prevFrom = monthStart(addDays(from, -1));
-  const prevEnd = monthEnd(prevFrom);
-  const prevSameDay = addDays(prevFrom, Number(to.slice(8)) - 1);
-  return { from, to, prevFrom, prevTo: prevSameDay < prevEnd ? prevSameDay : prevEnd, compareLabel: 'so với cùng kỳ tháng trước', tableFrom: from };
+
+  // Lùi theo tháng: tháng trước (1), cùng kỳ quý trước (3), cùng kỳ năm trước (12)
+  const shift = compare === 'year' ? 12 : compare === 'quarter' || kind === 'quarter' ? 3 : kind === 'month' ? 1 : 0;
+  if (shift) {
+    const label =
+      compare === 'year' ? 'so với cùng kỳ năm trước' : kind === 'quarter' ? 'so với quý trước' : compare === 'quarter' ? 'so với cùng kỳ quý trước' : 'so với cùng kỳ tháng trước';
+    return {
+      kind, from, to, tableFrom, compareLabel: label,
+      prevFrom: shiftMonths(from, -shift),
+      prevTo: shiftMonths(to, -shift),
+      cmpTableFrom: shiftMonths(tableFrom, -shift),
+    };
+  }
+  if (kind === 'day') {
+    return { kind, from, to, tableFrom, prevFrom: addDays(from, -1), prevTo: addDays(from, -1), compareLabel: 'so với hôm trước', cmpTableFrom: addDays(tableFrom, -7) };
+  }
+  const n = daysBetween(from, to) + 1;
+  return { kind, from, to, tableFrom, prevFrom: addDays(from, -n), prevTo: addDays(from, -1), compareLabel: `so với ${n} ngày trước đó`, cmpTableFrom: addDays(from, -n) };
+}
+
+/** Các khoảng ngày cần đọc: kỳ này (kèm bảng theo ngày, lũy kế tháng) và kỳ so sánh (kèm đường so sánh). */
+function periodRanges(p: Period): [string, string][] {
+  const chartDays = daysBetween(p.tableFrom, p.to);
+  return [
+    [minDate(p.tableFrom, p.from, monthStart(p.to)), p.to],
+    [minDate(p.prevFrom, p.cmpTableFrom), maxDate(p.prevTo, addDays(p.cmpTableFrom, chartDays))],
+  ];
 }
 
 function formatPeriod(from: string, to: string): string {
@@ -96,14 +165,16 @@ function statusClass(ok: boolean | null): string {
   return ok ? 'text-emerald-700' : 'text-rose-700';
 }
 
-function Delta({ current, previous, label, invert = false }: { current: number | null; previous: number | null; label: string; invert?: boolean }) {
+/** points: chỉ số là tỷ lệ → hiện chênh lệch điểm % (89% so với 80% = +9 điểm), không phải % thay đổi. */
+function Delta({ current, previous, label, invert = false, points = false }: { current: number | null; previous: number | null; label: string; invert?: boolean; points?: boolean }) {
   if (current == null || previous == null || previous === 0) return null;
-  const change = (current - previous) / previous;
+  const change = points ? current - previous : (current - previous) / previous;
   const up = change >= 0;
   const good = invert ? !up : up;
+  const amount = points ? `${(Math.abs(change) * 100).toFixed(1).replace('.', ',')} điểm %` : formatPercent(Math.abs(change));
   return (
     <span className={`text-[11px] font-semibold ${good ? 'text-emerald-700' : 'text-rose-700'}`}>
-      {up ? '▲' : '▼'} {formatPercent(Math.abs(change))} {label}
+      {up ? '▲' : '▼'} {amount} {label}
     </span>
   );
 }
@@ -124,6 +195,42 @@ function NoSource({ text = 'Chưa có nguồn dữ liệu' }: { text?: string })
   return <span className="text-sm font-semibold text-slate-400">{text}</span>;
 }
 
+function Segmented<T extends string>({ value, options, onChange }: { value: T; options: { value: T; label: string }[]; onChange: (v: T) => void }) {
+  return (
+    <div className="flex rounded-lg border border-slate-200 bg-slate-50 p-0.5">
+      {options.map((o) => (
+        <button
+          key={o.value}
+          type="button"
+          aria-pressed={value === o.value}
+          onClick={() => onChange(o.value)}
+          className={`px-2.5 py-1 rounded-md text-[11px] font-semibold transition-colors ${
+            value === o.value ? 'bg-white text-primary shadow-xs' : 'text-slate-500 hover:text-slate-700'
+          }`}
+        >
+          {o.label}
+        </button>
+      ))}
+    </div>
+  );
+}
+
+function ChangeBadge({ current, previous, invert = false }: { current: number | null; previous: number | null; invert?: boolean }) {
+  if (current == null || previous == null || previous === 0) return <span className="text-slate-400">—</span>;
+  const change = (current - previous) / previous;
+  const good = invert ? change <= 0 : change >= 0;
+  return (
+    <span className={good ? 'text-emerald-700' : 'text-rose-700'}>
+      {change >= 0 ? '▲' : '▼'} {formatPercent(Math.abs(change))}
+    </span>
+  );
+}
+
+const QUARTER_START_MONTHS = ['01', '04', '07', '10'];
+const LINE_OTHER_LABEL = 'Khác (Knote, hàng đợi khác)';
+/** Màu đường tỷ lệ trên biểu đồ cột – sẫm, khác hẳn các màu line */
+const RATE_COLOR = '#334155';
+
 export const CallCenterView: React.FC<CallCenterViewProps> = ({ onOpenExport }) => {
   const [availableDates, setAvailableDates] = useState<string[] | null>(null);
   const [mode, setMode] = useState<FilterMode>('day');
@@ -131,7 +238,12 @@ export const CallCenterView: React.FC<CallCenterViewProps> = ({ onOpenExport }) 
   const [rangeFrom, setRangeFrom] = useState('');
   const [rangeTo, setRangeTo] = useState('');
   const [selectedMonth, setSelectedMonth] = useState('');
+  const [selectedQuarter, setSelectedQuarter] = useState('');
+  const [compare, setCompare] = useState<CompareMode>('prev');
   const [data, setData] = useState<CallCenterData | null>(null);
+  const [dataKey, setDataKey] = useState('');
+  const [trend, setTrend] = useState<DayDetail | null>(null);
+  const [trendError, setTrendError] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -139,6 +251,11 @@ export const CallCenterView: React.FC<CallCenterViewProps> = ({ onOpenExport }) 
   const [forceFilter, setForceFilter] = useState<'all' | 'inhouse' | 'os' | 'top'>('all');
   const [selectedQueue, setSelectedQueue] = useState<string>('all');
   const [showAllAgents, setShowAllAgents] = useState(false);
+  const [trendScale, setTrendScale] = useState<'total' | 'perDay'>('total');
+  const [trendRate, setTrendRate] = useState<'abandon' | 'sl'>('abandon');
+  const [cmpMetric, setCmpMetric] = useState<'offered' | 'abandonRate' | 'sl'>('offered');
+  const [lineFilter, setLineFilter] = useState('all');
+  const [lineMetric, setLineMetric] = useState<'offered' | 'abandonRate'>('offered');
 
   useEffect(() => {
     loadAvailableDates()
@@ -152,6 +269,11 @@ export const CallCenterView: React.FC<CallCenterViewProps> = ({ onOpenExport }) 
           setRangeFrom(weekAgo < oldest ? oldest : weekAgo);
           setRangeTo(latest);
           setSelectedMonth(latest.slice(0, 7));
+          setSelectedQuarter(quarterOf(latest));
+          // Xu hướng 12 tháng gần nhất – tải riêng, không phụ thuộc bộ lọc
+          loadMonthlyTrend(maxDate(oldest, shiftMonths(monthStart(latest), -11)), latest)
+            .then(setTrend)
+            .catch((err) => setTrendError(err?.message || String(err)));
         } else setIsLoading(false);
       })
       .catch((err) => {
@@ -163,13 +285,14 @@ export const CallCenterView: React.FC<CallCenterViewProps> = ({ onOpenExport }) 
   const latestDate = availableDates?.[0] || '';
   const oldestDate = availableDates?.[availableDates.length - 1] || '';
   const months = useMemo(() => [...new Set((availableDates || []).map((d) => d.slice(0, 7)))], [availableDates]);
+  const quarters = useMemo(() => [...new Set((availableDates || []).map(quarterOf))], [availableDates]);
 
   const period = useMemo(
-    () => (latestDate ? buildPeriod(mode, selectedDate, rangeFrom, rangeTo, selectedMonth, latestDate) : null),
-    [mode, selectedDate, rangeFrom, rangeTo, selectedMonth, latestDate]
+    () => (latestDate ? buildPeriod(mode, compare, selectedDate, rangeFrom, rangeTo, selectedMonth, selectedQuarter, latestDate) : null),
+    [mode, compare, selectedDate, rangeFrom, rangeTo, selectedMonth, selectedQuarter, latestDate]
   );
-  // Đọc từ ngày sớm nhất cần dùng: kỳ so sánh, bảng theo ngày, lũy kế tháng
-  const fetchFrom = period ? minDate(period.prevFrom, period.tableFrom, monthStart(period.to)) : '';
+  const ranges = period ? periodRanges(period) : [];
+  const rangesKey = JSON.stringify(ranges);
 
   useEffect(() => {
     setShowAllAgents(false);
@@ -181,9 +304,12 @@ export const CallCenterView: React.FC<CallCenterViewProps> = ({ onOpenExport }) 
     let cancelled = false;
     setIsLoading(true);
     setError(null);
-    loadCallCenterData(fetchFrom, period.from, period.to, availableDates)
+    const key = rangesKey;
+    loadCallCenterData(ranges, period.from, period.to, availableDates)
       .then((d) => {
-        if (!cancelled) setData(d);
+        if (cancelled) return;
+        setData(d);
+        setDataKey(key);
       })
       .catch((err) => {
         if (!cancelled) setError(err?.message || String(err));
@@ -194,10 +320,10 @@ export const CallCenterView: React.FC<CallCenterViewProps> = ({ onOpenExport }) 
     return () => {
       cancelled = true;
     };
-  }, [period?.from, period?.to, fetchFrom, availableDates]);
+  }, [period?.from, period?.to, rangesKey, availableDates]);
 
   const view = useMemo(() => {
-    if (!data || !period || data.from !== period.from || data.to !== period.to) return null;
+    if (!data || !period || data.from !== period.from || data.to !== period.to || dataKey !== rangesKey) return null;
     const { from, to, daily, team, targets } = data;
     const inRange = (d: string, a: string, b: string) => d >= a && d <= b;
     const periodDaily = daily.filter((r) => inRange(r.report_date, from, to));
@@ -243,7 +369,7 @@ export const CallCenterView: React.FC<CallCenterViewProps> = ({ onOpenExport }) 
       prevTimes: handleTimes(prevTeam),
       targets,
     };
-  }, [data, period]);
+  }, [data, dataKey, period, rangesKey]);
 
   const queueRows = useMemo(() => {
     if (!data) return [];
@@ -301,6 +427,74 @@ export const CallCenterView: React.FC<CallCenterViewProps> = ({ onOpenExport }) 
       }));
   }, [data]);
 
+  // Xu hướng theo tháng: cuộc đến theo line (gồm cuộc AI đã gán line) + tỷ lệ nhỡ / SL từng tháng
+  const monthly = useMemo(() => {
+    if (!trend) return [];
+    const byDay = queueStatsByDay(trend.queueDays, trend.aiDays, data?.queueInfo || {});
+    const monthKeys = [...new Set(trend.daily.map((r) => r.report_date.slice(0, 7)))].sort();
+    return monthKeys.map((m) => {
+      const inMonth = (d: string) => d.startsWith(m);
+      const days = trend.daily.filter((r) => inMonth(r.report_date));
+      const t = totalDaily(days);
+      const lines = LINES.map((l) => sumStats(byDay, l.queues.map((q) => q.ext), inMonth).offered);
+      return {
+        month: m,
+        days: days.length,
+        monthDays: Number(monthEnd(m + '-01').slice(8)),
+        offered: t.offered,
+        lines,
+        other: Math.max(0, t.offered - lines.reduce((a, b) => a + b, 0)),
+        abandonRate: ratio(t.abandoned, t.offered),
+        sl: serviceLevels(trend.team.filter((r) => inMonth(r.report_date))).agentSl,
+      };
+    });
+  }, [trend, data?.queueInfo]);
+
+  // Biểu đồ theo ngày: các ngày của kỳ đang xem và ngày tương ứng của kỳ so sánh
+  const dailyCompare = useMemo(() => {
+    if (!view || !period || !data) return null;
+    const n = daysBetween(period.tableFrom, period.to) + 1;
+    const dates = Array.from({ length: n }, (_, i) => addDays(period.tableFrom, i));
+    const cmpDates = dates.map((_, i) => addDays(period.cmpTableFrom, i));
+    const dailyBy = new Map(data.daily.map((r) => [r.report_date, r]));
+    const metricOf = (d: string): number | null => {
+      const r = dailyBy.get(d);
+      if (!r) return null;
+      if (cmpMetric === 'offered') return r.offered;
+      if (cmpMetric === 'abandonRate') return ratio(r.abandoned, r.offered);
+      return serviceLevels(data.team.filter((t) => t.report_date === d)).agentSl;
+    };
+    return { dates, cmpDates, current: dates.map(metricOf), compare: cmpDates.map(metricOf) };
+  }, [view, period, data, cmpMetric]);
+
+  // Cuộc gọi theo line / theo hàng đợi trong line
+  const lineView = useMemo(() => {
+    if (!view || !period || !data) return null;
+    const byDay = queueStatsByDay(data.queueDays, data.aiDays, data.queueInfo);
+    const line = LINES.find((l) => l.key === lineFilter);
+    const groups = line
+      ? line.queues.map((q, i) => ({ key: q.ext, label: q.label, exts: [q.ext], color: SERIES_COLORS[i] }))
+      : LINES.map((l, i) => ({ key: l.key, label: l.name, exts: l.queues.map((q) => q.ext), color: SERIES_COLORS[i] }));
+    const n = daysBetween(period.tableFrom, period.to) + 1;
+    const dates = Array.from({ length: n }, (_, i) => addDays(period.tableFrom, i));
+    const inRange = (a: string, b: string) => (d: string) => d >= a && d <= b;
+    const rows = groups.map((g) => {
+      const series = dates.map((d) => {
+        const s = sumStats(byDay, g.exts, (x) => x === d);
+        if (!byDay.has(d)) return null;
+        return lineMetric === 'offered' ? s.offered : ratio(s.abandoned, s.offered);
+      });
+      return {
+        ...g,
+        series,
+        cur: sumStats(byDay, g.exts, inRange(period.from, period.to)),
+        prev: sumStats(byDay, g.exts, inRange(period.prevFrom, period.prevTo)),
+      };
+    });
+    const total = (pick: 'cur' | 'prev') => rows.reduce<QueueStat>((acc, r) => addStat(acc, r[pick]), emptyStat());
+    return { dates, rows, totalCur: total('cur'), totalPrev: total('prev'), hasPrev: data.daily.some((r) => inRange(period.prevFrom, period.prevTo)(r.report_date)) };
+  }, [view, period, data, lineFilter, lineMetric]);
+
   const filteredAgents = rankedAgents.filter((agent) => {
     const q = agentSearch.trim().toLowerCase();
     const matchesSearch =
@@ -335,7 +529,13 @@ export const CallCenterView: React.FC<CallCenterViewProps> = ({ onOpenExport }) 
               <span className="px-2 py-0.5 rounded-full bg-sky-100 text-sky-800 text-[11px] font-semibold">
                 {period.from === period.to
                   ? `Ngày báo cáo ${formatDate(period.from)} (${weekdayName(period.from)})`
-                  : `Kỳ báo cáo ${formatPeriod(period.from, period.to)} (${daysBetween(period.from, period.to) + 1} ngày)`}
+                  : `${
+                      period.kind === 'quarter'
+                        ? `Quý ${quarterOf(period.from).slice(6)}/${period.from.slice(0, 4)}: `
+                        : period.kind === 'month'
+                        ? `Tháng ${Number(period.from.slice(5, 7))}/${period.from.slice(0, 4)}: `
+                        : 'Kỳ báo cáo '
+                    }${formatPeriod(period.from, period.to)} (${daysBetween(period.from, period.to) + 1} ngày)`}
               </span>
             </>
           )}
@@ -427,6 +627,36 @@ export const CallCenterView: React.FC<CallCenterViewProps> = ({ onOpenExport }) 
                 ))}
               </select>
             )}
+
+            {mode === 'quarter' && (
+              <select
+                value={selectedQuarter}
+                onChange={(e) => setSelectedQuarter(e.target.value)}
+                className="px-3 py-2 rounded-lg border border-slate-200 text-xs text-slate-700 bg-slate-50 focus:outline-none font-semibold"
+                title="Chọn quý báo cáo"
+              >
+                {quarters.map((q) => (
+                  <option key={q} value={q}>
+                    Quý {q.slice(6)}/{q.slice(0, 4)}
+                  </option>
+                ))}
+              </select>
+            )}
+
+            <label className="flex items-center gap-1.5 text-xs text-slate-600">
+              <span>So sánh với</span>
+              <select
+                value={mode === 'quarter' && compare === 'quarter' ? 'prev' : compare}
+                onChange={(e) => setCompare(e.target.value as CompareMode)}
+                className="px-3 py-2 rounded-lg border border-slate-200 text-xs text-slate-700 bg-slate-50 focus:outline-none font-semibold"
+              >
+                {compareOptions(mode).map((o) => (
+                  <option key={o.value} value={o.value}>
+                    {o.label}
+                  </option>
+                ))}
+              </select>
+            </label>
           </>
         )}
         <button
@@ -610,7 +840,7 @@ export const CallCenterView: React.FC<CallCenterViewProps> = ({ onOpenExport }) 
               Mục tiêu ≥{formatPercent(targets.TARGET_SL, 0)}
             </span>
           </div>
-          <Delta current={sl.agentSl} previous={prevSl.agentSl} label={compareLabel} />
+          <Delta current={sl.agentSl} previous={prevSl.agentSl} label={compareLabel} points />
           <p className="text-xs text-slate-500 mt-1.5">
             Cuộc ĐTV nghe máy trong 20 giây (chờ + đổ chuông). Tính cả Voice AI: {formatPercent(sl.allSl)}
           </p>
@@ -660,6 +890,135 @@ export const CallCenterView: React.FC<CallCenterViewProps> = ({ onOpenExport }) 
           </p>
         </KpiCard>
       </div>
+
+      {/* Xu hướng theo tháng */}
+      <div className="bg-white rounded-xl p-5 border border-slate-200 shadow-xs space-y-3">
+        <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-2 border-b border-slate-100 pb-3">
+          <div>
+            <h2 className="text-base font-bold text-slate-900">Xu Hướng Cuộc Gọi Theo Tháng</h2>
+            <p className="text-xs text-slate-500 mt-0.5">
+              Cột: cuộc đến theo line (gồm cuộc Voice AI), trục trái. Đường: {trendRate === 'abandon' ? 'tỷ lệ nhỡ' : 'SL ĐTV'}, trục
+              phải. Tháng đầu quý – kỳ kê khai HĐĐT – được tô nền. Nhấn vào cột để xem chi tiết tháng.
+            </p>
+          </div>
+          <div className="flex flex-wrap items-center gap-2">
+            <Segmented
+              value={trendScale}
+              onChange={setTrendScale}
+              options={[
+                { value: 'total', label: 'Tổng tháng' },
+                { value: 'perDay', label: 'TB mỗi ngày' },
+              ]}
+            />
+            <Segmented
+              value={trendRate}
+              onChange={setTrendRate}
+              options={[
+                { value: 'abandon', label: 'Tỷ lệ nhỡ' },
+                { value: 'sl', label: 'SL ĐTV' },
+              ]}
+            />
+          </div>
+        </div>
+        {trendError ? (
+          <div className="text-xs text-rose-700">Không tải được xu hướng: {trendError}</div>
+        ) : monthly.length === 0 ? (
+          <div className="text-xs text-slate-400 py-10 text-center">Đang tải xu hướng...</div>
+        ) : (
+          <>
+            <Legend
+              items={[
+                ...LINES.map((l, i) => ({ label: `Line ${l.name}`, color: SERIES_COLORS[i] })),
+                { label: LINE_OTHER_LABEL, color: OTHER_COLOR },
+                { label: `${trendRate === 'abandon' ? 'Tỷ lệ nhỡ' : 'SL ĐTV'} (trục phải)`, color: RATE_COLOR },
+              ]}
+            />
+            <StackedBarChart
+              height={280}
+              overlay={{
+                label: trendRate === 'abandon' ? 'Tỷ lệ nhỡ' : 'SL ĐTV',
+                color: RATE_COLOR,
+                values: monthly.map((m) => (trendRate === 'abandon' ? m.abandonRate : m.sl)),
+                format: (v) => formatPercent(v, 0),
+                target: trendRate === 'abandon' ? targets.TARGET_ABANDON_RATE : targets.TARGET_SL,
+                targetLabel: `Mục tiêu ${trendRate === 'abandon' ? '≤' : '≥'}${formatPercent(
+                  trendRate === 'abandon' ? targets.TARGET_ABANDON_RATE : targets.TARGET_SL,
+                  0
+                )}`,
+              }}
+              xLabels={monthly.map((m) => `T${Number(m.month.slice(5))}`)}
+              titles={monthly.map(
+                (m) =>
+                  `Tháng ${Number(m.month.slice(5))}/${m.month.slice(0, 4)}${m.days < m.monthDays ? ` (${m.days} ngày có số liệu)` : ''}${
+                    trendScale === 'perDay' ? ' – TB/ngày' : ''
+                  }`
+              )}
+              segments={[
+                ...LINES.map((l, i) => ({ key: l.key, label: `Line ${l.name}`, color: SERIES_COLORS[i] })),
+                { key: 'other', label: 'Khác', color: OTHER_COLOR },
+              ]}
+              values={monthly.map((m) => [...m.lines, m.other].map((v) => (trendScale === 'perDay' ? v / Math.max(1, m.days) : v)))}
+              format={formatNumber}
+              emphasize={monthly.map((m) => QUARTER_START_MONTHS.includes(m.month.slice(5)))}
+              onSelect={(i) => {
+                setMode('month');
+                setSelectedMonth(monthly[i].month);
+              }}
+            />
+          </>
+        )}
+      </div>
+
+      {/* Kỳ này và kỳ so sánh theo ngày */}
+      {dailyCompare && (
+        <div className="bg-white rounded-xl p-5 border border-slate-200 shadow-xs space-y-3">
+          <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-2 border-b border-slate-100 pb-3">
+            <div>
+              <h2 className="text-base font-bold text-slate-900">Kỳ Này và Kỳ So Sánh Theo Ngày</h2>
+              <p className="text-xs text-slate-500 mt-0.5">
+                {formatPeriod(period.tableFrom, period.to)} {period.compareLabel} (
+                {formatPeriod(dailyCompare.cmpDates[0], dailyCompare.cmpDates[dailyCompare.cmpDates.length - 1])}), xếp theo ngày tương ứng
+              </p>
+            </div>
+            <Segmented
+              value={cmpMetric}
+              onChange={setCmpMetric}
+              options={[
+                { value: 'offered', label: 'Cuộc đến' },
+                { value: 'abandonRate', label: 'Tỷ lệ nhỡ' },
+                { value: 'sl', label: 'SL ĐTV' },
+              ]}
+            />
+          </div>
+          <Legend
+            items={[
+              { label: 'Kỳ này', color: SERIES_COLORS[0] },
+              { label: 'Kỳ so sánh', color: COMPARE_COLOR, dashed: true },
+            ]}
+          />
+          <LineChart
+            dots={dailyCompare.dates.length <= 14}
+            xLabels={dailyCompare.dates.map(formatShortDate)}
+            series={[
+              { key: 'cur', label: 'Kỳ này', color: SERIES_COLORS[0], values: dailyCompare.current },
+              {
+                key: 'cmp',
+                label: 'Kỳ so sánh',
+                color: COMPARE_COLOR,
+                dashed: true,
+                values: dailyCompare.compare,
+                pointLabels: dailyCompare.cmpDates.map(formatShortDate),
+              },
+            ]}
+            format={cmpMetric === 'offered' ? formatNumber : (v) => formatPercent(v)}
+            target={cmpMetric === 'abandonRate' ? targets.TARGET_ABANDON_RATE : cmpMetric === 'sl' ? targets.TARGET_SL : null}
+            targetLabel={cmpMetric === 'offered' ? undefined : 'Mục tiêu'}
+          />
+          {dailyCompare.compare.every((v) => v == null) && (
+            <p className="text-[11px] text-slate-500">Chưa có số liệu cho kỳ so sánh trên Supabase.</p>
+          )}
+        </div>
+      )}
 
       {/* Phân bổ theo 3 đội ngũ */}
       <div className="bg-white rounded-xl p-5 border border-slate-200 shadow-xs space-y-4">
@@ -752,6 +1111,103 @@ export const CallCenterView: React.FC<CallCenterViewProps> = ({ onOpenExport }) 
           })}
         </div>
       </div>
+
+      {/* Cuộc gọi theo Line */}
+      {lineView && (
+        <div className="bg-white rounded-xl p-5 border border-slate-200 shadow-xs space-y-3">
+          <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-2 border-b border-slate-100 pb-3">
+            <div>
+              <h2 className="text-base font-bold text-slate-900">Cuộc Gọi Theo Line</h2>
+              <p className="text-xs text-slate-500 mt-0.5">
+                Biểu đồ: {formatPeriod(period.tableFrom, period.to)}. Bảng: {periodText}, {period.compareLabel}.
+              </p>
+            </div>
+            <div className="flex flex-wrap items-center gap-2">
+              <select
+                value={lineFilter}
+                onChange={(e) => setLineFilter(e.target.value)}
+                className="px-3 py-1.5 rounded-lg border border-slate-200 text-xs text-slate-700 bg-slate-50 focus:outline-none font-semibold"
+                title="Chọn line"
+              >
+                <option value="all">Tất cả line</option>
+                {LINES.map((l) => (
+                  <option key={l.key} value={l.key}>
+                    Line {l.name} ({l.queues.length} hàng đợi)
+                  </option>
+                ))}
+              </select>
+              <Segmented
+                value={lineMetric}
+                onChange={setLineMetric}
+                options={[
+                  { value: 'offered', label: 'Cuộc đến' },
+                  { value: 'abandonRate', label: 'Tỷ lệ nhỡ' },
+                ]}
+              />
+            </div>
+          </div>
+          <Legend items={lineView.rows.map((r) => ({ label: r.label, color: r.color }))} />
+          <LineChart
+            dots={lineView.dates.length <= 14}
+            xLabels={lineView.dates.map(formatShortDate)}
+            series={lineView.rows.map((r) => ({ key: r.key, label: r.label, color: r.color, values: r.series }))}
+            format={lineMetric === 'offered' ? formatNumber : (v) => formatPercent(v)}
+            target={lineMetric === 'abandonRate' ? targets.TARGET_ABANDON_RATE : null}
+            targetLabel={lineMetric === 'abandonRate' ? 'Mục tiêu' : undefined}
+          />
+          <div className="overflow-x-auto">
+            <table className="w-full text-left text-xs">
+              <thead className="bg-slate-50 text-slate-600 uppercase font-semibold border-b border-slate-200">
+                <tr>
+                  <th className="py-2.5 px-3">{lineFilter === 'all' ? 'Line' : 'Hàng đợi'}</th>
+                  <th className="py-2.5 px-3 text-right">Tổng Đến</th>
+                  <th className="py-2.5 px-3 text-right">ĐTV Nghe</th>
+                  <th className="py-2.5 px-3 text-right">AI Nghe</th>
+                  <th className="py-2.5 px-3 text-right">Nhỡ</th>
+                  <th className="py-2.5 px-3 text-right">SL ĐTV</th>
+                  <th className="py-2.5 px-3 text-right">Đàm Thoại TB</th>
+                  <th className="py-2.5 px-3 text-right">Đến Kỳ So Sánh</th>
+                  <th className="py-2.5 px-3 text-right">Thay Đổi</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-slate-100 font-mono">
+                {[...lineView.rows.map((r) => ({ key: r.key, label: r.label, color: r.color, cur: r.cur, prev: r.prev, total: false })),
+                  { key: 'total', label: 'Tổng', color: '', cur: lineView.totalCur, prev: lineView.totalPrev, total: true }].map((r) => {
+                  const abandonRate = ratio(r.cur.abandoned, r.cur.offered);
+                  return (
+                    <tr key={r.key} className={r.total ? 'bg-slate-100 font-bold' : 'hover:bg-slate-50/70'}>
+                      <td className="py-2.5 px-3 font-sans font-semibold text-slate-900">
+                        <span className="flex items-center gap-1.5">
+                          {r.color && <span className="w-2.5 h-2.5 rounded-sm" style={{ backgroundColor: r.color }}></span>}
+                          {r.label}
+                        </span>
+                      </td>
+                      <td className="py-2.5 px-3 text-right font-bold text-slate-900">{formatNumber(r.cur.offered)}</td>
+                      <td className="py-2.5 px-3 text-right text-slate-700">{formatNumber(r.cur.human)}</td>
+                      <td className="py-2.5 px-3 text-right text-slate-700">{formatNumber(r.cur.ai)}</td>
+                      <td className={`py-2.5 px-3 text-right ${statusClass(meets(abandonRate, targets.TARGET_ABANDON_RATE, 'lower'))}`}>
+                        {formatNumber(r.cur.abandoned)} <span className="text-[10px]">({formatPercent(abandonRate)})</span>
+                      </td>
+                      <td className={`py-2.5 px-3 text-right ${statusClass(meets(ratio(r.cur.sl, r.cur.human), targets.TARGET_SL, 'higher'))}`}>
+                        {formatPercent(ratio(r.cur.sl, r.cur.human))}
+                      </td>
+                      <td className="py-2.5 px-3 text-right text-slate-700">{formatDuration(ratio(r.cur.talk, r.cur.human))}</td>
+                      <td className="py-2.5 px-3 text-right text-slate-500">{lineView.hasPrev ? formatNumber(r.prev.offered) : '—'}</td>
+                      <td className="py-2.5 px-3 text-right font-semibold">
+                        {lineView.hasPrev ? <ChangeBadge current={r.cur.offered} previous={r.prev.offered} /> : <span className="text-slate-400">—</span>}
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          </div>
+          <p className="text-[11px] text-slate-500 leading-relaxed">
+            Cuộc Voice AI được tính vào line theo máy: 8400001–8400004 → Retail / F&amp;B / Salon / Hotel, 8400006 → Technology,
+            8400007 → HĐĐT. Không tính Knote (8400005) và vài cuộc nhỡ ngay tại máy AI (không xác định được line).
+          </p>
+        </div>
+      )}
 
       {/* Bảng 7 ngày */}
       <div className="bg-white rounded-xl p-5 border border-slate-200 shadow-xs space-y-4">
