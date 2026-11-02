@@ -864,9 +864,11 @@ export const CallCenterView: React.FC<CallCenterViewProps> = ({ onOpenExport }) 
         </KpiCard>
       </div>
 
+      {/* Cặp 1: xu hướng tháng | kỳ này và kỳ so sánh (xếp dọc khi màn hình hẹp) */}
+      <div className="grid grid-cols-1 xl:grid-cols-2 gap-6">
       {/* Xu hướng theo tháng */}
-      <div className="bg-white rounded-xl p-5 border border-slate-200 shadow-xs space-y-3">
-        <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-2 border-b border-slate-100 pb-3">
+      <div className="bg-white rounded-xl p-5 border border-slate-200 shadow-xs space-y-3 min-w-0">
+        <div className="flex flex-wrap items-start justify-between gap-2 border-b border-slate-100 pb-3">
           <div>
             <h2 className="text-base font-bold text-slate-900">Xu Hướng Cuộc Gọi Theo Tháng</h2>
             <p className="text-xs text-slate-500 mt-0.5">
@@ -944,8 +946,8 @@ export const CallCenterView: React.FC<CallCenterViewProps> = ({ onOpenExport }) 
 
       {/* Kỳ này và kỳ so sánh theo ngày */}
       {dailyCompare && (
-        <div className="bg-white rounded-xl p-5 border border-slate-200 shadow-xs space-y-3">
-          <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-2 border-b border-slate-100 pb-3">
+        <div className="bg-white rounded-xl p-5 border border-slate-200 shadow-xs space-y-3 min-w-0">
+          <div className="flex flex-wrap items-start justify-between gap-2 border-b border-slate-100 pb-3">
             <div>
               <h2 className="text-base font-bold text-slate-900">Kỳ Này và Kỳ So Sánh Theo Ngày</h2>
               <p className="text-xs text-slate-500 mt-0.5">
@@ -992,15 +994,18 @@ export const CallCenterView: React.FC<CallCenterViewProps> = ({ onOpenExport }) 
           )}
         </div>
       )}
+      </div>
 
+      {/* Cặp 2: cuộc gọi theo Line | khung giờ */}
+      <div className="grid grid-cols-1 xl:grid-cols-2 gap-6">
       {/* Cuộc gọi theo Line */}
       {lineView && (
-        <div className="bg-white rounded-xl p-5 border border-slate-200 shadow-xs space-y-3">
-          <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-2 border-b border-slate-100 pb-3">
+        <div className="bg-white rounded-xl p-5 border border-slate-200 shadow-xs space-y-3 min-w-0">
+          <div className="flex flex-wrap items-start justify-between gap-2 border-b border-slate-100 pb-3">
             <div>
               <h2 className="text-base font-bold text-slate-900">Cuộc Gọi Theo Line</h2>
               <p className="text-xs text-slate-500 mt-0.5">
-                Biểu đồ: {formatPeriod(period.tableFrom, period.to)}. Bảng: {periodText}, {period.compareLabel}.
+                {formatPeriod(period.tableFrom, period.to)}, theo ngày
               </p>
             </div>
             <div className="flex flex-wrap items-center gap-2">
@@ -1036,6 +1041,65 @@ export const CallCenterView: React.FC<CallCenterViewProps> = ({ onOpenExport }) 
             target={lineMetric === 'abandonRate' ? targets.TARGET_ABANDON_RATE : null}
             targetLabel={lineMetric === 'abandonRate' ? 'Mục tiêu' : undefined}
           />
+        </div>
+      )}
+
+      {/* Khung giờ */}
+      <div className="bg-white rounded-xl p-5 border border-slate-200 shadow-xs space-y-4 min-w-0">
+        <div className="border-b border-slate-100 pb-3">
+          <h2 className="text-base font-bold text-slate-900">Lưu Lượng và Tỷ Lệ Nhỡ Theo Khung Giờ</h2>
+          <p className="text-xs text-slate-500 mt-0.5">
+            Cuộc được phục vụ và cuộc nhỡ theo giờ – {periodText}
+            {!isSingleDay && ` (cộng dồn ${day.days} ngày)`}. Số dưới mỗi cột là tỷ lệ nhỡ của giờ đó, tô đỏ khi vượt mục tiêu.
+          </p>
+        </div>
+        {hourly.length === 0 ? (
+          <div className="text-xs text-slate-400 py-10 text-center">Chưa có dữ liệu khung giờ.</div>
+        ) : (
+          <>
+            <div className="flex items-center gap-4 text-[11px] text-slate-600">
+              <span className="flex items-center gap-1.5"><span className="w-2.5 h-2.5 rounded-sm bg-primary"></span>Phục vụ</span>
+              <span className="flex items-center gap-1.5"><span className="w-2.5 h-2.5 rounded-sm bg-rose-400"></span>Nhỡ</span>
+            </div>
+            <div className="flex items-end gap-1 h-52">
+              {hourly.map((h) => {
+                const rate = ratio(h.abandoned, h.offered);
+                const over = meets(rate, targets.TARGET_ABANDON_RATE, 'lower') === false;
+                return (
+                  <div key={h.hour} className="flex-1 flex flex-col items-center gap-1 min-w-0" title={`${h.hour}h: đến ${h.offered}, phục vụ ${h.answered}, nhỡ ${h.abandoned} (${formatPercent(rate)})`}>
+                    <div className="w-full flex flex-col justify-end h-40">
+                      <div className="w-full bg-rose-400 rounded-t-sm" style={{ height: `${(h.abandoned / maxHourly) * 100}%` }}></div>
+                      <div className={`w-full bg-primary ${h.abandoned ? '' : 'rounded-t-sm'}`} style={{ height: `${(h.answered / maxHourly) * 100}%` }}></div>
+                    </div>
+                    <span className="text-[10px] text-slate-500 font-mono">{h.hour}h</span>
+                    <span className={`text-[10px] font-mono ${over ? 'text-rose-700 font-bold' : 'text-slate-400'}`}>{formatPercent(rate, 0)}</span>
+                  </div>
+                );
+              })}
+            </div>
+            {peak && (
+              <div className="text-xs text-slate-600 bg-slate-50 border border-slate-200 rounded-lg p-2.5">
+                Cao điểm: <strong>{peak.hour}h–{String(Number(peak.hour) + 1).padStart(2, '0')}h</strong> với{' '}
+                <strong className="font-mono">{formatNumber(peak.offered)}</strong> cuộc đến, nhỡ{' '}
+                <strong className="font-mono">{formatPercent(ratio(peak.abandoned, peak.offered))}</strong>.
+              </div>
+            )}
+          </>
+        )}
+      </div>
+      </div>
+
+      {/* Bảng theo Line: để rộng hết màn hình vì nhiều cột */}
+      {lineView && (
+        <div className="bg-white rounded-xl p-5 border border-slate-200 shadow-xs space-y-3">
+          <div className="border-b border-slate-100 pb-3">
+            <h2 className="text-base font-bold text-slate-900">
+              Bảng Theo {lineFilter === 'all' ? 'Line' : `Hàng Đợi – Line ${LINES.find((l) => l.key === lineFilter)?.name ?? ''}`}
+            </h2>
+            <p className="text-xs text-slate-500 mt-0.5">
+              {periodText}, {period.compareLabel}. Chọn line ở biểu đồ "Cuộc Gọi Theo Line" để xem từng hàng đợi.
+            </p>
+          </div>
           <div className="overflow-x-auto">
             <table className="w-full text-left text-xs">
               <thead className="bg-slate-50 text-slate-600 uppercase font-semibold border-b border-slate-200">
@@ -1182,50 +1246,6 @@ export const CallCenterView: React.FC<CallCenterViewProps> = ({ onOpenExport }) 
             );
           })}
         </div>
-      </div>
-
-      {/* Khung giờ */}
-      <div className="bg-white rounded-xl p-5 border border-slate-200 shadow-xs space-y-4">
-        <div className="border-b border-slate-100 pb-3">
-          <h2 className="text-base font-bold text-slate-900">Lưu Lượng và Tỷ Lệ Nhỡ Theo Khung Giờ</h2>
-          <p className="text-xs text-slate-500 mt-0.5">
-            Cuộc được phục vụ và cuộc nhỡ theo giờ – {periodText}
-            {!isSingleDay && ` (cộng dồn ${day.days} ngày)`}. Số dưới mỗi cột là tỷ lệ nhỡ của giờ đó, tô đỏ khi vượt mục tiêu.
-          </p>
-        </div>
-        {hourly.length === 0 ? (
-          <div className="text-xs text-slate-400 py-10 text-center">Chưa có dữ liệu khung giờ.</div>
-        ) : (
-          <>
-            <div className="flex items-center gap-4 text-[11px] text-slate-600">
-              <span className="flex items-center gap-1.5"><span className="w-2.5 h-2.5 rounded-sm bg-primary"></span>Phục vụ</span>
-              <span className="flex items-center gap-1.5"><span className="w-2.5 h-2.5 rounded-sm bg-rose-400"></span>Nhỡ</span>
-            </div>
-            <div className="flex items-end gap-1 h-52">
-              {hourly.map((h) => {
-                const rate = ratio(h.abandoned, h.offered);
-                const over = meets(rate, targets.TARGET_ABANDON_RATE, 'lower') === false;
-                return (
-                  <div key={h.hour} className="flex-1 flex flex-col items-center gap-1 min-w-0" title={`${h.hour}h: đến ${h.offered}, phục vụ ${h.answered}, nhỡ ${h.abandoned} (${formatPercent(rate)})`}>
-                    <div className="w-full flex flex-col justify-end h-40">
-                      <div className="w-full bg-rose-400 rounded-t-sm" style={{ height: `${(h.abandoned / maxHourly) * 100}%` }}></div>
-                      <div className={`w-full bg-primary ${h.abandoned ? '' : 'rounded-t-sm'}`} style={{ height: `${(h.answered / maxHourly) * 100}%` }}></div>
-                    </div>
-                    <span className="text-[10px] text-slate-500 font-mono">{h.hour}h</span>
-                    <span className={`text-[10px] font-mono ${over ? 'text-rose-700 font-bold' : 'text-slate-400'}`}>{formatPercent(rate, 0)}</span>
-                  </div>
-                );
-              })}
-            </div>
-            {peak && (
-              <div className="text-xs text-slate-600 bg-slate-50 border border-slate-200 rounded-lg p-2.5">
-                Cao điểm: <strong>{peak.hour}h–{String(Number(peak.hour) + 1).padStart(2, '0')}h</strong> với{' '}
-                <strong className="font-mono">{formatNumber(peak.offered)}</strong> cuộc đến, nhỡ{' '}
-                <strong className="font-mono">{formatPercent(ratio(peak.abandoned, peak.offered))}</strong>.
-              </div>
-            )}
-          </>
-        )}
       </div>
 
       {/* Chi tiết (thu gọn): bảng theo ngày + xếp hạng ĐTV */}
