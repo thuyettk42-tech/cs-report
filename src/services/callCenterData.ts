@@ -23,6 +23,21 @@ export interface CallDailyRow {
   qa_avg: number | null;
   csat_responses: number | null;
   csat_satisfied: number | null;
+  /** Gọi lại cuộc nhỡ theo Power BI (call_callback_daily) – không có khi ngày đó chưa có file */
+  cb_missed?: number | null;
+  cb_on_time?: number | null;
+  cb_late?: number | null;
+}
+
+/** call_callback_daily: cuộc nhỡ cần gọi lại và kết quả gọi lại đúng / sai quy định, theo ngày × hàng đợi */
+export interface CallbackRow {
+  report_date: string;
+  queue: string;
+  queue_ext: string | null;
+  missed: number;
+  on_time: number;
+  late: number;
+  no_interaction: number;
 }
 
 export interface CallTeamRow {
@@ -92,6 +107,7 @@ export interface CallCenterData {
   team: CallTeamRow[];
   queueDays: CallQueueRow[];
   aiDays: AiDayRow[];
+  callbackDays: CallbackRow[];
   /** Hàng đợi / khung giờ / ĐTV đã cộng dồn các ngày trong kỳ */
   queues: CallQueueRow[];
   slots: CallSlotRow[];
@@ -203,9 +219,23 @@ export interface DayDetail {
   team: CallTeamRow[];
   queueDays: CallQueueRow[];
   aiDays: AiDayRow[];
+  callbackDays: CallbackRow[];
 }
 
-/** Số theo ngày (tổng, đội, hàng đợi, cuộc Voice AI theo máy) cho các khoảng ngày. */
+/** Bảng gọi lại có thể chưa được tạo trên Supabase → coi như chưa có dữ liệu thay vì làm hỏng cả trang. */
+async function fetchCallbacks(lo: string, hi: string): Promise<CallbackRow[]> {
+  try {
+    return await fetchAll<CallbackRow>((a, b) =>
+      getSupabaseClient().from('call_callback_daily').select('report_date, queue, queue_ext, missed, on_time, late, no_interaction')
+        .gte('report_date', lo).lte('report_date', hi).order('report_date').order('queue').range(a, b)
+    );
+  } catch (err) {
+    console.warn('Không đọc được call_callback_daily:', err);
+    return [];
+  }
+}
+
+/** Số theo ngày (tổng, đội, hàng đợi, cuộc Voice AI theo máy, gọi lại) cho các khoảng ngày. */
 async function loadDayDetail(ranges: [string, string][]): Promise<DayDetail> {
   const supabase = getSupabaseClient();
   const parts = await Promise.all(
@@ -226,14 +256,22 @@ async function loadDayDetail(ranges: [string, string][]): Promise<DayDetail> {
           supabase.from('call_agent_daily').select('report_date, ext, handled').eq('team', 'Voice AI Bot')
             .gte('report_date', lo).lte('report_date', hi).order('report_date').order('ext').range(a, b)
         ),
+        fetchCallbacks(lo, hi),
       ])
     )
   );
+  const callbackDays = parts.flatMap((p) => p[4]);
+  const cbByDate = groupSum(callbackDays, (c) => c.report_date, ['missed', 'on_time', 'late']);
+  const cbMap = new Map(cbByDate.map((c) => [c.report_date, c]));
   return {
-    daily: parts.flatMap((p) => p[0]),
+    daily: parts.flatMap((p) => p[0]).map((d) => {
+      const cb = cbMap.get(d.report_date);
+      return cb ? { ...d, cb_missed: cb.missed, cb_on_time: cb.on_time, cb_late: cb.late } : d;
+    }),
     team: parts.flatMap((p) => p[1]),
     queueDays: parts.flatMap((p) => p[2]),
     aiDays: parts.flatMap((p) => p[3]),
+    callbackDays,
   };
 }
 
@@ -274,7 +312,7 @@ export async function loadCallCenterData(ranges: [string, string][], from: strin
 
   if (lastSync.error) throw new Error(lastSync.error.message);
 
-  const { daily, team, queueDays, aiDays } = detail;
+  const { daily, team, queueDays, aiDays, callbackDays } = detail;
   const queues = groupSum(queueDays.filter((q) => q.report_date >= from && q.report_date <= to), (q) => q.queue, [
     'offered', 'abandoned', 'handled_inhouse', 'handled_os', 'handled_ai', 'answered_within_sl', 'handle_seconds',
     'csat_responses', 'csat_satisfied',
@@ -296,6 +334,7 @@ export async function loadCallCenterData(ranges: [string, string][], from: strin
     team,
     queueDays,
     aiDays,
+    callbackDays,
     queues,
     slots,
     agents,
@@ -345,6 +384,10 @@ export interface DailyTotals {
   qaAvg: number | null;
   csatResponses: number | null;
   csatSatisfied: number | null;
+  /** Gọi lại theo Power BI: null khi kỳ chưa có ngày nào có file */
+  cbMissed: number | null;
+  cbOnTime: number | null;
+  cbLate: number | null;
 }
 
 /** Cộng call_daily của các ngày trong kỳ (điểm QA lấy trung bình theo số cuộc chấm). */
@@ -362,6 +405,9 @@ export function totalDaily(rows: CallDailyRow[]): DailyTotals {
     qaAvg: qaCount ? Math.round((sumBy(qaRows, (r) => (r.qa_avg as number) * (r.qa_count as number)) / qaCount) * 10) / 10 : null,
     csatResponses: sumNullable(rows, (r) => r.csat_responses),
     csatSatisfied: sumNullable(rows, (r) => r.csat_satisfied),
+    cbMissed: sumNullable(rows, (r) => r.cb_missed),
+    cbOnTime: sumNullable(rows, (r) => r.cb_on_time),
+    cbLate: sumNullable(rows, (r) => r.cb_late),
   };
 }
 
@@ -478,10 +524,13 @@ export interface QueueStat {
   /** CSAT – để 0 khi chưa có nguồn, hiển thị "—" vì không có lượt khảo sát */
   csatResponses: number;
   csatSatisfied: number;
+  /** Gọi lại theo Power BI – cbMissed = 0 nghĩa là chưa có file, hiển thị "—" */
+  cbMissed: number;
+  cbLate: number;
 }
 
 export function emptyStat(): QueueStat {
-  return { offered: 0, abandoned: 0, human: 0, ai: 0, sl: 0, talk: 0, csatResponses: 0, csatSatisfied: 0 };
+  return { offered: 0, abandoned: 0, human: 0, ai: 0, sl: 0, talk: 0, csatResponses: 0, csatSatisfied: 0, cbMissed: 0, cbLate: 0 };
 }
 
 export function addStat(a: QueueStat, b: QueueStat): QueueStat {
@@ -494,6 +543,8 @@ export function addStat(a: QueueStat, b: QueueStat): QueueStat {
     talk: a.talk + b.talk,
     csatResponses: a.csatResponses + b.csatResponses,
     csatSatisfied: a.csatSatisfied + b.csatSatisfied,
+    cbMissed: a.cbMissed + b.cbMissed,
+    cbLate: a.cbLate + b.cbLate,
   };
 }
 
@@ -501,7 +552,12 @@ export function addStat(a: QueueStat, b: QueueStat): QueueStat {
  * Số theo ngày × máy nhánh hàng đợi của các line. Cuộc AI nghe được cộng vào hàng đợi theo AI_EXT_QUEUE
  * (vừa tính cuộc đến, vừa tính đã nghe). Hàng đợi chung VOICE_AI_BOT và hàng đợi ngoài line bị bỏ qua.
  */
-export function queueStatsByDay(queueDays: CallQueueRow[], aiDays: AiDayRow[], queueInfo: Record<string, QueueInfo>): Map<string, Record<string, QueueStat>> {
+export function queueStatsByDay(
+  queueDays: CallQueueRow[],
+  aiDays: AiDayRow[],
+  queueInfo: Record<string, QueueInfo>,
+  callbackDays: CallbackRow[] = []
+): Map<string, Record<string, QueueStat>> {
   const extByName: Record<string, string> = {};
   LINES.forEach((l) => l.queues.forEach((q) => (extByName[q.name] = q.ext)));
   const lineExts = new Set(Object.values(extByName));
@@ -530,6 +586,14 @@ export function queueStatsByDay(queueDays: CallQueueRow[], aiDays: AiDayRow[], q
     const s = cell(a.report_date, ext);
     s.offered += a.handled;
     s.ai += a.handled;
+  });
+  // Tên hàng đợi bên Power BI có thể khác 3CX (vd "CS_LIne4…") → gán theo số máy
+  callbackDays.forEach((c) => {
+    const ext = c.queue_ext || extByName[c.queue] || '';
+    if (!lineExts.has(ext)) return;
+    const s = cell(c.report_date, ext);
+    s.cbMissed += c.missed;
+    s.cbLate += c.late;
   });
   return out;
 }

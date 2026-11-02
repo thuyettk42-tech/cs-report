@@ -443,7 +443,7 @@ export const CallCenterView: React.FC<CallCenterViewProps> = ({ onOpenExport }) 
   // Cuộc gọi theo line / theo hàng đợi trong line
   const lineView = useMemo(() => {
     if (!view || !period || !data) return null;
-    const byDay = queueStatsByDay(data.queueDays, data.aiDays, data.queueInfo);
+    const byDay = queueStatsByDay(data.queueDays, data.aiDays, data.queueInfo, data.callbackDays);
     const line = LINES.find((l) => l.key === lineFilter);
     const groups = line
       ? line.queues.map((q, i) => ({ key: q.ext, label: q.label, exts: [q.ext], color: SERIES_COLORS[i] }))
@@ -702,7 +702,8 @@ export const CallCenterView: React.FC<CallCenterViewProps> = ({ onOpenExport }) 
   const answerRate = ratio(day.answered, day.offered);
   const abandonRate = ratio(day.abandoned, day.offered);
   const prevAbandonRate = prevDay ? ratio(prevDay.abandoned, prevDay.offered) : null;
-  const callbackRate = ratio(day.callbackOnTime, day.callbackNeeded);
+  const callbackRate = ratio(day.cbOnTime, day.cbMissed);
+  const prevCallbackRate = prevDay ? ratio(prevDay.cbOnTime, prevDay.cbMissed) : null;
   const aht = times.talkAvg == null ? null : times.talkAvg + (times.acwAvg || 0);
   const prevAht = prevTimes.talkAvg == null ? null : prevTimes.talkAvg + (prevTimes.acwAvg || 0);
   const totalHandled = sumBy(teams, (t) => t.handled);
@@ -793,16 +794,33 @@ export const CallCenterView: React.FC<CallCenterViewProps> = ({ onOpenExport }) 
 
         <KpiCard title="Gọi Lại Đúng Hạn (<30m)" icon="ring_volume" iconClass="text-amber-600">
           {callbackRate == null ? (
-            <NoSource text="Chưa có nguồn (log gọi ra 3CX)" />
+            <NoSource text="Chưa có file gọi lại (Power BI)" />
           ) : (
-            <div className="flex items-baseline gap-2">
-              <span className="text-2xl sm:text-3xl font-extrabold text-amber-700 font-mono">{formatPercent(callbackRate)}</span>
-              <span className="text-xs text-slate-400">Mục tiêu {formatPercent(targets.TARGET_CALLBACK, 0)}</span>
-            </div>
+            <>
+              <div className="flex items-baseline gap-2">
+                <span className={`text-2xl sm:text-3xl font-extrabold font-mono ${targets.TARGET_CALLBACK == null ? 'text-amber-700' : statusClass(meets(callbackRate, targets.TARGET_CALLBACK, 'higher'))}`}>
+                  {formatPercent(callbackRate)}
+                </span>
+                {targets.TARGET_CALLBACK != null && (
+                  <span className="text-xs text-slate-400">Mục tiêu ≥{formatPercent(targets.TARGET_CALLBACK, 0)}</span>
+                )}
+              </div>
+              <Delta current={callbackRate} previous={prevCallbackRate} label={compareLabel} points />
+            </>
           )}
-          <div className="mt-2 pt-2 border-t border-slate-100 text-xs text-slate-500 flex justify-between">
-            <span>{isSingleDay ? 'Khách nhỡ cần gọi lại:' : 'Khách nhỡ cần gọi lại (cộng các ngày):'}</span>
-            <span className="font-mono font-bold text-slate-800">{formatNumber(day.callbackNeeded)} số</span>
+          <div className="mt-2 pt-2 border-t border-slate-100 text-xs text-slate-500 space-y-0.5">
+            {day.cbMissed != null && (
+              <div className="flex justify-between">
+                <span>Sai quy định / cuộc nhỡ:</span>
+                <span className="font-mono font-bold text-slate-800">
+                  {formatNumber(day.cbLate)} / {formatNumber(day.cbMissed)} ({formatPercent(ratio(day.cbLate, day.cbMissed))})
+                </span>
+              </div>
+            )}
+            <div className="flex justify-between">
+              <span>{isSingleDay ? 'Khách nhỡ cần gọi lại:' : 'Khách nhỡ cần gọi lại (cộng các ngày):'}</span>
+              <span className="font-mono font-bold text-slate-800">{formatNumber(day.callbackNeeded)} số</span>
+            </div>
           </div>
         </KpiCard>
 
@@ -1109,6 +1127,7 @@ export const CallCenterView: React.FC<CallCenterViewProps> = ({ onOpenExport }) 
                   <th className="py-2.5 px-3 text-right">ĐTV Nghe</th>
                   <th className="py-2.5 px-3 text-right">AI Nghe</th>
                   <th className="py-2.5 px-3 text-right">Nhỡ</th>
+                  <th className="py-2.5 px-3 text-right" title="Theo Power BI: số cuộc nhỡ gọi lại sai quy định / cuộc nhỡ cần gọi lại">Gọi Lại Sai QĐ</th>
                   <th className="py-2.5 px-3 text-right">SL ĐTV</th>
                   <th className="py-2.5 px-3 text-right">Đàm Thoại TB</th>
                   <th className="py-2.5 px-3 text-right">CSAT</th>
@@ -1133,6 +1152,19 @@ export const CallCenterView: React.FC<CallCenterViewProps> = ({ onOpenExport }) 
                       <td className="py-2.5 px-3 text-right text-slate-700">{formatNumber(r.cur.ai)}</td>
                       <td className={`py-2.5 px-3 text-right ${statusClass(meets(abandonRate, targets.TARGET_ABANDON_RATE, 'lower'))}`}>
                         {formatNumber(r.cur.abandoned)} <span className="text-[10px]">({formatPercent(abandonRate)})</span>
+                      </td>
+                      <td
+                        className={`py-2.5 px-3 text-right ${statusClass(
+                          meets(ratio(r.cur.cbMissed - r.cur.cbLate, r.cur.cbMissed), targets.TARGET_CALLBACK, 'higher')
+                        )}`}
+                      >
+                        {r.cur.cbMissed ? (
+                          <>
+                            {formatNumber(r.cur.cbLate)} <span className="text-[10px]">({formatPercent(ratio(r.cur.cbLate, r.cur.cbMissed))})</span>
+                          </>
+                        ) : (
+                          '—'
+                        )}
                       </td>
                       <td className={`py-2.5 px-3 text-right ${statusClass(meets(ratio(r.cur.sl, r.cur.human), targets.TARGET_SL, 'higher'))}`}>
                         {formatPercent(ratio(r.cur.sl, r.cur.human))}
