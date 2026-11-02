@@ -249,8 +249,8 @@ export const CallCenterView: React.FC<CallCenterViewProps> = ({ onOpenExport }) 
 
   const [agentSearch, setAgentSearch] = useState('');
   const [forceFilter, setForceFilter] = useState<'all' | 'inhouse' | 'os' | 'top'>('all');
-  const [selectedQueue, setSelectedQueue] = useState<string>('all');
   const [showAllAgents, setShowAllAgents] = useState(false);
+  const [showDetails, setShowDetails] = useState(false);
   const [trendScale, setTrendScale] = useState<'total' | 'perDay'>('total');
   const [trendRate, setTrendRate] = useState<'abandon' | 'sl'>('abandon');
   const [cmpMetric, setCmpMetric] = useState<'offered' | 'abandonRate' | 'sl'>('offered');
@@ -296,7 +296,6 @@ export const CallCenterView: React.FC<CallCenterViewProps> = ({ onOpenExport }) 
 
   useEffect(() => {
     setShowAllAgents(false);
-    setSelectedQueue('all');
   }, [period?.from, period?.to]);
 
   useEffect(() => {
@@ -370,32 +369,6 @@ export const CallCenterView: React.FC<CallCenterViewProps> = ({ onOpenExport }) 
       targets,
     };
   }, [data, dataKey, period, rangesKey]);
-
-  const queueRows = useMemo(() => {
-    if (!data) return [];
-    return data.queues
-      .map((q) => {
-        const info = data.queueInfo[q.queue];
-        const humanHandled = q.handled_inhouse + q.handled_os;
-        const answered = humanHandled + q.handled_ai;
-        return {
-          ...q,
-          name: info?.display_name || q.queue,
-          sortOrder: info?.sort_order ?? null,
-          answered,
-          abandonRate: ratio(q.abandoned, q.offered),
-          talkAvg: ratio(q.handle_seconds, humanHandled),
-          sl: ratio(q.answered_within_sl, answered),
-          csat: ratio(q.csat_satisfied, q.csat_responses),
-        };
-      })
-      .sort((a, b) => {
-        if (a.sortOrder != null && b.sortOrder != null) return a.sortOrder - b.sortOrder;
-        if (a.sortOrder != null) return -1;
-        if (b.sortOrder != null) return 1;
-        return b.offered - a.offered;
-      });
-  }, [data]);
 
   const hourly = useMemo(() => {
     if (!data) return [];
@@ -1020,6 +993,105 @@ export const CallCenterView: React.FC<CallCenterViewProps> = ({ onOpenExport }) 
         </div>
       )}
 
+      {/* Cuộc gọi theo Line */}
+      {lineView && (
+        <div className="bg-white rounded-xl p-5 border border-slate-200 shadow-xs space-y-3">
+          <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-2 border-b border-slate-100 pb-3">
+            <div>
+              <h2 className="text-base font-bold text-slate-900">Cuộc Gọi Theo Line</h2>
+              <p className="text-xs text-slate-500 mt-0.5">
+                Biểu đồ: {formatPeriod(period.tableFrom, period.to)}. Bảng: {periodText}, {period.compareLabel}.
+              </p>
+            </div>
+            <div className="flex flex-wrap items-center gap-2">
+              <select
+                value={lineFilter}
+                onChange={(e) => setLineFilter(e.target.value)}
+                className="px-3 py-1.5 rounded-lg border border-slate-200 text-xs text-slate-700 bg-slate-50 focus:outline-none font-semibold"
+                title="Chọn line"
+              >
+                <option value="all">Tất cả line</option>
+                {LINES.map((l) => (
+                  <option key={l.key} value={l.key}>
+                    Line {l.name} ({l.queues.length} hàng đợi)
+                  </option>
+                ))}
+              </select>
+              <Segmented
+                value={lineMetric}
+                onChange={setLineMetric}
+                options={[
+                  { value: 'offered', label: 'Cuộc đến' },
+                  { value: 'abandonRate', label: 'Tỷ lệ nhỡ' },
+                ]}
+              />
+            </div>
+          </div>
+          <Legend items={lineView.rows.map((r) => ({ label: r.label, color: r.color }))} />
+          <LineChart
+            dots={lineView.dates.length <= 14}
+            xLabels={lineView.dates.map(formatShortDate)}
+            series={lineView.rows.map((r) => ({ key: r.key, label: r.label, color: r.color, values: r.series }))}
+            format={lineMetric === 'offered' ? formatNumber : (v) => formatPercent(v)}
+            target={lineMetric === 'abandonRate' ? targets.TARGET_ABANDON_RATE : null}
+            targetLabel={lineMetric === 'abandonRate' ? 'Mục tiêu' : undefined}
+          />
+          <div className="overflow-x-auto">
+            <table className="w-full text-left text-xs">
+              <thead className="bg-slate-50 text-slate-600 uppercase font-semibold border-b border-slate-200">
+                <tr>
+                  <th className="py-2.5 px-3">{lineFilter === 'all' ? 'Line' : 'Hàng đợi'}</th>
+                  <th className="py-2.5 px-3 text-right">Tổng Đến</th>
+                  <th className="py-2.5 px-3 text-right">ĐTV Nghe</th>
+                  <th className="py-2.5 px-3 text-right">AI Nghe</th>
+                  <th className="py-2.5 px-3 text-right">Nhỡ</th>
+                  <th className="py-2.5 px-3 text-right">SL ĐTV</th>
+                  <th className="py-2.5 px-3 text-right">Đàm Thoại TB</th>
+                  <th className="py-2.5 px-3 text-right">CSAT</th>
+                  <th className="py-2.5 px-3 text-right">Đến Kỳ So Sánh</th>
+                  <th className="py-2.5 px-3 text-right">Thay Đổi</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-slate-100 font-mono">
+                {[...lineView.rows.map((r) => ({ key: r.key, label: r.label, color: r.color, cur: r.cur, prev: r.prev, total: false })),
+                  { key: 'total', label: 'Tổng', color: '', cur: lineView.totalCur, prev: lineView.totalPrev, total: true }].map((r) => {
+                  const abandonRate = ratio(r.cur.abandoned, r.cur.offered);
+                  return (
+                    <tr key={r.key} className={r.total ? 'bg-slate-100 font-bold' : 'hover:bg-slate-50/70'}>
+                      <td className="py-2.5 px-3 font-sans font-semibold text-slate-900">
+                        <span className="flex items-center gap-1.5">
+                          {r.color && <span className="w-2.5 h-2.5 rounded-sm" style={{ backgroundColor: r.color }}></span>}
+                          {r.label}
+                        </span>
+                      </td>
+                      <td className="py-2.5 px-3 text-right font-bold text-slate-900">{formatNumber(r.cur.offered)}</td>
+                      <td className="py-2.5 px-3 text-right text-slate-700">{formatNumber(r.cur.human)}</td>
+                      <td className="py-2.5 px-3 text-right text-slate-700">{formatNumber(r.cur.ai)}</td>
+                      <td className={`py-2.5 px-3 text-right ${statusClass(meets(abandonRate, targets.TARGET_ABANDON_RATE, 'lower'))}`}>
+                        {formatNumber(r.cur.abandoned)} <span className="text-[10px]">({formatPercent(abandonRate)})</span>
+                      </td>
+                      <td className={`py-2.5 px-3 text-right ${statusClass(meets(ratio(r.cur.sl, r.cur.human), targets.TARGET_SL, 'higher'))}`}>
+                        {formatPercent(ratio(r.cur.sl, r.cur.human))}
+                      </td>
+                      <td className="py-2.5 px-3 text-right text-slate-700">{formatDuration(ratio(r.cur.talk, r.cur.human))}</td>
+                      <td className="py-2.5 px-3 text-right text-slate-700">{formatPercent(ratio(r.cur.csatSatisfied, r.cur.csatResponses))}</td>
+                      <td className="py-2.5 px-3 text-right text-slate-500">{lineView.hasPrev ? formatNumber(r.prev.offered) : '—'}</td>
+                      <td className="py-2.5 px-3 text-right font-semibold">
+                        {lineView.hasPrev ? <ChangeBadge current={r.cur.offered} previous={r.prev.offered} /> : <span className="text-slate-400">—</span>}
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          </div>
+          <p className="text-[11px] text-slate-500 leading-relaxed">
+            Cuộc Voice AI được tính vào line theo máy: 8400001–8400004 → Retail / F&amp;B / Salon / Hotel, 8400006 → Technology,
+            8400007 → HĐĐT. Không tính Knote (8400005) và vài cuộc nhỡ ngay tại máy AI (không xác định được line).
+          </p>
+        </div>
+      )}
+
       {/* Phân bổ theo 3 đội ngũ */}
       <div className="bg-white rounded-xl p-5 border border-slate-200 shadow-xs space-y-4">
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-slate-100 pb-3">
@@ -1112,384 +1184,241 @@ export const CallCenterView: React.FC<CallCenterViewProps> = ({ onOpenExport }) 
         </div>
       </div>
 
-      {/* Cuộc gọi theo Line */}
-      {lineView && (
-        <div className="bg-white rounded-xl p-5 border border-slate-200 shadow-xs space-y-3">
-          <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-2 border-b border-slate-100 pb-3">
-            <div>
-              <h2 className="text-base font-bold text-slate-900">Cuộc Gọi Theo Line</h2>
-              <p className="text-xs text-slate-500 mt-0.5">
-                Biểu đồ: {formatPeriod(period.tableFrom, period.to)}. Bảng: {periodText}, {period.compareLabel}.
-              </p>
-            </div>
-            <div className="flex flex-wrap items-center gap-2">
-              <select
-                value={lineFilter}
-                onChange={(e) => setLineFilter(e.target.value)}
-                className="px-3 py-1.5 rounded-lg border border-slate-200 text-xs text-slate-700 bg-slate-50 focus:outline-none font-semibold"
-                title="Chọn line"
-              >
-                <option value="all">Tất cả line</option>
-                {LINES.map((l) => (
-                  <option key={l.key} value={l.key}>
-                    Line {l.name} ({l.queues.length} hàng đợi)
-                  </option>
-                ))}
-              </select>
-              <Segmented
-                value={lineMetric}
-                onChange={setLineMetric}
-                options={[
-                  { value: 'offered', label: 'Cuộc đến' },
-                  { value: 'abandonRate', label: 'Tỷ lệ nhỡ' },
-                ]}
-              />
-            </div>
-          </div>
-          <Legend items={lineView.rows.map((r) => ({ label: r.label, color: r.color }))} />
-          <LineChart
-            dots={lineView.dates.length <= 14}
-            xLabels={lineView.dates.map(formatShortDate)}
-            series={lineView.rows.map((r) => ({ key: r.key, label: r.label, color: r.color, values: r.series }))}
-            format={lineMetric === 'offered' ? formatNumber : (v) => formatPercent(v)}
-            target={lineMetric === 'abandonRate' ? targets.TARGET_ABANDON_RATE : null}
-            targetLabel={lineMetric === 'abandonRate' ? 'Mục tiêu' : undefined}
-          />
-          <div className="overflow-x-auto">
-            <table className="w-full text-left text-xs">
-              <thead className="bg-slate-50 text-slate-600 uppercase font-semibold border-b border-slate-200">
-                <tr>
-                  <th className="py-2.5 px-3">{lineFilter === 'all' ? 'Line' : 'Hàng đợi'}</th>
-                  <th className="py-2.5 px-3 text-right">Tổng Đến</th>
-                  <th className="py-2.5 px-3 text-right">ĐTV Nghe</th>
-                  <th className="py-2.5 px-3 text-right">AI Nghe</th>
-                  <th className="py-2.5 px-3 text-right">Nhỡ</th>
-                  <th className="py-2.5 px-3 text-right">SL ĐTV</th>
-                  <th className="py-2.5 px-3 text-right">Đàm Thoại TB</th>
-                  <th className="py-2.5 px-3 text-right">Đến Kỳ So Sánh</th>
-                  <th className="py-2.5 px-3 text-right">Thay Đổi</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-slate-100 font-mono">
-                {[...lineView.rows.map((r) => ({ key: r.key, label: r.label, color: r.color, cur: r.cur, prev: r.prev, total: false })),
-                  { key: 'total', label: 'Tổng', color: '', cur: lineView.totalCur, prev: lineView.totalPrev, total: true }].map((r) => {
-                  const abandonRate = ratio(r.cur.abandoned, r.cur.offered);
-                  return (
-                    <tr key={r.key} className={r.total ? 'bg-slate-100 font-bold' : 'hover:bg-slate-50/70'}>
-                      <td className="py-2.5 px-3 font-sans font-semibold text-slate-900">
-                        <span className="flex items-center gap-1.5">
-                          {r.color && <span className="w-2.5 h-2.5 rounded-sm" style={{ backgroundColor: r.color }}></span>}
-                          {r.label}
-                        </span>
-                      </td>
-                      <td className="py-2.5 px-3 text-right font-bold text-slate-900">{formatNumber(r.cur.offered)}</td>
-                      <td className="py-2.5 px-3 text-right text-slate-700">{formatNumber(r.cur.human)}</td>
-                      <td className="py-2.5 px-3 text-right text-slate-700">{formatNumber(r.cur.ai)}</td>
-                      <td className={`py-2.5 px-3 text-right ${statusClass(meets(abandonRate, targets.TARGET_ABANDON_RATE, 'lower'))}`}>
-                        {formatNumber(r.cur.abandoned)} <span className="text-[10px]">({formatPercent(abandonRate)})</span>
-                      </td>
-                      <td className={`py-2.5 px-3 text-right ${statusClass(meets(ratio(r.cur.sl, r.cur.human), targets.TARGET_SL, 'higher'))}`}>
-                        {formatPercent(ratio(r.cur.sl, r.cur.human))}
-                      </td>
-                      <td className="py-2.5 px-3 text-right text-slate-700">{formatDuration(ratio(r.cur.talk, r.cur.human))}</td>
-                      <td className="py-2.5 px-3 text-right text-slate-500">{lineView.hasPrev ? formatNumber(r.prev.offered) : '—'}</td>
-                      <td className="py-2.5 px-3 text-right font-semibold">
-                        {lineView.hasPrev ? <ChangeBadge current={r.cur.offered} previous={r.prev.offered} /> : <span className="text-slate-400">—</span>}
-                      </td>
-                    </tr>
-                  );
-                })}
-              </tbody>
-            </table>
-          </div>
-          <p className="text-[11px] text-slate-500 leading-relaxed">
-            Cuộc Voice AI được tính vào line theo máy: 8400001–8400004 → Retail / F&amp;B / Salon / Hotel, 8400006 → Technology,
-            8400007 → HĐĐT. Không tính Knote (8400005) và vài cuộc nhỡ ngay tại máy AI (không xác định được line).
+      {/* Khung giờ */}
+      <div className="bg-white rounded-xl p-5 border border-slate-200 shadow-xs space-y-4">
+        <div className="border-b border-slate-100 pb-3">
+          <h2 className="text-base font-bold text-slate-900">Lưu Lượng và Tỷ Lệ Nhỡ Theo Khung Giờ</h2>
+          <p className="text-xs text-slate-500 mt-0.5">
+            Cuộc được phục vụ và cuộc nhỡ theo giờ – {periodText}
+            {!isSingleDay && ` (cộng dồn ${day.days} ngày)`}. Số dưới mỗi cột là tỷ lệ nhỡ của giờ đó, tô đỏ khi vượt mục tiêu.
           </p>
         </div>
-      )}
-
-      {/* Bảng 7 ngày */}
-      <div className="bg-white rounded-xl p-5 border border-slate-200 shadow-xs space-y-4">
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-slate-100 pb-3">
-          <div>
-            <h2 className="text-base font-bold text-slate-900">
-              Tổng Hợp Sản Lượng Call Theo Từng Ngày ({isSingleDay ? '7 Ngày Gần Nhất' : `${weekRows.length} Ngày Trong Kỳ`})
-            </h2>
-            <p className="text-xs text-slate-500 mt-0.5">Theo dõi biến động số cuộc đến, tỷ lệ phục vụ, cuộc nhỡ và Service Level</p>
-          </div>
-          <span className="text-xs font-mono font-bold text-primary bg-sky-50 px-2.5 py-1 rounded">
-            Tổng {weekRows.length} ngày: {formatNumber(weekTotals.offered)} cuộc (TB {formatNumber(weekTotals.offered / Math.max(1, weekRows.length))} / ngày)
-          </span>
-        </div>
-
-        <div className="overflow-x-auto">
-          <table className="w-full text-left text-xs">
-            <thead className="bg-slate-50 text-slate-600 uppercase font-semibold border-b border-slate-200">
-              <tr>
-                <th className="py-2.5 px-3">Ngày</th>
-                <th className="py-2.5 px-3 text-right">Tổng Đến</th>
-                <th className="py-2.5 px-3 text-right">Phục Vụ</th>
-                <th className="py-2.5 px-3 text-right">Tỷ Lệ Nhỡ</th>
-                <th className="py-2.5 px-3 text-right">Cần Gọi Lại</th>
-                <th className="py-2.5 px-3 text-right">Inhouse</th>
-                <th className="py-2.5 px-3 text-right">OS Partner</th>
-                <th className="py-2.5 px-3 text-right">Voice AI</th>
-                <th className="py-2.5 px-3 text-right">SL ĐTV</th>
-                <th className="py-2.5 px-3 text-right">CSAT</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-slate-100 font-mono">
-              {weekRows.map((row) => {
-                const isCurrent = isSingleDay && row.date === period.to;
-                const rowAbandon = ratio(row.abandoned, row.offered);
-                return (
-                  <tr key={row.date} className={`hover:bg-slate-50/70 transition-colors ${isCurrent ? 'bg-sky-50/60 font-bold border-l-4 border-primary' : ''}`}>
-                    <td className="py-2.5 px-3 font-sans">
-                      <span className="font-semibold">{formatShortDate(row.date)}</span>{' '}
-                      <span className="text-slate-400">({weekdayName(row.date)})</span>
-                    </td>
-                    <td className="py-2.5 px-3 text-right font-bold text-slate-900">{formatNumber(row.offered)}</td>
-                    <td className="py-2.5 px-3 text-right text-emerald-600 font-semibold">{formatNumber(row.answered)}</td>
-                    <td className={`py-2.5 px-3 text-right ${statusClass(meets(rowAbandon, targets.TARGET_ABANDON_RATE, 'lower'))}`}>
-                      {formatPercent(rowAbandon)}
-                    </td>
-                    <td className="py-2.5 px-3 text-right text-slate-700">{formatNumber(row.callbackNeeded)}</td>
-                    <td className="py-2.5 px-3 text-right text-slate-700">{formatNumber(row.inhouse)}</td>
-                    <td className="py-2.5 px-3 text-right text-slate-700">{formatNumber(row.os)}</td>
-                    <td className="py-2.5 px-3 text-right text-emerald-700 font-semibold">{formatNumber(row.ai)}</td>
-                    <td className={`py-2.5 px-3 text-right font-semibold ${statusClass(meets(row.sl, targets.TARGET_SL, 'higher'))}`}>
-                      {formatPercent(row.sl)}
-                    </td>
-                    <td className="py-2.5 px-3 text-right text-slate-900">{formatPercent(ratio(row.csatSat, row.csatResp))}</td>
-                  </tr>
-                );
-              })}
-            </tbody>
-            <tfoot className="bg-slate-100 font-bold border-t border-slate-200 font-mono">
-              <tr>
-                <td className="py-2.5 px-3 font-sans">TỔNG {weekRows.length} NGÀY</td>
-                <td className="py-2.5 px-3 text-right">{formatNumber(weekTotals.offered)}</td>
-                <td className="py-2.5 px-3 text-right text-emerald-600">{formatNumber(weekTotals.answered)}</td>
-                <td className="py-2.5 px-3 text-right">{formatPercent(ratio(weekTotals.abandoned, weekTotals.offered))}</td>
-                <td className="py-2.5 px-3 text-right">{formatNumber(weekTotals.callbackNeeded)}</td>
-                <td className="py-2.5 px-3 text-right">{formatNumber(weekTotals.inhouse)}</td>
-                <td className="py-2.5 px-3 text-right">{formatNumber(weekTotals.os)}</td>
-                <td className="py-2.5 px-3 text-right text-emerald-700">{formatNumber(weekTotals.ai)}</td>
-                <td className="py-2.5 px-3 text-right">{formatPercent(weekTotals.sl)}</td>
-                <td className="py-2.5 px-3 text-right">{formatPercent(weekTotals.csat)}</td>
-              </tr>
-            </tfoot>
-          </table>
-        </div>
-      </div>
-
-      <div className="grid grid-cols-1 xl:grid-cols-5 gap-6">
-        {/* Hàng đợi */}
-        <div className="xl:col-span-3 bg-white rounded-xl p-5 border border-slate-200 shadow-xs space-y-4">
-          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-slate-100 pb-3">
-            <div>
-              <h2 className="text-base font-bold text-slate-900">Hiệu Năng Theo Hàng Đợi ({queueRows.length} hàng đợi)</h2>
-              <p className="text-xs text-slate-500 mt-0.5">Phân bổ tiếp nhận giữa Inhouse, OS Partner và Voice AI – {periodText}</p>
+        {hourly.length === 0 ? (
+          <div className="text-xs text-slate-400 py-10 text-center">Chưa có dữ liệu khung giờ.</div>
+        ) : (
+          <>
+            <div className="flex items-center gap-4 text-[11px] text-slate-600">
+              <span className="flex items-center gap-1.5"><span className="w-2.5 h-2.5 rounded-sm bg-primary"></span>Phục vụ</span>
+              <span className="flex items-center gap-1.5"><span className="w-2.5 h-2.5 rounded-sm bg-rose-400"></span>Nhỡ</span>
             </div>
-            <select
-              value={selectedQueue}
-              onChange={(e) => setSelectedQueue(e.target.value)}
-              className="px-3 py-1.5 rounded-lg border border-slate-200 text-xs text-slate-700 bg-slate-50 focus:outline-none"
-            >
-              <option value="all">Tất cả hàng đợi</option>
-              {queueRows.map((q) => (
-                <option key={q.queue} value={q.queue}>
-                  {q.name}
-                </option>
-              ))}
-            </select>
-          </div>
-
-          <div className="overflow-x-auto">
-            <table className="w-full text-left text-xs">
-              <thead className="bg-slate-50 text-slate-600 uppercase font-semibold border-b border-slate-200">
-                <tr>
-                  <th className="py-2.5 px-3">Hàng Đợi</th>
-                  <th className="py-2.5 px-3 text-right">Tổng Đến</th>
-                  <th className="py-2.5 px-3 text-right">Nhỡ</th>
-                  <th className="py-2.5 px-3 text-center">Phân Bổ</th>
-                  <th className="py-2.5 px-3 text-center">Đàm Thoại TB</th>
-                  <th className="py-2.5 px-3 text-center">SL ≤20s</th>
-                  <th className="py-2.5 px-3 text-center">CSAT</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-slate-100">
-                {queueRows
-                  .filter((q) => selectedQueue === 'all' || q.queue === selectedQueue)
-                  .map((q) => (
-                    <tr key={q.queue} className="hover:bg-slate-50/70 transition-colors">
-                      <td className="py-2.5 px-3">
-                        <div className="font-bold text-slate-900">{q.name}</div>
-                        {q.name !== q.queue && <div className="text-[11px] text-slate-400 font-mono">{q.queue}</div>}
-                      </td>
-                      <td className="py-2.5 px-3 text-right font-mono font-bold text-slate-900">{formatNumber(q.offered)}</td>
-                      <td className={`py-2.5 px-3 text-right font-mono ${statusClass(meets(q.abandonRate, targets.TARGET_ABANDON_RATE, 'lower'))}`}>
-                        {formatNumber(q.abandoned)} <span className="text-[10px]">({formatPercent(q.abandonRate)})</span>
-                      </td>
-                      <td className="py-2.5 px-3 text-center font-mono text-[11px] whitespace-nowrap">
-                        <span>IH <strong className="text-primary">{formatNumber(q.handled_inhouse)}</strong></span>
-                        {' · '}
-                        <span>OS <strong className="text-[#0090da]">{formatNumber(q.handled_os)}</strong></span>
-                        {q.handled_ai > 0 && (
-                          <>
-                            {' · '}
-                            <span>AI <strong className="text-emerald-700">{formatNumber(q.handled_ai)}</strong></span>
-                          </>
-                        )}
-                      </td>
-                      <td className="py-2.5 px-3 text-center font-mono text-slate-700">{formatDuration(q.talkAvg)}</td>
-                      <td className={`py-2.5 px-3 text-center font-mono font-bold ${statusClass(meets(q.sl, targets.TARGET_SL, 'higher'))}`}>
-                        {formatPercent(q.sl)}
-                      </td>
-                      <td className="py-2.5 px-3 text-center font-mono text-slate-900">{formatPercent(q.csat)}</td>
-                    </tr>
-                  ))}
-              </tbody>
-            </table>
-          </div>
-        </div>
-
-        {/* Khung giờ */}
-        <div className="xl:col-span-2 bg-white rounded-xl p-5 border border-slate-200 shadow-xs space-y-4">
-          <div className="border-b border-slate-100 pb-3">
-            <h2 className="text-base font-bold text-slate-900">Lưu Lượng Cuộc Gọi Theo Khung Giờ</h2>
-            <p className="text-xs text-slate-500 mt-0.5">
-              Cuộc được phục vụ và cuộc nhỡ theo giờ – {periodText}
-              {!isSingleDay && ` (cộng dồn ${day.days} ngày)`}
-            </p>
-          </div>
-          {hourly.length === 0 ? (
-            <div className="text-xs text-slate-400 py-10 text-center">Chưa có dữ liệu khung giờ.</div>
-          ) : (
-            <>
-              <div className="flex items-center gap-4 text-[11px] text-slate-600">
-                <span className="flex items-center gap-1.5"><span className="w-2.5 h-2.5 rounded-sm bg-primary"></span>Phục vụ</span>
-                <span className="flex items-center gap-1.5"><span className="w-2.5 h-2.5 rounded-sm bg-rose-400"></span>Nhỡ</span>
-              </div>
-              <div className="flex items-end gap-1 h-48">
-                {hourly.map((h) => (
-                  <div key={h.hour} className="flex-1 flex flex-col items-center gap-1 min-w-0" title={`${h.hour}h: đến ${h.offered}, phục vụ ${h.answered}, nhỡ ${h.abandoned}`}>
+            <div className="flex items-end gap-1 h-52">
+              {hourly.map((h) => {
+                const rate = ratio(h.abandoned, h.offered);
+                const over = meets(rate, targets.TARGET_ABANDON_RATE, 'lower') === false;
+                return (
+                  <div key={h.hour} className="flex-1 flex flex-col items-center gap-1 min-w-0" title={`${h.hour}h: đến ${h.offered}, phục vụ ${h.answered}, nhỡ ${h.abandoned} (${formatPercent(rate)})`}>
                     <div className="w-full flex flex-col justify-end h-40">
                       <div className="w-full bg-rose-400 rounded-t-sm" style={{ height: `${(h.abandoned / maxHourly) * 100}%` }}></div>
                       <div className={`w-full bg-primary ${h.abandoned ? '' : 'rounded-t-sm'}`} style={{ height: `${(h.answered / maxHourly) * 100}%` }}></div>
                     </div>
-                    <span className="text-[10px] text-slate-500 font-mono">{h.hour}</span>
+                    <span className="text-[10px] text-slate-500 font-mono">{h.hour}h</span>
+                    <span className={`text-[10px] font-mono ${over ? 'text-rose-700 font-bold' : 'text-slate-400'}`}>{formatPercent(rate, 0)}</span>
                   </div>
-                ))}
-              </div>
-              {peak && (
-                <div className="text-xs text-slate-600 bg-slate-50 border border-slate-200 rounded-lg p-2.5">
-                  Cao điểm: <strong>{peak.hour}h–{String(Number(peak.hour) + 1).padStart(2, '0')}h</strong> với{' '}
-                  <strong className="font-mono">{formatNumber(peak.offered)}</strong> cuộc đến, nhỡ{' '}
-                  <strong className="font-mono">{formatPercent(ratio(peak.abandoned, peak.offered))}</strong>.
-                </div>
-              )}
-            </>
-          )}
-        </div>
-      </div>
-
-      {/* Bảng xếp hạng ĐTV */}
-      <div className="bg-white rounded-xl p-5 border border-slate-200 shadow-xs space-y-4">
-        <div className="flex flex-col md:flex-row md:items-center justify-between gap-3 border-b border-slate-100 pb-3">
-          <div>
-            <h2 className="text-base font-bold text-slate-900">Bảng Xếp Hạng Năng Suất Điện Thoại Viên</h2>
-            <p className="text-xs text-slate-500 mt-0.5">
-              {formatNumber(rankedAgents.length)} ĐTV có nghe máy {isSingleDay ? periodText : `trong kỳ ${periodText}`}, xếp theo
-              tổng số cuộc đã nghe
-            </p>
-          </div>
-          <div className="flex flex-wrap items-center gap-2">
-            <div className="relative">
-              <input
-                type="text"
-                value={agentSearch}
-                onChange={(e) => setAgentSearch(e.target.value)}
-                placeholder="Tìm theo tên, ext, nhóm..."
-                className="pl-8 pr-3 py-1.5 rounded-lg border border-slate-200 text-xs bg-slate-50 focus:outline-none focus:bg-white w-48"
-              />
-              <span className="material-symbols-outlined absolute left-2.5 top-2 text-[16px] text-slate-400">search</span>
+                );
+              })}
             </div>
-            <select
-              value={forceFilter}
-              onChange={(e) => setForceFilter(e.target.value as any)}
-              className="px-3 py-1.5 rounded-lg border border-slate-200 text-xs text-slate-700 bg-slate-50 focus:outline-none"
-            >
-              <option value="all">Tất cả lực lượng</option>
-              <option value="inhouse">Inhouse KiotViet</option>
-              <option value="os">OS Partner (BPO)</option>
-              <option value="top">Top 10 sản lượng</option>
-            </select>
-          </div>
-        </div>
-
-        <div className="overflow-x-auto">
-          <table className="w-full text-left text-xs">
-            <thead className="bg-slate-50 text-slate-600 uppercase font-semibold border-b border-slate-200">
-              <tr>
-                <th className="py-2.5 px-3 text-center w-12">#</th>
-                <th className="py-2.5 px-4">Điện Thoại Viên</th>
-                <th className="py-2.5 px-3">Đội Ngũ</th>
-                <th className="py-2.5 px-3">Chuyên Môn</th>
-                <th className="py-2.5 px-3 text-center">Cuộc Đã Nghe</th>
-                <th className="py-2.5 px-3 text-center">Đàm Thoại TB</th>
-                <th className="py-2.5 px-3 text-center">SL ≤20s</th>
-                <th className="py-2.5 px-3 text-center">FCR</th>
-                <th className="py-2.5 px-3 text-center">Điểm QA</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-slate-100">
-              {visibleAgents.map((agent) => (
-                <tr key={agent.ext} className="hover:bg-slate-50/70 transition-colors">
-                  <td className="py-2.5 px-3 text-center font-bold text-slate-500 font-mono">{agent.rank}</td>
-                  <td className="py-2.5 px-4">
-                    <div className="font-bold text-slate-900">{agent.name}</div>
-                    <div className="text-[11px] text-slate-400 font-mono">EXT: {agent.ext}</div>
-                  </td>
-                  <td className="py-2.5 px-3">
-                    <span
-                      className={`inline-flex items-center px-2 py-0.5 rounded text-[11px] font-semibold ${
-                        agent.team === 'OS Partner' ? 'bg-[#0090da]/10 text-[#0090da]' : 'bg-primary/10 text-primary'
-                      }`}
-                    >
-                      {agent.team || '—'}
-                    </span>
-                  </td>
-                  <td className="py-2.5 px-3 text-slate-700">{agent.skill || '—'}</td>
-                  <td className="py-2.5 px-3 text-center font-mono font-bold text-primary text-sm">{formatNumber(agent.handled)}</td>
-                  <td className="py-2.5 px-3 text-center font-mono text-slate-700">{formatDuration(agent.talkAvg)}</td>
-                  <td className={`py-2.5 px-3 text-center font-mono font-semibold ${statusClass(meets(agent.sl, targets.TARGET_SL, 'higher'))}`}>
-                    {formatPercent(agent.sl)}
-                  </td>
-                  <td className="py-2.5 px-3 text-center font-mono text-slate-700">{formatPercent(agent.fcr)}</td>
-                  <td className="py-2.5 px-3 text-center font-mono text-slate-900">{agent.qa_avg == null ? '—' : agent.qa_avg}</td>
-                </tr>
-              ))}
-              {visibleAgents.length === 0 && (
-                <tr>
-                  <td colSpan={9} className="py-6 text-center text-slate-400">Không có ĐTV phù hợp.</td>
-                </tr>
-              )}
-            </tbody>
-          </table>
-        </div>
-        {filteredAgents.length > AGENT_PAGE && (
-          <div className="text-center">
-            <button
-              onClick={() => setShowAllAgents(!showAllAgents)}
-              className="px-4 py-1.5 rounded-lg border border-slate-200 text-xs font-semibold text-slate-700 hover:bg-slate-50"
-            >
-              {showAllAgents ? 'Thu gọn' : `Hiện tất cả ${formatNumber(filteredAgents.length)} ĐTV`}
-            </button>
-          </div>
+            {peak && (
+              <div className="text-xs text-slate-600 bg-slate-50 border border-slate-200 rounded-lg p-2.5">
+                Cao điểm: <strong>{peak.hour}h–{String(Number(peak.hour) + 1).padStart(2, '0')}h</strong> với{' '}
+                <strong className="font-mono">{formatNumber(peak.offered)}</strong> cuộc đến, nhỡ{' '}
+                <strong className="font-mono">{formatPercent(ratio(peak.abandoned, peak.offered))}</strong>.
+              </div>
+            )}
+          </>
         )}
       </div>
+
+      {/* Chi tiết (thu gọn): bảng theo ngày + xếp hạng ĐTV */}
+      <div className="bg-white rounded-xl border border-slate-200 shadow-xs">
+        <button
+          type="button"
+          onClick={() => setShowDetails(!showDetails)}
+          aria-expanded={showDetails}
+          className="w-full flex items-center justify-between gap-2 px-5 py-4 text-left"
+        >
+          <div>
+            <h2 className="text-base font-bold text-slate-900">Chi Tiết: Số Liệu Theo Ngày và Xếp Hạng Điện Thoại Viên</h2>
+            <p className="text-xs text-slate-500 mt-0.5">
+              Bấm để {showDetails ? 'thu gọn' : 'mở'} – tra số từng ngày và năng suất từng ĐTV.
+            </p>
+          </div>
+          <span className="material-symbols-outlined text-slate-500">{showDetails ? 'expand_less' : 'expand_more'}</span>
+        </button>
+      </div>
+      {showDetails && (
+        <>
+          {/* Bảng 7 ngày */}
+          <div className="bg-white rounded-xl p-5 border border-slate-200 shadow-xs space-y-4">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-slate-100 pb-3">
+              <div>
+                <h2 className="text-base font-bold text-slate-900">
+                  Tổng Hợp Sản Lượng Call Theo Từng Ngày ({isSingleDay ? '7 Ngày Gần Nhất' : `${weekRows.length} Ngày Trong Kỳ`})
+                </h2>
+                <p className="text-xs text-slate-500 mt-0.5">Theo dõi biến động số cuộc đến, tỷ lệ phục vụ, cuộc nhỡ và Service Level</p>
+              </div>
+              <span className="text-xs font-mono font-bold text-primary bg-sky-50 px-2.5 py-1 rounded">
+                Tổng {weekRows.length} ngày: {formatNumber(weekTotals.offered)} cuộc (TB {formatNumber(weekTotals.offered / Math.max(1, weekRows.length))} / ngày)
+              </span>
+            </div>
+
+            <div className="overflow-x-auto">
+              <table className="w-full text-left text-xs">
+                <thead className="bg-slate-50 text-slate-600 uppercase font-semibold border-b border-slate-200">
+                  <tr>
+                    <th className="py-2.5 px-3">Ngày</th>
+                    <th className="py-2.5 px-3 text-right">Tổng Đến</th>
+                    <th className="py-2.5 px-3 text-right">Phục Vụ</th>
+                    <th className="py-2.5 px-3 text-right">Tỷ Lệ Nhỡ</th>
+                    <th className="py-2.5 px-3 text-right">Cần Gọi Lại</th>
+                    <th className="py-2.5 px-3 text-right">Inhouse</th>
+                    <th className="py-2.5 px-3 text-right">OS Partner</th>
+                    <th className="py-2.5 px-3 text-right">Voice AI</th>
+                    <th className="py-2.5 px-3 text-right">SL ĐTV</th>
+                    <th className="py-2.5 px-3 text-right">CSAT</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-slate-100 font-mono">
+                  {weekRows.map((row) => {
+                    const isCurrent = isSingleDay && row.date === period.to;
+                    const rowAbandon = ratio(row.abandoned, row.offered);
+                    return (
+                      <tr key={row.date} className={`hover:bg-slate-50/70 transition-colors ${isCurrent ? 'bg-sky-50/60 font-bold border-l-4 border-primary' : ''}`}>
+                        <td className="py-2.5 px-3 font-sans">
+                          <span className="font-semibold">{formatShortDate(row.date)}</span>{' '}
+                          <span className="text-slate-400">({weekdayName(row.date)})</span>
+                        </td>
+                        <td className="py-2.5 px-3 text-right font-bold text-slate-900">{formatNumber(row.offered)}</td>
+                        <td className="py-2.5 px-3 text-right text-emerald-600 font-semibold">{formatNumber(row.answered)}</td>
+                        <td className={`py-2.5 px-3 text-right ${statusClass(meets(rowAbandon, targets.TARGET_ABANDON_RATE, 'lower'))}`}>
+                          {formatPercent(rowAbandon)}
+                        </td>
+                        <td className="py-2.5 px-3 text-right text-slate-700">{formatNumber(row.callbackNeeded)}</td>
+                        <td className="py-2.5 px-3 text-right text-slate-700">{formatNumber(row.inhouse)}</td>
+                        <td className="py-2.5 px-3 text-right text-slate-700">{formatNumber(row.os)}</td>
+                        <td className="py-2.5 px-3 text-right text-emerald-700 font-semibold">{formatNumber(row.ai)}</td>
+                        <td className={`py-2.5 px-3 text-right font-semibold ${statusClass(meets(row.sl, targets.TARGET_SL, 'higher'))}`}>
+                          {formatPercent(row.sl)}
+                        </td>
+                        <td className="py-2.5 px-3 text-right text-slate-900">{formatPercent(ratio(row.csatSat, row.csatResp))}</td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+                <tfoot className="bg-slate-100 font-bold border-t border-slate-200 font-mono">
+                  <tr>
+                    <td className="py-2.5 px-3 font-sans">TỔNG {weekRows.length} NGÀY</td>
+                    <td className="py-2.5 px-3 text-right">{formatNumber(weekTotals.offered)}</td>
+                    <td className="py-2.5 px-3 text-right text-emerald-600">{formatNumber(weekTotals.answered)}</td>
+                    <td className="py-2.5 px-3 text-right">{formatPercent(ratio(weekTotals.abandoned, weekTotals.offered))}</td>
+                    <td className="py-2.5 px-3 text-right">{formatNumber(weekTotals.callbackNeeded)}</td>
+                    <td className="py-2.5 px-3 text-right">{formatNumber(weekTotals.inhouse)}</td>
+                    <td className="py-2.5 px-3 text-right">{formatNumber(weekTotals.os)}</td>
+                    <td className="py-2.5 px-3 text-right text-emerald-700">{formatNumber(weekTotals.ai)}</td>
+                    <td className="py-2.5 px-3 text-right">{formatPercent(weekTotals.sl)}</td>
+                    <td className="py-2.5 px-3 text-right">{formatPercent(weekTotals.csat)}</td>
+                  </tr>
+                </tfoot>
+              </table>
+            </div>
+          </div>
+
+          {/* Bảng xếp hạng ĐTV */}
+          <div className="bg-white rounded-xl p-5 border border-slate-200 shadow-xs space-y-4">
+            <div className="flex flex-col md:flex-row md:items-center justify-between gap-3 border-b border-slate-100 pb-3">
+              <div>
+                <h2 className="text-base font-bold text-slate-900">Bảng Xếp Hạng Năng Suất Điện Thoại Viên</h2>
+                <p className="text-xs text-slate-500 mt-0.5">
+                  {formatNumber(rankedAgents.length)} ĐTV có nghe máy {isSingleDay ? periodText : `trong kỳ ${periodText}`}, xếp theo
+                  tổng số cuộc đã nghe
+                </p>
+              </div>
+              <div className="flex flex-wrap items-center gap-2">
+                <div className="relative">
+                  <input
+                    type="text"
+                    value={agentSearch}
+                    onChange={(e) => setAgentSearch(e.target.value)}
+                    placeholder="Tìm theo tên, ext, nhóm..."
+                    className="pl-8 pr-3 py-1.5 rounded-lg border border-slate-200 text-xs bg-slate-50 focus:outline-none focus:bg-white w-48"
+                  />
+                  <span className="material-symbols-outlined absolute left-2.5 top-2 text-[16px] text-slate-400">search</span>
+                </div>
+                <select
+                  value={forceFilter}
+                  onChange={(e) => setForceFilter(e.target.value as any)}
+                  className="px-3 py-1.5 rounded-lg border border-slate-200 text-xs text-slate-700 bg-slate-50 focus:outline-none"
+                >
+                  <option value="all">Tất cả lực lượng</option>
+                  <option value="inhouse">Inhouse KiotViet</option>
+                  <option value="os">OS Partner (BPO)</option>
+                  <option value="top">Top 10 sản lượng</option>
+                </select>
+              </div>
+            </div>
+
+            <div className="overflow-x-auto">
+              <table className="w-full text-left text-xs">
+                <thead className="bg-slate-50 text-slate-600 uppercase font-semibold border-b border-slate-200">
+                  <tr>
+                    <th className="py-2.5 px-3 text-center w-12">#</th>
+                    <th className="py-2.5 px-4">Điện Thoại Viên</th>
+                    <th className="py-2.5 px-3">Đội Ngũ</th>
+                    <th className="py-2.5 px-3">Chuyên Môn</th>
+                    <th className="py-2.5 px-3 text-center">Cuộc Đã Nghe</th>
+                    <th className="py-2.5 px-3 text-center">Đàm Thoại TB</th>
+                    <th className="py-2.5 px-3 text-center">SL ≤20s</th>
+                    <th className="py-2.5 px-3 text-center">FCR</th>
+                    <th className="py-2.5 px-3 text-center">Điểm QA</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-slate-100">
+                  {visibleAgents.map((agent) => (
+                    <tr key={agent.ext} className="hover:bg-slate-50/70 transition-colors">
+                      <td className="py-2.5 px-3 text-center font-bold text-slate-500 font-mono">{agent.rank}</td>
+                      <td className="py-2.5 px-4">
+                        <div className="font-bold text-slate-900">{agent.name}</div>
+                        <div className="text-[11px] text-slate-400 font-mono">EXT: {agent.ext}</div>
+                      </td>
+                      <td className="py-2.5 px-3">
+                        <span
+                          className={`inline-flex items-center px-2 py-0.5 rounded text-[11px] font-semibold ${
+                            agent.team === 'OS Partner' ? 'bg-[#0090da]/10 text-[#0090da]' : 'bg-primary/10 text-primary'
+                          }`}
+                        >
+                          {agent.team || '—'}
+                        </span>
+                      </td>
+                      <td className="py-2.5 px-3 text-slate-700">{agent.skill || '—'}</td>
+                      <td className="py-2.5 px-3 text-center font-mono font-bold text-primary text-sm">{formatNumber(agent.handled)}</td>
+                      <td className="py-2.5 px-3 text-center font-mono text-slate-700">{formatDuration(agent.talkAvg)}</td>
+                      <td className={`py-2.5 px-3 text-center font-mono font-semibold ${statusClass(meets(agent.sl, targets.TARGET_SL, 'higher'))}`}>
+                        {formatPercent(agent.sl)}
+                      </td>
+                      <td className="py-2.5 px-3 text-center font-mono text-slate-700">{formatPercent(agent.fcr)}</td>
+                      <td className="py-2.5 px-3 text-center font-mono text-slate-900">{agent.qa_avg == null ? '—' : agent.qa_avg}</td>
+                    </tr>
+                  ))}
+                  {visibleAgents.length === 0 && (
+                    <tr>
+                      <td colSpan={9} className="py-6 text-center text-slate-400">Không có ĐTV phù hợp.</td>
+                    </tr>
+                  )}
+                </tbody>
+              </table>
+            </div>
+            {filteredAgents.length > AGENT_PAGE && (
+              <div className="text-center">
+                <button
+                  onClick={() => setShowAllAgents(!showAllAgents)}
+                  className="px-4 py-1.5 rounded-lg border border-slate-200 text-xs font-semibold text-slate-700 hover:bg-slate-50"
+                >
+                  {showAllAgents ? 'Thu gọn' : `Hiện tất cả ${formatNumber(filteredAgents.length)} ĐTV`}
+                </button>
+              </div>
+            )}
+          </div>
+        </>
+      )}
     </div>
   );
 };

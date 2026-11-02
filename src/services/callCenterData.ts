@@ -475,10 +475,13 @@ export interface QueueStat {
   /** Cuộc ĐTV nghe trong 20 giây */
   sl: number;
   talk: number;
+  /** CSAT – để 0 khi chưa có nguồn, hiển thị "—" vì không có lượt khảo sát */
+  csatResponses: number;
+  csatSatisfied: number;
 }
 
 export function emptyStat(): QueueStat {
-  return { offered: 0, abandoned: 0, human: 0, ai: 0, sl: 0, talk: 0 };
+  return { offered: 0, abandoned: 0, human: 0, ai: 0, sl: 0, talk: 0, csatResponses: 0, csatSatisfied: 0 };
 }
 
 export function addStat(a: QueueStat, b: QueueStat): QueueStat {
@@ -489,6 +492,8 @@ export function addStat(a: QueueStat, b: QueueStat): QueueStat {
     ai: a.ai + b.ai,
     sl: a.sl + b.sl,
     talk: a.talk + b.talk,
+    csatResponses: a.csatResponses + b.csatResponses,
+    csatSatisfied: a.csatSatisfied + b.csatSatisfied,
   };
 }
 
@@ -516,6 +521,8 @@ export function queueStatsByDay(queueDays: CallQueueRow[], aiDays: AiDayRow[], q
     s.ai += q.handled_ai;
     s.sl += q.answered_within_sl;
     s.talk += q.handle_seconds;
+    s.csatResponses += q.csat_responses || 0;
+    s.csatSatisfied += q.csat_satisfied || 0;
   });
   aiDays.forEach((a) => {
     const ext = AI_EXT_QUEUE[a.ext];
