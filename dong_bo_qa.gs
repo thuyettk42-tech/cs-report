@@ -40,6 +40,18 @@ const QA_TIEU_CHI = [
   { ten: 'dua ra phuong an giai quyet', tru: 100 },
   { ten: 'loi khac', tru: 5 },
 ];
+// Cột ghi nhận lỗi (G H I J K L M N O P Q R W X) theo nhóm, xếp từ nghiêm trọng nhất.
+// 1 cuộc có lỗi ở nhiều cột chỉ tính 1 cuộc lỗi, xếp vào nhóm nghiêm trọng nhất.
+const QA_NHOM_LOI = [
+  { key: 'sev_attitude',      ten: 'Thái độ',                   cot: ['thai do 1', 'thai do 2', 'diem liet thai do'] },  // K W X
+  { key: 'sev_unresolved',    ten: 'Không xử lý được vấn đề',   cot: ['dua ra phuong an giai quyet'] },                // O
+  { key: 'sev_process',       ten: 'Quy trình',                 cot: ['xac dinh van de', 'khai thac va xu ly thong tin',
+                                                                      'ghi nhan thong tin, du lieu', 'loi khac'] },   // N P Q R
+  { key: 'sev_communication', ten: 'Giao tiếp',                 cot: ['chao hoi', 'xung ho', 'ngu dieu, giong noi',
+                                                                      'lang nghe, tich cuc giao tiep', 'ngon tu, dien dat',
+                                                                      'su dong cam, ket noi'] },                      // G H I J L M
+];
+
 const QA_COT = {
   time: 'timestamp',
   ext: 'line agent',
@@ -61,14 +73,18 @@ function kiemTraQA() {
   const thang = {};
   Object.keys(kq.dong).forEach(k => {
     const r = kq.dong[k];
-    const t = thang[r.report_date.slice(0, 7)] = thang[r.report_date.slice(0, 7)] || { n: 0, diem: 0, tot: 0, kem: 0, gq: 0 };
-    t.n += r.qa_count; t.diem += r.score_sum; t.tot += r.good_count; t.kem += r.poor_count; t.gq += r.resolved_count;
+    const t = thang[r.report_date.slice(0, 7)] = thang[r.report_date.slice(0, 7)] ||
+      { n: 0, diem: 0, loi: 0, sev_attitude: 0, sev_unresolved: 0, sev_process: 0, sev_communication: 0, khen: 0 };
+    t.n += r.qa_count; t.diem += r.score_sum; t.loi += r.error_calls; t.khen += r.praise_count;
+    QA_NHOM_LOI.forEach(n => { t[n.key] += r[n.key]; });
   });
   Object.keys(thang).sort().forEach(m => {
     const t = thang[m];
-    Logger.log('  Tháng ' + m + ': ' + t.n + ' cuộc, điểm TB ' + (t.diem / t.n).toFixed(1) + ', Tốt ' + t.tot +
-      ', Kém ' + t.kem + ', đã giải quyết ' + phanTram_(t.gq, t.n));
+    Logger.log('  Tháng ' + m + ': ' + t.n + ' cuộc, điểm TB ' + (t.diem / t.n).toFixed(1) +
+      ', cuộc lỗi ' + t.loi + ' (' + phanTram_(t.loi, t.n) + ') = ' +
+      QA_NHOM_LOI.map(n => n.ten + ' ' + t[n.key]).join(' + ') + ', được khen ' + t.khen);
   });
+  Logger.log('Số lý do lỗi khác nhau: ' + new Set(Object.keys(kq.lyDo).map(k => k.split('|').slice(2).join('|'))).size);
   Logger.log('✅ Đối chiếu với báo cáo QA. Không ghi gì vào Supabase.');
 }
 
@@ -79,6 +95,10 @@ function dongBoQA() {
     const now = new Date().toISOString();
     const rows = Object.keys(kq.dong).map(k => Object.assign({}, kq.dong[k], { source: QA.NGUON, updated_at: now }));
     ghiBang_('call_qa_daily', 'report_date,ext', rows);
+    // Lý do lỗi: xóa hết rồi ghi lại để lý do QA đã sửa / bỏ không còn sót lại
+    supabase_('delete', 'call_qa_reason_daily?report_date=gte.2000-01-01', undefined, 'return=minimal');
+    ghiBang_('call_qa_reason_daily', 'report_date,ext,criterion,reason',
+      Object.keys(kq.lyDo).map(k => Object.assign({}, kq.lyDo[k], { updated_at: now })));
     const ngay = rows.map(r => r.report_date).sort();
     const msg = nhan + ': ' + kq.call + ' cuộc chấm (' + (ngay[0] || '–') + ' → ' + (ngay[ngay.length - 1] || '–') + '), ' + rows.length + ' dòng ngày × ĐTV';
     supabase_('post', 'sync_log', [{ report_date: ngay[ngay.length - 1] || null, status: rows.length ? 'success' : 'skipped',
@@ -125,9 +145,10 @@ function docQA_() {
   const cot = {};
   Object.keys(QA_COT).forEach(k => { cot[k] = tim(QA_COT[k]); });
   const cotLoi = QA_TIEU_CHI.map(t => ({ i: tim(t.ten), tru: t.tru }));
+  const nhom = QA_NHOM_LOI.map(n => ({ key: n.key, cot: n.cot.map(c => ({ i: tim(c), ten: String(vals[0][tim(c)]).trim() })) }));
   const tz = ss.getSpreadsheetTimeZone();
 
-  const kq = { dong: {}, tong: vals.length - 1, call: 0, boQua: 0 };
+  const kq = { dong: {}, lyDo: {}, tong: vals.length - 1, call: 0, boQua: 0 };
   for (let r = 1; r < vals.length; r++) {
     const row = vals[r];
     if (chuanHoa_(row[cot.kenh]) !== QA.KENH) continue;
@@ -140,8 +161,26 @@ function docQA_() {
     const cl = chuanHoa_(row[cot.chatLuong]);
     const k = ngay + '|' + ext;
     const d = kq.dong[k] = kq.dong[k] || { report_date: ngay, ext, qa_count: 0, score_sum: 0, good_count: 0,
-      fair_count: 0, poor_count: 0, resolved_count: 0, repeat_count: 0 };
+      fair_count: 0, poor_count: 0, resolved_count: 0, repeat_count: 0, error_calls: 0, sev_attitude: 0,
+      sev_unresolved: 0, sev_process: 0, sev_communication: 0, praise_count: 0 };
     d.qa_count++; d.score_sum += diem;
+    // Nhóm lỗi nghiêm trọng nhất của cuộc + từng lý do lỗi (mỗi lựa chọn cách nhau bởi dấu phẩy)
+    let nhomCuoc = null;
+    nhom.forEach(n => n.cot.forEach(c => {
+      const o = String(row[c.i] == null ? '' : row[c.i]).trim();
+      if (!o) return;
+      if (!nhomCuoc) nhomCuoc = n.key;
+      const daDem = {};
+      o.split(',').map(s => s.trim()).filter(Boolean).forEach(lyDo => {
+        if (daDem[lyDo]) return;
+        daDem[lyDo] = 1;
+        const kl = k + '|' + c.ten + '|' + lyDo;
+        const l = kq.lyDo[kl] = kq.lyDo[kl] || { report_date: ngay, ext, criterion: c.ten, reason: lyDo.slice(0, 300), calls: 0 };
+        l.calls++;
+      });
+    }));
+    if (nhomCuoc) { d.error_calls++; d[nhomCuoc]++; }
+    if (String(row[cot.thuong] == null ? '' : row[cot.thuong]).trim()) d.praise_count++;
     if (cl === 'tot') d.good_count++; else if (cl === 'kha') d.fair_count++; else if (cl === 'kem') d.poor_count++;
     if (chuanHoa_(row[cot.giaiQuyet]) === 'co') d.resolved_count++;
     if (chuanHoa_(row[cot.trung]) === 'co') d.repeat_count++;

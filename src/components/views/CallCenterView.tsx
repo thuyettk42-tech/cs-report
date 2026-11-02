@@ -34,6 +34,7 @@ import {
   weekdayName,
 } from '../../services/callCenterData';
 import { COMPARE_COLOR, Legend, LineChart, OTHER_COLOR, SERIES_COLORS, StackedBarChart } from './callCenterCharts';
+import QaAnalysis from './QaAnalysis';
 
 interface CallCenterViewProps {
   onOpenExport: () => void;
@@ -1288,6 +1289,19 @@ export const CallCenterView: React.FC<CallCenterViewProps> = ({ onOpenExport }) 
           })}
         </div>
       </div>
+
+      {/* Phân tích chất lượng QA */}
+      <QaAnalysis
+        data={data}
+        trend={trend}
+        from={period.from}
+        to={period.to}
+        prevFrom={period.prevFrom}
+        prevTo={period.prevTo}
+        periodText={periodText}
+        compareLabel={period.compareLabel}
+        target={targets.TARGET_QA}
+      />
 
       {/* Chi tiết (thu gọn): bảng theo ngày + xếp hạng ĐTV */}
       <div className="bg-white rounded-xl border border-slate-200 shadow-xs">

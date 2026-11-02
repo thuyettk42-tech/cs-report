@@ -51,6 +51,72 @@ export interface QaRow {
   poor_count: number;
   resolved_count: number;
   repeat_count: number;
+  /** Cuộc có ít nhất 1 lỗi, và số cuộc lỗi theo nhóm nghiêm trọng nhất của cuộc */
+  error_calls: number;
+  sev_attitude: number;
+  sev_unresolved: number;
+  sev_process: number;
+  sev_communication: number;
+  /** Cuộc được KH khen / hài lòng / đánh giá 5 sao (cột Điểm thưởng) */
+  praise_count: number;
+}
+
+/** call_qa_reason_daily: số cuộc gặp từng lý do lỗi, theo ngày chấm × máy ĐTV */
+export interface QaReasonRow {
+  report_date: string;
+  ext: string;
+  criterion: string;
+  reason: string;
+  calls: number;
+}
+
+/** Nhóm lỗi QA, xếp từ nghiêm trọng nhất; criteria = tên cột tiêu chí trong file chấm */
+export const QA_SEVERITY = [
+  { key: 'sev_attitude', label: 'Thái độ', detail: 'Thái độ 1, Thái độ 2, Điểm liệt thái độ', criteria: ['Thái độ 1', 'Thái độ 2', 'Điểm liệt thái độ'] },
+  { key: 'sev_unresolved', label: 'Không xử lý được vấn đề', detail: 'Đưa ra phương án giải quyết', criteria: ['Đưa ra phương án giải quyết'] },
+  {
+    key: 'sev_process',
+    label: 'Quy trình',
+    detail: 'Xác định vấn đề, Khai thác / Ghi nhận thông tin, Lỗi khác (SLA, quy trình)',
+    criteria: ['Xác định vấn đề', 'Khai thác và xử lý thông tin', 'Ghi nhận thông tin, dữ liệu', 'Lỗi khác'],
+  },
+  {
+    key: 'sev_communication',
+    label: 'Giao tiếp',
+    detail: 'Chào hỏi, Xưng hô, Ngữ điệu, Lắng nghe, Ngôn từ, Đồng cảm',
+    criteria: ['Chào hỏi', 'Xưng hô', 'Ngữ điệu, giọng nói', 'Lắng nghe, tích cực giao tiếp', 'Ngôn từ, diên đạt', 'Sự đồng cảm, kết nối'],
+  },
+] as const;
+export type QaSeverityKey = (typeof QA_SEVERITY)[number]['key'];
+
+export interface QaSummary {
+  count: number;
+  score: number | null;
+  errorCalls: number;
+  praise: number;
+  resolved: number;
+  bySeverity: Record<QaSeverityKey, number>;
+}
+
+/** Cộng call_qa_daily của các dòng cho trước (điểm TB = tổng điểm / số cuộc chấm). */
+export function summarizeQa(rows: QaRow[]): QaSummary {
+  const count = sumBy(rows, (r) => r.qa_count);
+  return {
+    count,
+    score: count ? Math.round((sumBy(rows, (r) => r.score_sum) / count) * 10) / 10 : null,
+    errorCalls: sumBy(rows, (r) => r.error_calls),
+    praise: sumBy(rows, (r) => r.praise_count),
+    resolved: sumBy(rows, (r) => r.resolved_count),
+    bySeverity: Object.fromEntries(QA_SEVERITY.map((s) => [s.key, sumBy(rows, (r) => r[s.key])])) as Record<QaSeverityKey, number>,
+  };
+}
+
+/** Nhóm nghiêm trọng của một tiêu chí (tên cột) */
+export function severityOfCriterion(criterion: string): QaSeverityKey | null {
+  const norm = (x: string) => x.normalize('NFC').trim().toLowerCase();
+  const c = norm(criterion);
+  const s = QA_SEVERITY.find((g) => g.criteria.some((x) => norm(x) === c));
+  return s ? s.key : null;
 }
 
 export interface CallTeamRow {
@@ -121,6 +187,8 @@ export interface CallCenterData {
   queueDays: CallQueueRow[];
   aiDays: AiDayRow[];
   callbackDays: CallbackRow[];
+  qaDays: QaRow[];
+  qaReasons: QaReasonRow[];
   /** Hàng đợi / khung giờ / ĐTV đã cộng dồn các ngày trong kỳ */
   queues: CallQueueRow[];
   slots: CallSlotRow[];
@@ -234,6 +302,7 @@ export interface DayDetail {
   aiDays: AiDayRow[];
   callbackDays: CallbackRow[];
   qaDays: QaRow[];
+  qaReasons: QaReasonRow[];
 }
 
 /** Bảng gọi lại / QA có thể chưa được tạo trên Supabase → coi như chưa có dữ liệu thay vì làm hỏng cả trang. */
@@ -272,12 +341,25 @@ async function loadDayDetail(ranges: [string, string][]): Promise<DayDetail> {
         ),
         fetchOptional<CallbackRow>('call_callback_daily', 'report_date, queue, queue_ext, missed, on_time, late, no_interaction', 'queue', lo, hi),
         fetchOptional<QaRow>('call_qa_daily',
-          'report_date, ext, qa_count, score_sum, good_count, fair_count, poor_count, resolved_count, repeat_count', 'ext', lo, hi),
+          'report_date, ext, qa_count, score_sum, good_count, fair_count, poor_count, resolved_count, repeat_count, ' +
+            'error_calls, sev_attitude, sev_unresolved, sev_process, sev_communication, praise_count', 'ext', lo, hi),
+        fetchOptional<QaReasonRow>('call_qa_reason_daily', 'report_date, ext, criterion, reason, calls', 'ext', lo, hi),
       ])
     )
   );
   const callbackDays = parts.flatMap((p) => p[4]);
-  const qaDays = parts.flatMap((p) => p[5]);
+  // Cột phân tích lỗi có thể chưa được thêm (chưa chạy SQL bước 8) → để 0
+  const qaDays = parts.flatMap((p) => p[5]).map((q) => ({
+    ...q,
+    score_sum: Number(q.score_sum) || 0,
+    error_calls: q.error_calls ?? 0,
+    sev_attitude: q.sev_attitude ?? 0,
+    sev_unresolved: q.sev_unresolved ?? 0,
+    sev_process: q.sev_process ?? 0,
+    sev_communication: q.sev_communication ?? 0,
+    praise_count: q.praise_count ?? 0,
+  }));
+  const qaReasons = parts.flatMap((p) => p[6]);
   const cbMap = new Map(groupSum(callbackDays, (c) => c.report_date, ['missed', 'on_time', 'late']).map((c) => [c.report_date, c]));
   const qaMap = new Map(groupSum(qaDays, (q) => q.report_date, ['qa_count', 'score_sum']).map((q) => [q.report_date, q]));
   return {
@@ -296,6 +378,7 @@ async function loadDayDetail(ranges: [string, string][]): Promise<DayDetail> {
     aiDays: parts.flatMap((p) => p[3]),
     callbackDays,
     qaDays,
+    qaReasons,
   };
 }
 
@@ -368,6 +451,8 @@ export async function loadCallCenterData(ranges: [string, string][], from: strin
     queueDays,
     aiDays,
     callbackDays,
+    qaDays: detail.qaDays,
+    qaReasons: detail.qaReasons,
     queues,
     slots,
     agents,
