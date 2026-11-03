@@ -222,7 +222,7 @@ export interface CallCenterData {
 const PAGE_SIZE = 1000;
 
 /** Supabase trả tối đa 1000 dòng mỗi lần, nên đọc theo trang cho đến hết. */
-async function fetchAll<T>(build: (from: number, to: number) => PromiseLike<{ data: T[] | null; error: any }>): Promise<T[]> {
+export async function fetchAll<T>(build: (from: number, to: number) => PromiseLike<{ data: T[] | null; error: any }>): Promise<T[]> {
   const rows: T[] = [];
   for (let from = 0; ; from += PAGE_SIZE) {
     const { data, error } = await build(from, from + PAGE_SIZE - 1);
