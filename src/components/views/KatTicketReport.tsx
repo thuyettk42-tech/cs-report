@@ -26,8 +26,13 @@ import {
   loadKatHourly,
   summarizeKat,
   KatCallDay,
+  KatAgentDay,
+  KAT_DEFAULT_TARGET_PER_DAY,
+  loadKatAgents,
+  loadKatTargetPerDay,
 } from '../../services/katData';
 import { Legend, OTHER_COLOR, SERIES_COLORS, StackedBarChart } from './callCenterCharts';
+import KatAgentProductivity from './KatAgentProductivity';
 
 const CONTENT_COLOR: Record<string, string> = {
   HĐĐT: SERIES_COLORS[0],
@@ -175,7 +180,12 @@ export default function KatTicketReport() {
   const [year, setYear] = useState('');
   const [content, setContent] = useState<string>('all');
   const [volumeBy, setVolumeBy] = useState<'content' | 'channel'>('content');
-  const [data, setData] = useState<{ key: string; daily: KatDailyRow[]; hourly: KatHourRow[]; calls: KatCallDay[] } | null>(null);
+  const [data, setData] = useState<{ key: string; daily: KatDailyRow[]; hourly: KatHourRow[]; calls: KatCallDay[]; agents: KatAgentDay[] } | null>(null);
+  const [targetPerDay, setTargetPerDay] = useState(KAT_DEFAULT_TARGET_PER_DAY);
+
+  useEffect(() => {
+    loadKatTargetPerDay().then(setTargetPerDay).catch(() => undefined);
+  }, []);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
@@ -214,8 +224,10 @@ export default function KatTicketReport() {
       loadKatHourly(period.from, period.to),
       // Số cuộc gọi line HĐĐT không bắt buộc: lỗi thì thẻ gọi nhỡ hiện "Chưa có dữ liệu"
       loadKatCalls(lo, period.to).catch(() => [] as KatCallDay[]),
+      // Năng suất nhân sự cần SQL bước 12; chưa chạy thì mục đó báo chưa có số
+      loadKatAgents(lo, period.to).catch(() => [] as KatAgentDay[]),
     ])
-      .then(([daily, hourly, calls]) => setData({ key, daily, hourly, calls }))
+      .then(([daily, hourly, calls, agents]) => setData({ key, daily, hourly, calls, agents }))
       .catch((e) => setError(e.message || String(e)));
   }, [periodKey]); // eslint-disable-line react-hooks/exhaustive-deps
 
@@ -672,6 +684,20 @@ export default function KatTicketReport() {
           SLA chỉ tính kênh Ticket (xử lý xong trong 4 giờ, không tính ticket Từ chối / Trùng lặp). Call và Chat xử lý ngay khi KH liên hệ.
         </p>
       </div>
+
+      {/* Năng suất nhân sự KAT (mã tổng đài 88xx) */}
+      {period && data && (
+        <KatAgentProductivity
+          rows={data.agents || []}
+          from={period.from}
+          to={period.to}
+          prevFrom={period.prevFrom}
+          prevTo={period.prevTo}
+          compareLabel={compareLabel}
+          allTickets={view.allCur}
+          target={targetPerDay}
+        />
+      )}
 
       {/* Theo giờ */}
       <div className="bg-white rounded-xl p-5 border border-slate-200 shadow-xs space-y-3">

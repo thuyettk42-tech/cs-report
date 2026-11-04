@@ -30,6 +30,7 @@ const KAT = {
   PHUT_CHAY: 0,                  // Google lệch ±15 phút → khoảng 10h45–11h15
   KHOA_LAN_CHAY: 'KAT_LAN_CHAY_CUOI',  // (bản cũ) mốc lần chạy – file sửa trước mốc này coi như đã đọc
   KHOA_DA_DOC: 'KAT_FILE_DA_DOC',      // nhớ từng file đã đọc: { mã file: thời điểm sửa }
+  KHOA_NAP_LAI: 'KAT_DANG_NAP_LAI',    // có giá trị = napKATTatCa đang nạp dở (bấm lại thì đọc tiếp, không làm lại)
   GIOI_HAN_GIAY: 270,                  // Apps Script cho tối đa 6 phút/lần → sau 4,5 phút không mở thêm file
 };
 
@@ -85,11 +86,19 @@ function kiemTraKAT() {
   Logger.log('✅ Không ghi gì vào Supabase.');
 }
 
-/** Đọc lại TẤT CẢ file (quên các file đã đọc). Nhiều file thì bấm Run dongBoKATHangNgay tiếp cho đến khi báo hết. */
+/**
+ * Đọc lại TẤT CẢ file. Nhiều file thì bấm Run lại (hàm này hoặc dongBoKATHangNgay) cho đến khi báo đã đọc hết.
+ * Đang nạp dở thì bấm lại KHÔNG đọc lại từ đầu mà chỉ đọc tiếp các file còn lại.
+ */
 function napKATTatCa() {
   const p = PropertiesService.getScriptProperties();
-  p.deleteProperty(KAT.KHOA_DA_DOC);
-  p.deleteProperty(KAT.KHOA_LAN_CHAY);
+  if (p.getProperty(KAT.KHOA_NAP_LAI)) {
+    Logger.log('Đang nạp lại dở – đọc tiếp các file còn lại.');
+  } else {
+    p.deleteProperty(KAT.KHOA_DA_DOC);
+    p.deleteProperty(KAT.KHOA_LAN_CHAY);
+    p.setProperty(KAT.KHOA_NAP_LAI, String(Date.now()));
+  }
   dongBoKAT_('Nạp ticket KAT (tất cả file)');
 }
 
@@ -122,7 +131,11 @@ function dongBoKAT_(nhan) {
     if (daDoc[f.getId()] !== undefined) return daDoc[f.getId()] !== sua;
     return sua > lanTruoc;
   });
-  if (!chuaDoc.length) { Logger.log('Không có file ticket KAT mới hoặc vừa sửa.'); return; }
+  if (!chuaDoc.length) {
+    p.deleteProperty(KAT.KHOA_NAP_LAI);
+    Logger.log('Không có file ticket KAT mới hoặc vừa sửa.');
+    return;
+  }
   Logger.log('Có ' + chuaDoc.length + ' file cần đọc.');
   let xong = 0;
   try {
@@ -142,7 +155,8 @@ function dongBoKAT_(nhan) {
       Logger.log('✅ ' + msg);
     }
     const con = chuaDoc.length - xong;
-    Logger.log(con ? '⏳ Còn ' + con + ' file chưa đọc – bấm Run dongBoKATHangNgay thêm lần nữa (lịch 11h sáng cũng sẽ đọc tiếp).'
+    if (!con) p.deleteProperty(KAT.KHOA_NAP_LAI);
+    Logger.log(con ? '⏳ Còn ' + con + ' file chưa đọc – bấm Run thêm lần nữa (lịch 11h sáng cũng sẽ đọc tiếp).'
                    : '✅ Đã đọc hết các file.');
   } catch (e) {
     Logger.log('❌ LỖI: ' + e.message);
@@ -224,6 +238,10 @@ function docCacFileKAT_(files) {
       source: /^\d{3,5}\s*-/.test(t.nguon) ? 'Nhân viên' : (t.nguon || null),
       creator_team: nhomNguoiTao_(t.nguoiTao),
       process_seconds: t.giay,
+      // Người xử lý (nhân viên nội bộ) – để tính năng suất; đội KAT = mã bắt đầu bằng 88
+      handler_code: /^\d{3,5}$/.test(maNV_(t.nguoiXuLy)) ? maNV_(t.nguoiXuLy) : null,
+      handler_name: tenNV_(t.nguoiXuLy),
+      handler_team: nhomNguoiTao_(t.nguoiXuLy),
     };
   });
   return kq;
@@ -264,6 +282,13 @@ function nhomNguoiTao_(s) {
 /** Excel .xlsx hoặc .xls đời cũ (CRM đôi khi xuất .xls) */
 function laFileExcel_(loai) {
   return loai === MimeType.MICROSOFT_EXCEL || loai === MimeType.MICROSOFT_EXCEL_LEGACY;
+}
+
+/** "8821 - Phạm Nguyễn Vĩnh Kỳ - KAT - Customer Service - DNG" → "Phạm Nguyễn Vĩnh Kỳ" */
+function tenNV_(s) {
+  // CRM có lúc thiếu khoảng trắng: "8802 -Đào Mạnh Đạt - …", "8806- Phạm Linh Chi - …"
+  const ten = String(s || '').replace(/^\s*\d{3,5}\s*-\s*/, '').split(/\s+-\s*|\s*-\s+/)[0].trim();
+  return ten || null;
 }
 
 function maNV_(s) {

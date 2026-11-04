@@ -110,6 +110,46 @@ export function loadKatHourly(from: string, to: string): Promise<KatHourRow[]> {
   );
 }
 
+/** Một dòng của view kat_agent_daily: ticket theo ngày × người xử lý */
+export interface KatAgentDay {
+  report_date: string;
+  handler_code: string;
+  handler_name: string | null;
+  handler_team: string | null;
+  tickets: number;
+  done: number;
+  rejected: number;
+  calls: number;
+  chats: number;
+  ticket_channel: number;
+  sla_base: number;
+  within_sla: number;
+  ticket_seconds: number;
+}
+
+/** Đội KAT = người xử lý có mã tổng đài bắt đầu bằng 88 */
+export const isKatAgent = (code: string) => /^88\d{2}$/.test(code || '');
+export const KAT_DEFAULT_TARGET_PER_DAY = 30;
+
+export function loadKatAgents(from: string, to: string): Promise<KatAgentDay[]> {
+  return fetchAll<KatAgentDay>((a, b) =>
+    getSupabaseClient()
+      .from('kat_agent_daily')
+      .select('report_date, handler_code, handler_name, handler_team, tickets, done, rejected, calls, chats, ticket_channel, sla_base, within_sla, ticket_seconds')
+      .gte('report_date', from)
+      .lte('report_date', to)
+      .order('report_date')
+      .order('handler_code')
+      .range(a, b)
+  );
+}
+
+/** Mục tiêu ticket / người / ngày (kpi_targets KAT_TARGET_TICKETS_PER_DAY), mặc định 30 */
+export async function loadKatTargetPerDay(): Promise<number> {
+  const { data } = await getSupabaseClient().from('kpi_targets').select('value').eq('code', 'KAT_TARGET_TICKETS_PER_DAY').limit(1);
+  return data && data[0] ? Number(data[0].value) : KAT_DEFAULT_TARGET_PER_DAY;
+}
+
 export interface KatSummary {
   tickets: number;
   done: number;
