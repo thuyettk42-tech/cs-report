@@ -22,8 +22,10 @@ import {
   isTicketChannel,
   loadKatDaily,
   loadKatDates,
+  loadKatCalls,
   loadKatHourly,
   summarizeKat,
+  KatCallDay,
 } from '../../services/katData';
 import { Legend, OTHER_COLOR, SERIES_COLORS, StackedBarChart } from './callCenterCharts';
 
@@ -35,6 +37,8 @@ const CONTENT_COLOR: Record<string, string> = {
 };
 const CHANNEL_COLOR: Record<string, string> = { Call: SERIES_COLORS[0], Chat: SERIES_COLORS[1], Ticket: SERIES_COLORS[2], Khác: OTHER_COLOR };
 const SLA_TARGET = 0.95;
+/** Mục tiêu tỷ lệ gọi nhỡ line KAT (như thiết kế: < 5%) */
+const ABANDON_TARGET = 0.05;
 /** Kỳ dài hơn số ngày này thì biểu đồ sản lượng gộp theo tháng */
 const MAX_DAILY_BARS = 62;
 
@@ -171,7 +175,7 @@ export default function KatTicketReport() {
   const [year, setYear] = useState('');
   const [content, setContent] = useState<string>('all');
   const [volumeBy, setVolumeBy] = useState<'content' | 'channel'>('content');
-  const [data, setData] = useState<{ key: string; daily: KatDailyRow[]; hourly: KatHourRow[] } | null>(null);
+  const [data, setData] = useState<{ key: string; daily: KatDailyRow[]; hourly: KatHourRow[]; calls: KatCallDay[] } | null>(null);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
@@ -204,8 +208,14 @@ export default function KatTicketReport() {
   useEffect(() => {
     if (!period) return;
     const key = periodKey;
-    Promise.all([loadKatDaily(minDate(period.prevFrom, period.from), period.to), loadKatHourly(period.from, period.to)])
-      .then(([daily, hourly]) => setData({ key, daily, hourly }))
+    const lo = minDate(period.prevFrom, period.from);
+    Promise.all([
+      loadKatDaily(lo, period.to),
+      loadKatHourly(period.from, period.to),
+      // Số cuộc gọi line HĐĐT không bắt buộc: lỗi thì thẻ gọi nhỡ hiện "Chưa có dữ liệu"
+      loadKatCalls(lo, period.to).catch(() => [] as KatCallDay[]),
+    ])
+      .then(([daily, hourly, calls]) => setData({ key, daily, hourly, calls }))
       .catch((e) => setError(e.message || String(e)));
   }, [periodKey]); // eslint-disable-line react-hooks/exhaustive-deps
 
@@ -254,7 +264,11 @@ export default function KatTicketReport() {
       v: KAT_CONTENT.map((c) => data.hourly.reduce((s, r) => s + (r.created_hour === h && r.content_group === c && keep(r) ? r.tickets : 0), 0)),
     }));
     const used = hours.filter((x) => x.v.some((n) => n > 0)).map((x) => x.h);
+    const sumCalls = (keepDay: (d: string) => boolean) =>
+      (data.calls || []).filter((c) => keepDay(c.report_date)).reduce((a, c) => ({ offered: a.offered + c.offered, abandoned: a.abandoned + c.abandoned }), { offered: 0, abandoned: 0 });
     return {
+      calls: sumCalls(inCur),
+      prevCalls: sumCalls(inPrev),
       s: summarizeKat(curF),
       p: summarizeKat(prevF),
       hasPrev: prev.length > 0,
@@ -405,6 +419,7 @@ export default function KatTicketReport() {
   const { s, p, hasPrev } = view;
   const prevOr = (v: number | null) => (hasPrev ? v : null);
   const slaRate = ratio(s.withinSla, s.slaBase);
+  const abandonRate = ratio(view.calls.abandoned, view.calls.offered);
   const avgTicket = ratio(s.ticketSeconds, s.ticketChannel);
   const maxShare = Math.max(1, ...view.contentShare.map((x) => x.cur));
   const dayLabel = mode === 'day' ? 'trong ngày' : 'trong kỳ';
@@ -427,10 +442,25 @@ export default function KatTicketReport() {
           </span>
         </Card>
         <Card title={`Tỷ lệ gọi nhỡ [${dayLabel}]`} icon="phone_missed" iconClass="text-rose-600">
-          <NoData hint="Cần số cuộc gọi đến line KAT trên 3CX. Mục tiêu < 5%." />
+          {view.calls.offered === 0 ? (
+            <NoData hint="Chưa có số cuộc gọi line HĐĐT (3CX) cho kỳ này. Mục tiêu < 5%." />
+          ) : (
+            <>
+              <span className={`text-2xl sm:text-3xl font-extrabold font-mono ${abandonRate != null && abandonRate <= ABANDON_TARGET ? 'text-emerald-700' : 'text-rose-700'}`}>
+                {formatPercent(abandonRate)}{' '}
+                <span className="text-xs font-semibold text-slate-400">
+                  {formatNumber(view.calls.abandoned)}/{formatNumber(view.calls.offered)} cuộc
+                </span>
+              </span>
+              <span className="text-[11px] text-slate-500 mt-1">Line HĐĐT (8009) trên 3CX, gồm cuộc Voice AI · mục tiêu &lt; {formatPercent(ABANDON_TARGET, 0)}</span>
+              <span className="text-xs mt-auto pt-2">
+                <Delta cur={abandonRate} prev={view.prevCalls.offered ? ratio(view.prevCalls.abandoned, view.prevCalls.offered) : null} points invert />
+              </span>
+            </>
+          )}
         </Card>
         <Card title="Phản hồi chat TB" icon="chat" iconClass="text-sky-600">
-          <NoData hint="Cần thời gian phản hồi từ Freshchat. Mục tiêu < 60s." />
+          <NoData hint="Màn Chat (Freshchat) chưa có số thật – cần file xuất / báo cáo Freshchat. Mục tiêu < 60s." />
         </Card>
         <Card title="Ticket đúng SLA (4h)" icon="task_alt" iconClass="text-emerald-600">
           <span className={`text-2xl sm:text-3xl font-extrabold font-mono ${slaRate == null ? 'text-slate-400' : slaRate >= SLA_TARGET ? 'text-emerald-700' : 'text-rose-700'}`}>

@@ -1,5 +1,36 @@
 import { getSupabaseClient } from './supabaseClient';
-import { fetchAll } from './callCenterData';
+import { AI_EXT_QUEUE, LINES, fetchAll } from './callCenterData';
+
+/** Cuộc gọi line KAT = line HĐĐT trên 3CX (hàng đợi 8009 + cuộc Voice AI của máy gán về 8009), theo ngày */
+export interface KatCallDay {
+  report_date: string;
+  offered: number;
+  abandoned: number;
+}
+
+const KAT_LINE = LINES.find((l) => l.key === 'hddt')!;
+
+export async function loadKatCalls(from: string, to: string): Promise<KatCallDay[]> {
+  const s = getSupabaseClient();
+  const aiExts = Object.keys(AI_EXT_QUEUE).filter((ai) => KAT_LINE.queues.some((q) => q.ext === AI_EXT_QUEUE[ai]));
+  const [queues, ai] = await Promise.all([
+    fetchAll<{ report_date: string; offered: number; abandoned: number }>((a, b) =>
+      s.from('call_queue_daily').select('report_date, offered, abandoned')
+        .in('queue', KAT_LINE.queues.map((q) => q.name))
+        .gte('report_date', from).lte('report_date', to).order('report_date').range(a, b)
+    ),
+    fetchAll<{ report_date: string; handled: number }>((a, b) =>
+      s.from('call_agent_daily').select('report_date, handled').in('ext', aiExts)
+        .gte('report_date', from).lte('report_date', to).order('report_date').range(a, b)
+    ),
+  ]);
+  // Giống bảng "Cuộc gọi theo Line" màn Call Center: cuộc đến của line gồm cả cuộc AI nghe
+  const byDay = new Map<string, KatCallDay>();
+  const day = (d: string) => byDay.get(d) || (byDay.set(d, { report_date: d, offered: 0, abandoned: 0 }), byDay.get(d)!);
+  queues.forEach((q) => { const x = day(q.report_date); x.offered += q.offered; x.abandoned += q.abandoned; });
+  ai.forEach((a) => { day(a.report_date).offered += a.handled; });
+  return [...byDay.values()];
+}
 
 /** Một dòng của view kat_ticket_daily: số ticket theo ngày × kênh × nhóm nội dung × nhóm trạng thái */
 export interface KatDailyRow {
