@@ -46,13 +46,17 @@ const MODES: { mode: Mode; label: string }[] = [
   { mode: 'quarter', label: 'Quý' },
   { mode: 'year', label: 'Năm' },
 ];
-const COMPARE_LABEL: Record<Mode, string> = {
-  day: 'so với hôm trước',
-  range: 'so với số ngày bằng nhau liền trước',
-  month: 'so với cùng kỳ tháng trước',
-  quarter: 'so với cùng kỳ quý trước',
-  year: 'so với cùng kỳ năm trước',
-};
+/** Kỳ so sánh: kỳ liền trước (theo loại kỳ), cùng thứ tuần trước (chỉ Ngày), cùng kỳ quý trước, cùng kỳ năm trước */
+type Compare = 'prev' | 'week' | 'quarter' | 'year';
+const PREV_LABEL: Record<Mode, string> = { day: 'Hôm trước', range: 'Kỳ liền trước', month: 'Tháng trước', quarter: 'Quý trước', year: 'Năm trước' };
+function compareOptions(mode: Mode): { value: Compare; label: string }[] {
+  return [
+    { value: 'prev', label: PREV_LABEL[mode] },
+    ...(mode === 'day' ? [{ value: 'week' as Compare, label: 'Cùng thứ tuần trước' }] : []),
+    ...(mode === 'quarter' || mode === 'year' ? [] : [{ value: 'quarter' as Compare, label: 'Cùng kỳ quý trước' }]),
+    ...(mode === 'year' ? [] : [{ value: 'year' as Compare, label: 'Cùng kỳ năm trước' }]),
+  ];
+}
 
 const monthLabel = (m: string) => `Tháng ${Number(m.slice(5))}/${m.slice(0, 4)}`;
 const quarterOf = (d: string) => `${d.slice(0, 4)}-Q${Math.floor((Number(d.slice(5, 7)) - 1) / 3) + 1}`;
@@ -66,37 +70,44 @@ function formatDuration(seconds: number | null | undefined): string {
   return m >= 60 ? `${Math.floor(m / 60)}h ${String(m % 60).padStart(2, '0')}p` : `${m}p`;
 }
 
-/** Kỳ đang xem và kỳ so sánh (cùng độ dài, lùi 1 kỳ); kỳ đang chạy tính đến ngày mới nhất có dữ liệu */
-function buildPeriod(mode: Mode, v: { day: string; from: string; to: string; month: string; quarter: string; year: string }, latest: string) {
-  let from: string, to: string, prevFrom: string, prevTo: string;
-  const shifted = (start: string, end: string, months: number) => {
-    const pf = shiftMonths(start, -months);
-    // Cùng số ngày, lùi 1 kỳ; không vượt quá cuối kỳ trước (tháng 9 chỉ có 30 ngày…)
-    return [pf, minDate(shiftMonths(end, -months), monthEnd(shiftMonths(start, -1)))];
-  };
-  if (mode === 'day') {
-    from = to = v.day;
-    prevFrom = prevTo = addDays(v.day, -1);
-  } else if (mode === 'range') {
+/** Kỳ đang xem (kỳ đang chạy tính đến ngày mới nhất có dữ liệu) và kỳ so sánh cùng độ dài */
+function buildPeriod(
+  mode: Mode,
+  compare: Compare,
+  v: { day: string; from: string; to: string; month: string; quarter: string; year: string },
+  latest: string
+) {
+  let from: string, to: string;
+  if (mode === 'day') from = to = v.day;
+  else if (mode === 'range') {
     from = minDate(v.from, v.to);
     to = maxDate(v.from, v.to);
-    const n = daysBetween(from, to) + 1;
-    prevTo = addDays(from, -1);
-    prevFrom = addDays(from, -n);
   } else if (mode === 'month') {
     from = v.month + '-01';
     to = minDate(monthEnd(from), latest);
-    [prevFrom, prevTo] = shifted(from, to, 1);
   } else if (mode === 'quarter') {
     from = quarterStart(v.quarter);
     to = minDate(monthEnd(shiftMonths(from, 2)), latest);
-    [prevFrom, prevTo] = shifted(from, to, 3);
   } else {
     from = v.year + '-01-01';
     to = minDate(v.year + '-12-31', latest);
-    [prevFrom, prevTo] = shifted(from, to, 12);
   }
-  return { from, to, prevFrom, prevTo, days: daysBetween(from, to) + 1 };
+  const days = daysBetween(from, to) + 1;
+  let prevFrom: string, prevTo: string;
+  const months = compare === 'year' ? 12 : compare === 'quarter' ? 3 : mode === 'month' ? 1 : mode === 'quarter' ? 3 : mode === 'year' ? 12 : 0;
+  if (compare === 'week') {
+    prevFrom = addDays(from, -7);
+    prevTo = addDays(to, -7);
+  } else if (months) {
+    // Lùi đúng số tháng, giữ ngày trong tháng (31/10 → 30/09 vì tháng 9 chỉ có 30 ngày)
+    prevFrom = shiftMonths(from, -months);
+    prevTo = shiftMonths(to, -months);
+  } else {
+    // Ngày / Khoảng ngày so với số ngày bằng nhau liền trước
+    prevTo = addDays(from, -1);
+    prevFrom = addDays(from, -days);
+  }
+  return { from, to, prevFrom, prevTo, days };
 }
 
 function Delta({ cur, prev, points = false, invert = false }: { cur: number | null; prev: number | null; points?: boolean; invert?: boolean }) {
@@ -151,6 +162,7 @@ function SmallStat({ label, value, tone, delta, sub }: { label: string; value: s
 export default function KatTicketReport() {
   const [range, setRange] = useState<{ oldest: string; latest: string } | null | undefined>(undefined);
   const [mode, setMode] = useState<Mode>('month');
+  const [compare, setCompare] = useState<Compare>('prev');
   const [day, setDay] = useState('');
   const [rangeFrom, setRangeFrom] = useState('');
   const [rangeTo, setRangeTo] = useState('');
@@ -179,8 +191,14 @@ export default function KatTicketReport() {
 
   const period = useMemo(() => {
     if (!range || !day) return null;
-    return buildPeriod(mode, { day, from: rangeFrom, to: rangeTo, month, quarter, year }, range.latest);
-  }, [range, mode, day, rangeFrom, rangeTo, month, quarter, year]);
+    // Lựa chọn so sánh không hợp với loại kỳ mới (vd "Cùng thứ tuần trước" khi chuyển sang Tháng) → kỳ liền trước
+    const cmp = compareOptions(mode).some((o) => o.value === compare) ? compare : 'prev';
+    return buildPeriod(mode, cmp, { day, from: rangeFrom, to: rangeTo, month, quarter, year }, range.latest);
+  }, [range, mode, compare, day, rangeFrom, rangeTo, month, quarter, year]);
+  const compareLabel = useMemo(() => {
+    const o = compareOptions(mode).find((x) => x.value === compare) || compareOptions(mode)[0];
+    return o.label.toLowerCase();
+  }, [mode, compare]);
   const periodKey = period ? `${period.prevFrom}|${period.from}|${period.to}` : '';
 
   useEffect(() => {
@@ -279,7 +297,13 @@ export default function KatTicketReport() {
         </div>
         <h1 className="text-xl sm:text-2xl font-bold text-slate-900 tracking-tight">Báo cáo vận hành dự án KAT</h1>
         <p className="text-xs text-slate-500 max-w-3xl">
-          Ticket thật từ CRM (Hóa đơn điện tử, Chữ ký số, Thuế – Kế toán), đồng bộ mỗi sáng{period ? `, ${COMPARE_LABEL[mode]}` : ''}.
+          Ticket thật từ CRM (Hóa đơn điện tử, Chữ ký số, Thuế – Kế toán), đồng bộ mỗi sáng.
+          {period && (
+            <>
+              {' '}
+              So với {compareLabel}: {period.prevFrom === period.prevTo ? formatDate(period.prevFrom) : `${formatDate(period.prevFrom)} – ${formatDate(period.prevTo)}`}.
+            </>
+          )}
         </p>
       </div>
       <div className="flex flex-wrap items-center gap-2">
@@ -332,6 +356,19 @@ export default function KatTicketReport() {
             ))}
           </select>
         )}
+        <span className="text-xs text-slate-500">So sánh với</span>
+        <select
+          value={compareOptions(mode).some((o) => o.value === compare) ? compare : 'prev'}
+          onChange={(e) => setCompare(e.target.value as Compare)}
+          className={selectCls}
+          title="Chọn kỳ so sánh"
+        >
+          {compareOptions(mode).map((o) => (
+            <option key={o.value} value={o.value}>
+              {o.label}
+            </option>
+          ))}
+        </select>
         <select value={content} onChange={(e) => setContent(e.target.value)} className={selectCls} title="Lọc theo nhóm nội dung">
           <option value="all">Tất cả loại dịch vụ (KAT)</option>
           {KAT_CONTENT.map((c) => (

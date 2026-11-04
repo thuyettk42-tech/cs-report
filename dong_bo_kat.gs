@@ -17,9 +17,10 @@
  *
  *  CÁC HÀM BẠN SẼ BẤM CHẠY:
  *    1. kiemTraKAT        – đọc thử mọi file, chỉ hiện kết quả, KHÔNG ghi gì
- *    2. napKATTatCa       – nạp toàn bộ các file trong thư mục
- *    3. caiLichKAT        – cài lịch tự động mỗi sáng khoảng 11h
- *  Hàm dongBoKATHangNgay là hàm lịch tự động gọi: chỉ đọc file mới hoặc vừa sửa.
+ *    2. dongBoKATHangNgay – đọc các file mới / vừa sửa, TỪNG FILE MỘT; gần hết 6 phút thì dừng
+ *                           và báo "Còn N file" → bấm Run lại cho đến khi báo đã đọc hết
+ *    3. napKATTatCa       – quên các file đã đọc và đọc lại tất cả (cũng từng file, có thể phải Run tiếp hàm 2)
+ *    4. caiLichKAT        – cài lịch tự động mỗi sáng khoảng 11h (gọi dongBoKATHangNgay)
  * =====================================================================
  */
 
@@ -27,7 +28,9 @@ const KAT = {
   FOLDER_ID: '1-VoFs6q4Z0--M1DmEXu507WINLc_ZWrx',
   GIO_CHAY: 11,
   PHUT_CHAY: 0,                  // Google lệch ±15 phút → khoảng 10h45–11h15
-  KHOA_LAN_CHAY: 'KAT_LAN_CHAY_CUOI',
+  KHOA_LAN_CHAY: 'KAT_LAN_CHAY_CUOI',  // (bản cũ) mốc lần chạy – file sửa trước mốc này coi như đã đọc
+  KHOA_DA_DOC: 'KAT_FILE_DA_DOC',      // nhớ từng file đã đọc: { mã file: thời điểm sửa }
+  GIOI_HAN_GIAY: 270,                  // Apps Script cho tối đa 6 phút/lần → sau 4,5 phút không mở thêm file
 };
 
 const KAT_COT = {
@@ -82,15 +85,17 @@ function kiemTraKAT() {
   Logger.log('✅ Không ghi gì vào Supabase.');
 }
 
+/** Đọc lại TẤT CẢ file (quên các file đã đọc). Nhiều file thì bấm Run dongBoKATHangNgay tiếp cho đến khi báo hết. */
 function napKATTatCa() {
-  dongBoKAT_(dsFileKAT_(), 'Nạp ticket KAT (tất cả file)');
+  const p = PropertiesService.getScriptProperties();
+  p.deleteProperty(KAT.KHOA_DA_DOC);
+  p.deleteProperty(KAT.KHOA_LAN_CHAY);
+  dongBoKAT_('Nạp ticket KAT (tất cả file)');
 }
 
+/** Đọc các file mới / vừa sửa, từng file một; gần hết 6 phút thì dừng, lần chạy sau đọc tiếp. */
 function dongBoKATHangNgay() {
-  const lanTruoc = Number(PropertiesService.getScriptProperties().getProperty(KAT.KHOA_LAN_CHAY) || 0);
-  const moi = dsFileKAT_().filter(f => f.getLastUpdated().getTime() > lanTruoc);
-  if (!moi.length) { Logger.log('Không có file ticket KAT mới hoặc vừa sửa.'); return; }
-  dongBoKAT_(moi, 'Ticket KAT hằng ngày (' + moi.length + ' file mới)');
+  dongBoKAT_('Ticket KAT hằng ngày');
 }
 
 function caiLichKAT() {
@@ -107,19 +112,38 @@ function caiLichKAT() {
 // 2. ĐỒNG BỘ
 // =====================================================================
 
-function dongBoKAT_(files, nhan) {
+function dongBoKAT_(nhan) {
   const batDau = Date.now();
+  const p = PropertiesService.getScriptProperties();
+  const daDoc = JSON.parse(p.getProperty(KAT.KHOA_DA_DOC) || '{}');
+  const lanTruoc = Number(p.getProperty(KAT.KHOA_LAN_CHAY) || 0);
+  const chuaDoc = dsFileKAT_().filter(f => {
+    const sua = f.getLastUpdated().getTime();
+    if (daDoc[f.getId()] !== undefined) return daDoc[f.getId()] !== sua;
+    return sua > lanTruoc;
+  });
+  if (!chuaDoc.length) { Logger.log('Không có file ticket KAT mới hoặc vừa sửa.'); return; }
+  Logger.log('Có ' + chuaDoc.length + ' file cần đọc.');
+  let xong = 0;
   try {
-    const kq = docCacFileKAT_(files);
-    const now = new Date().toISOString();
-    const rows = kq.ds.map(t => Object.assign({}, t, { updated_at: now }));
-    ghiBang_('kat_ticket', 'ticket_id', rows);
-    const ngay = rows.map(r => r.report_date).sort();
-    const msg = nhan + ': ' + rows.length + ' ticket (' + (ngay[0] || '–') + ' → ' + (ngay[ngay.length - 1] || '–') + ')';
-    supabase_('post', 'sync_log', [{ report_date: ngay[ngay.length - 1] || null, status: rows.length ? 'success' : 'skipped',
-      rows_written: rows.length, message: msg }], 'return=minimal');
-    PropertiesService.getScriptProperties().setProperty(KAT.KHOA_LAN_CHAY, String(batDau));
-    Logger.log('✅ ' + msg);
+    for (const file of chuaDoc) {
+      if (xong > 0 && Date.now() - batDau > KAT.GIOI_HAN_GIAY * 1000) break;  // để dành thời gian, lần sau đọc tiếp
+      const kq = docCacFileKAT_([file]);
+      const now = new Date().toISOString();
+      const rows = kq.ds.map(t => Object.assign({}, t, { updated_at: now }));
+      ghiBang_('kat_ticket', 'ticket_id', rows);
+      const ngay = rows.map(r => r.report_date).sort();
+      const msg = nhan + ' – "' + file.getName() + '": ' + rows.length + ' ticket (' + (ngay[0] || '–') + ' → ' + (ngay[ngay.length - 1] || '–') + ')';
+      supabase_('post', 'sync_log', [{ report_date: ngay[ngay.length - 1] || null, status: rows.length ? 'success' : 'skipped',
+        rows_written: rows.length, message: msg.slice(0, 1000) }], 'return=minimal');
+      daDoc[file.getId()] = file.getLastUpdated().getTime();
+      p.setProperty(KAT.KHOA_DA_DOC, JSON.stringify(daDoc));
+      xong++;
+      Logger.log('✅ ' + msg);
+    }
+    const con = chuaDoc.length - xong;
+    Logger.log(con ? '⏳ Còn ' + con + ' file chưa đọc – bấm Run dongBoKATHangNgay thêm lần nữa (lịch 11h sáng cũng sẽ đọc tiếp).'
+                   : '✅ Đã đọc hết các file.');
   } catch (e) {
     Logger.log('❌ LỖI: ' + e.message);
     try {
@@ -139,7 +163,7 @@ function dsFileKAT_() {
   while (it.hasNext()) {
     const f = it.next();
     const loai = f.getMimeType();
-    if (loai === MimeType.GOOGLE_SHEETS || loai === MimeType.MICROSOFT_EXCEL) ds.push(f);
+    if (loai === MimeType.GOOGLE_SHEETS || laFileExcel_(loai)) ds.push(f);
   }
   return ds.sort((a, b) => a.getLastUpdated() - b.getLastUpdated()); // file mới hơn đọc sau → trạng thái mới đè lên
 }
@@ -237,6 +261,11 @@ function nhomNguoiTao_(s) {
   return s ? 'Khác' : null;
 }
 
+/** Excel .xlsx hoặc .xls đời cũ (CRM đôi khi xuất .xls) */
+function laFileExcel_(loai) {
+  return loai === MimeType.MICROSOFT_EXCEL || loai === MimeType.MICROSOFT_EXCEL_LEGACY;
+}
+
 function maNV_(s) {
   const m = String(s || '').match(/^\s*(\d{3,5})\s*-/);
   return m ? m[1] : String(s || '').trim();
@@ -265,7 +294,7 @@ function docFileKAT_(file, xuLy) {
   let tamId = null;
   try {
     let ssId = file.getId();
-    if (file.getMimeType() === MimeType.MICROSOFT_EXCEL) {
+    if (laFileExcel_(file.getMimeType())) {
       tamId = Drive.Files.create({ name: '(tạm) ' + file.getName(), mimeType: MimeType.GOOGLE_SHEETS }, file.getBlob()).id;
       ssId = tamId;
     }
