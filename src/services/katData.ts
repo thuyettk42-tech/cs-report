@@ -150,6 +150,48 @@ export async function loadKatTargetPerDay(): Promise<number> {
   return data && data[0] ? Number(data[0].value) : KAT_DEFAULT_TARGET_PER_DAY;
 }
 
+/** Một issue Jira chuyển sản phẩm (bảng kat_jira_issue) */
+export interface KatJiraIssue {
+  issue_key: string;
+  kind: 'Bug' | 'Support' | 'Case' | 'Sự cố';
+  product: 'KVE' | 'HKD' | 'Khác';
+  priority: string | null;
+  status: string | null;
+  /** Đã xong / Từ chối / Đang treo */
+  status_group: string;
+  is_open: boolean;
+  created_at: string;
+  created_date: string;
+  resolved_at: string | null;
+  /** Status category changed – lần cập nhật trạng thái gần nhất */
+  changed_at: string | null;
+  impact_scope: number | null;
+  topic: string | null;
+  service: string | null;
+  feature_title: string | null;
+}
+
+/** Issue đang mở (bất kể ngày tạo) + issue tạo trong khoảng ngày, bỏ trùng */
+export async function loadKatJira(from: string, to: string): Promise<KatJiraIssue[]> {
+  const cols =
+    'issue_key, kind, product, priority, status, status_group, is_open, created_at, created_date, resolved_at, changed_at, impact_scope, topic, service, feature_title';
+  const s = getSupabaseClient();
+  const [open, inRange] = await Promise.all([
+    fetchAll<KatJiraIssue>((a, b) => s.from('kat_jira_issue').select(cols).eq('is_open', true).order('issue_key').range(a, b)),
+    fetchAll<KatJiraIssue>((a, b) =>
+      s.from('kat_jira_issue').select(cols).gte('created_date', from).lte('created_date', to).order('issue_key').range(a, b)
+    ),
+  ]);
+  const m = new Map<string, KatJiraIssue>();
+  [...open, ...inRange].forEach((x) => m.set(x.issue_key, x));
+  return [...m.values()];
+}
+
+export async function loadKatJiraSlaDays(): Promise<number> {
+  const { data } = await getSupabaseClient().from('kpi_targets').select('value').eq('code', 'KAT_JIRA_SLA_DAYS').limit(1);
+  return data && data[0] ? Number(data[0].value) : 5;
+}
+
 export interface KatSummary {
   tickets: number;
   done: number;

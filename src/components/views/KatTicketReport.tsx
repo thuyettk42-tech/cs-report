@@ -33,6 +33,7 @@ import {
 } from '../../services/katData';
 import { Legend, OTHER_COLOR, SERIES_COLORS, StackedBarChart } from './callCenterCharts';
 import KatAgentProductivity from './KatAgentProductivity';
+import KatJiraSection from './KatJiraSection';
 
 const CONTENT_COLOR: Record<string, string> = {
   HĐĐT: SERIES_COLORS[0],
@@ -722,6 +723,11 @@ export default function KatTicketReport() {
           </>
         )}
       </div>
+
+      {/* Jira chuyển sản phẩm, vấn đề nổi cộm, đề xuất tính năng */}
+      {period && (
+        <KatJiraSection from={period.from} to={period.to} prevFrom={period.prevFrom} prevTo={period.prevTo} compareLabel={compareLabel} />
+      )}
     </div>
   );
 }
