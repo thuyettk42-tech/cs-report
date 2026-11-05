@@ -17,13 +17,11 @@ import {
   KAT_CHANNEL_GROUPS,
   KAT_CONTENT,
   KatDailyRow,
-  KatHourRow,
   channelGroup,
   isTicketChannel,
   loadKatDaily,
   loadKatDates,
   loadKatCalls,
-  loadKatHourly,
   summarizeKat,
   KatCallDay,
   KatAgentDay,
@@ -181,7 +179,7 @@ export default function KatTicketReport() {
   const [year, setYear] = useState('');
   const [content, setContent] = useState<string>('all');
   const [volumeBy, setVolumeBy] = useState<'content' | 'channel'>('content');
-  const [data, setData] = useState<{ key: string; daily: KatDailyRow[]; hourly: KatHourRow[]; calls: KatCallDay[]; agents: KatAgentDay[] } | null>(null);
+  const [data, setData] = useState<{ key: string; daily: KatDailyRow[]; calls: KatCallDay[]; agents: KatAgentDay[] } | null>(null);
   const [targetPerDay, setTargetPerDay] = useState(KAT_DEFAULT_TARGET_PER_DAY);
 
   useEffect(() => {
@@ -222,13 +220,12 @@ export default function KatTicketReport() {
     const lo = minDate(period.prevFrom, period.from);
     Promise.all([
       loadKatDaily(lo, period.to),
-      loadKatHourly(period.from, period.to),
       // Số cuộc gọi line HĐĐT không bắt buộc: lỗi thì thẻ gọi nhỡ hiện "Chưa có dữ liệu"
       loadKatCalls(lo, period.to).catch(() => [] as KatCallDay[]),
       // Năng suất nhân sự cần SQL bước 12; chưa chạy thì mục đó báo chưa có số
       loadKatAgents(lo, period.to).catch(() => [] as KatAgentDay[]),
     ])
-      .then(([daily, hourly, calls, agents]) => setData({ key, daily, hourly, calls, agents }))
+      .then(([daily, calls, agents]) => setData({ key, daily, calls, agents }))
       .catch((e) => setError(e.message || String(e)));
   }, [periodKey]); // eslint-disable-line react-hooks/exhaustive-deps
 
@@ -272,11 +269,6 @@ export default function KatTicketReport() {
       return segs.map((sg) => count(rs, (r) => (volumeBy === 'content' ? r.content_group === sg : channelGroup(r.channel) === sg)));
     });
 
-    const hours = Array.from({ length: 24 }, (_, h) => ({
-      h,
-      v: KAT_CONTENT.map((c) => data.hourly.reduce((s, r) => s + (r.created_hour === h && r.content_group === c && keep(r) ? r.tickets : 0), 0)),
-    }));
-    const used = hours.filter((x) => x.v.some((n) => n > 0)).map((x) => x.h);
     const sumCalls = (keepDay: (d: string) => boolean) =>
       (data.calls || []).filter((c) => keepDay(c.report_date)).reduce((a, c) => ({ offered: a.offered + c.offered, abandoned: a.abandoned + c.abandoned }), { offered: 0, abandoned: 0 });
     return {
@@ -299,7 +291,6 @@ export default function KatTicketReport() {
         const rs = curF.filter((r) => r.channel === ch);
         return { ch, s: summarizeKat(rs), byContent: KAT_CONTENT.map((c) => count(rs, (r) => r.content_group === c)), prev: count(prevF, (r) => r.channel === ch) };
       }).filter((x) => x.s.tickets > 0 || x.prev > 0),
-      hours: used.length ? hours.filter((x) => x.h >= Math.min(...used) && x.h <= Math.max(...used)) : [],
     };
   }, [data, period, periodKey, content, volumeBy]);
 
@@ -699,30 +690,6 @@ export default function KatTicketReport() {
           target={targetPerDay}
         />
       )}
-
-      {/* Theo giờ */}
-      <div className="bg-white rounded-xl p-5 border border-slate-200 shadow-xs space-y-3">
-        <div className="border-b border-slate-100 pb-3">
-          <h2 className="text-base font-bold text-slate-900">Lưu Lượng Ticket Theo Giờ Tạo</h2>
-          <p className="text-xs text-slate-500 mt-0.5">
-            {mode === 'day' ? 'Trong ngày' : `Cộng dồn ${period ? period.days : ''} ngày của kỳ`}, chia theo loại dịch vụ.
-          </p>
-        </div>
-        {view.hours.length === 0 ? (
-          <div className="text-xs text-slate-400 py-8 text-center">Chưa có dữ liệu theo giờ.</div>
-        ) : (
-          <>
-            <Legend items={KAT_CONTENT.map((c) => ({ label: c, color: CONTENT_COLOR[c] }))} />
-            <StackedBarChart
-              height={200}
-              xLabels={view.hours.map((x) => x.h + 'h')}
-              segments={KAT_CONTENT.map((c) => ({ key: c, label: c, color: CONTENT_COLOR[c] }))}
-              values={view.hours.map((x) => x.v)}
-              format={formatNumber}
-            />
-          </>
-        )}
-      </div>
 
       {/* Jira chuyển sản phẩm, vấn đề nổi cộm, đề xuất tính năng */}
       {period && (

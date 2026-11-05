@@ -81,7 +81,33 @@ export async function loadKatDates(): Promise<{ oldest: string; latest: string }
   return { oldest: a.data[0].report_date, latest: b.data[0].report_date };
 }
 
+/**
+ * Chia khoảng ngày thành từng tháng và đọc song song (tối đa 4 tháng một lúc), để mỗi lần
+ * Supabase chỉ phải tổng hợp ticket của 1 tháng – chọn Quý / Năm không bị quá thời gian.
+ */
+async function perMonth<T>(from: string, to: string, load: (a: string, b: string) => Promise<T[]>): Promise<T[]> {
+  const ranges: [string, string][] = [];
+  let start = from;
+  while (start <= to) {
+    const [y, m] = start.split('-').map(Number);
+    const monthEnd = new Date(Date.UTC(y, m, 0)).toISOString().slice(0, 10);
+    const end = monthEnd < to ? monthEnd : to;
+    ranges.push([start, end]);
+    start = new Date(Date.UTC(y, m, 1)).toISOString().slice(0, 10);
+  }
+  const out: T[][] = new Array(ranges.length);
+  for (let i = 0; i < ranges.length; i += 4) {
+    const part = await Promise.all(ranges.slice(i, i + 4).map(([a, b]) => load(a, b)));
+    part.forEach((rows, j) => { out[i + j] = rows; });
+  }
+  return out.flat();
+}
+
 export function loadKatDaily(from: string, to: string): Promise<KatDailyRow[]> {
+  return perMonth(from, to, loadKatDailyRange);
+}
+
+function loadKatDailyRange(from: string, to: string): Promise<KatDailyRow[]> {
   return fetchAll<KatDailyRow>((a, b) =>
     getSupabaseClient()
       .from('kat_ticket_daily')
@@ -97,6 +123,10 @@ export function loadKatDaily(from: string, to: string): Promise<KatDailyRow[]> {
 }
 
 export function loadKatHourly(from: string, to: string): Promise<KatHourRow[]> {
+  return perMonth(from, to, loadKatHourlyRange);
+}
+
+function loadKatHourlyRange(from: string, to: string): Promise<KatHourRow[]> {
   return fetchAll<KatHourRow>((a, b) =>
     getSupabaseClient()
       .from('kat_ticket_hourly')
@@ -132,6 +162,10 @@ export const isKatAgent = (code: string) => /^88\d{2}$/.test(code || '');
 export const KAT_DEFAULT_TARGET_PER_DAY = 30;
 
 export function loadKatAgents(from: string, to: string): Promise<KatAgentDay[]> {
+  return perMonth(from, to, loadKatAgentsRange);
+}
+
+function loadKatAgentsRange(from: string, to: string): Promise<KatAgentDay[]> {
   return fetchAll<KatAgentDay>((a, b) =>
     getSupabaseClient()
       .from('kat_agent_daily')
@@ -153,7 +187,8 @@ export async function loadKatTargetPerDay(): Promise<number> {
 /** Một issue Jira chuyển sản phẩm (bảng kat_jira_issue) */
 export interface KatJiraIssue {
   issue_key: string;
-  kind: 'Bug' | 'Support' | 'Case' | 'Sự cố';
+  /** Incident (Sự cố) được tính vào Bug */
+  kind: 'Bug' | 'Support' | 'Case';
   product: 'KVE' | 'HKD' | 'Khác';
   priority: string | null;
   status: string | null;
@@ -184,7 +219,8 @@ export async function loadKatJira(from: string, to: string): Promise<KatJiraIssu
   ]);
   const m = new Map<string, KatJiraIssue>();
   [...open, ...inRange].forEach((x) => m.set(x.issue_key, x));
-  return [...m.values()];
+  // Dữ liệu nạp trước 05/11 có thể còn kind "Sự cố" → gộp vào Bug
+  return [...m.values()].map((x) => ((x.kind as string) === 'Sự cố' ? { ...x, kind: 'Bug' as const } : x));
 }
 
 export async function loadKatJiraSlaDays(): Promise<number> {

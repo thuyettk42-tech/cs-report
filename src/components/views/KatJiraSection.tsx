@@ -17,7 +17,7 @@ const toTime = (s: string) => new Date(s.replace(' ', 'T') + '+07:00').getTime()
 const endTime = (x: KatJiraIssue) =>
   x.is_open ? Date.now() : x.resolved_at ? toTime(x.resolved_at) : x.changed_at ? toTime(x.changed_at) : null;
 const ageDays = (x: KatJiraIssue) => { const e = endTime(x); return e == null ? NaN : (e - toTime(x.created_at)) / DAY; };
-const isIssue = (x: KatJiraIssue) => x.kind !== 'Case'; // Bug, Support, Sự cố
+const isIssue = (x: KatJiraIssue) => x.kind !== 'Case'; // Bug (gồm Incident), Support
 const shops = (xs: KatJiraIssue[]) => xs.reduce((s, x) => s + (Number(x.impact_scope) || 0), 0);
 const fmtDays = (d: number | null) => (d == null || !isFinite(d) ? '—' : `${d.toLocaleString('vi-VN', { maximumFractionDigits: 1 })} ngày`);
 const formatDate = (d: string) => `${d.slice(8, 10)}/${d.slice(5, 7)}/${d.slice(0, 4)}`;
@@ -26,8 +26,9 @@ const KIND_STYLE: Record<string, { label: string; box: string; text: string; sub
   Bug: { label: 'Bug', box: 'bg-rose-50 border-rose-200', text: 'text-rose-700', sub: 'Lỗi hệ thống' },
   Support: { label: 'Support', box: 'bg-sky-50 border-sky-200', text: 'text-sky-700', sub: 'Hỗ trợ kỹ thuật' },
   Case: { label: 'Case', box: 'bg-amber-50 border-amber-200', text: 'text-amber-700', sub: 'Đề xuất tính năng' },
-  'Sự cố': { label: 'Sự cố', box: 'bg-purple-50 border-purple-200', text: 'text-purple-700', sub: 'Incident' },
 };
+/** Số nhóm vấn đề hiện riêng; phần còn lại gộp vào "Khác" */
+const TOP_TOPICS = 6;
 const STATUS_COLOR: Record<string, string> = { 'Đã xong': '#1baf7a', 'Từ chối': '#94a3b8', 'Đang treo': '#eda100' };
 const AGE_BUCKETS = [
   { label: '0–3 ngày', max: 3, color: '#1baf7a' },
@@ -83,10 +84,7 @@ export default function KatJiraSection({ from, to, prevFrom, prevTo, compareLabe
     const open = all.filter((x) => x.is_open);
     const cur = all.filter(inCur);
     const prev = all.filter(inPrev);
-    // Ticket đã xong trong kỳ (Bug / Support / Sự cố) để tính thời gian xử lý
-    const done = cur.filter((x) => isIssue(x) && x.status_group === 'Đã xong' && isFinite(ageDays(x)));
-
-    // Vấn đề nổi cộm: Bug + Support + Sự cố tạo trong kỳ, theo nhóm vấn đề
+    // Vấn đề nổi cộm: Bug + Support tạo trong kỳ, theo nhóm vấn đề
     const topicMap = new Map<string, { topic: string; n: number; bug: number; kve: number; hkd: number; open: number; shops: number; days: number[]; services: Record<string, number>; prev: number }>();
     const getT = (t: string) =>
       topicMap.get(t) || (topicMap.set(t, { topic: t, n: 0, bug: 0, kve: 0, hkd: 0, open: 0, shops: 0, days: [], services: {}, prev: 0 }), topicMap.get(t)!);
@@ -103,13 +101,42 @@ export default function KatJiraSection({ from, to, prevFrom, prevTo, compareLabe
       t.services[sv] = (t.services[sv] || 0) + 1;
     });
     prev.filter(isIssue).forEach((x) => { getT(x.topic || 'Khác').prev++; });
-    const topics = [...topicMap.values()].filter((t) => t.n > 0).sort((a, b) => b.n - a.n);
+    // 6 nhóm nhiều ticket nhất hiện riêng; các nhóm còn lại (và nhóm "Khác" sẵn có) gộp vào 1 dòng "Khác"
+    const ranked = [...topicMap.values()].filter((t) => t.n > 0 && t.topic !== 'Khác').sort((a, b) => b.n - a.n);
+    const topShown = ranked.slice(0, TOP_TOPICS);
+    const rest = [...ranked.slice(TOP_TOPICS), ...(topicMap.has('Khác') ? [topicMap.get('Khác')!] : [])];
+    const other = rest.length
+      ? rest.reduce(
+          (o, t) => {
+            o.n += t.n; o.bug += t.bug; o.kve += t.kve; o.hkd += t.hkd; o.open += t.open; o.shops += t.shops; o.prev += t.prev;
+            o.days.push(...t.days);
+            Object.entries(t.services).forEach(([k, v]) => { o.services[k] = (o.services[k] || 0) + v; });
+            return o;
+          },
+          { topic: 'Khác', n: 0, bug: 0, kve: 0, hkd: 0, open: 0, shops: 0, days: [] as number[], services: {} as Record<string, number>, prev: 0 }
+        )
+      : null;
+    const otherNames = rest.filter((t) => t.topic !== 'Khác' && t.n > 0).map((t) => t.topic);
+    const topics = other && other.n > 0 ? [...topShown, other] : topShown;
     const curIssues = cur.filter(isIssue);
+    const done = (xs: KatJiraIssue[]) => xs.filter((x) => x.status_group === 'Đã xong' && isFinite(ageDays(x)));
+    const byKind = (['Bug', 'Support'] as const).map((k) => {
+      const xs = curIssues.filter((x) => x.kind === k);
+      const d = done(xs);
+      return {
+        k,
+        n: xs.length,
+        shops: shops(xs),
+        prev: prev.filter((x) => x.kind === k).length,
+        status: ['Đã xong', 'Từ chối', 'Đang treo'].map((g) => ({ g, n: xs.filter((x) => x.status_group === g).length })),
+        avgDays: d.length ? d.reduce((s, x) => s + ageDays(x), 0) / d.length : null,
+      };
+    });
 
     return {
       open,
       openShops: shops(open.filter(isIssue)),
-      openByKind: (['Bug', 'Support', 'Case', 'Sự cố'] as const).map((k) => ({ k, n: open.filter((x) => x.kind === k).length })),
+      openByKind: (['Bug', 'Support', 'Case'] as const).map((k) => ({ k, n: open.filter((x) => x.kind === k).length })),
       openKve: open.filter((x) => x.product === 'KVE').length,
       openHkd: open.filter((x) => x.product === 'HKD').length,
       ages: AGE_BUCKETS.map((b, i) => ({
@@ -121,9 +148,12 @@ export default function KatJiraSection({ from, to, prevFrom, prevTo, compareLabe
       createdPrev: prev.filter(isIssue).length,
       createdShops: shops(curIssues),
       statusMix: ['Đã xong', 'Từ chối', 'Đang treo'].map((g) => ({ g, n: curIssues.filter((x) => x.status_group === g).length })),
-      withinSla: ratio(done.filter((x) => ageDays(x) <= slaDays).length, done.length),
-      avgDays: ratio(done.reduce((s, x) => s + ageDays(x), 0), done.length),
+      // SLA Dev đang tạm ẩn trên giao diện (chờ tài liệu SLA KAT); vẫn tính sẵn để bật lại
+      withinSla: ratio(done(curIssues).filter((x) => ageDays(x) <= slaDays).length, done(curIssues).length),
+      avgDays: done(curIssues).length ? done(curIssues).reduce((s, x) => s + ageDays(x), 0) / done(curIssues).length : null,
+      byKind,
       topics,
+      otherNames,
       topicTotal: topics.reduce((s, t) => s + t.n, 0),
       cases: cur
         .filter((x) => x.kind === 'Case')
@@ -158,10 +188,10 @@ export default function KatJiraSection({ from, to, prevFrom, prevTo, compareLabe
         <div className="bg-white rounded-xl p-5 border border-slate-200 shadow-xs space-y-3 min-w-0">
           {header(
             'Ticket Chuyển SP (Jira) [Hiện tại]',
-            `Ticket đang treo, tuổi tính từ ngày tạo đến hôm nay. Tổng ${formatNumber(openTotal)} ticket, ảnh hưởng ${formatNumber(view.openShops)} gian hàng (Bug / Support / Sự cố).`,
+            `Số tồn đến hôm nay (không đổi theo kỳ lọc): ${formatNumber(openTotal)} ticket đang treo, Bug / Support ảnh hưởng ${formatNumber(view.openShops)} gian hàng. Tuổi tính từ ngày tạo đến hôm nay.`,
             <ProductPills value={product} onChange={setProduct} />
           )}
-          <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+          <div className="grid grid-cols-3 gap-2">
             {view.openByKind.map(({ k, n }) => (
               <div key={k} className={`rounded-lg border p-2.5 text-center ${KIND_STYLE[k].box}`}>
                 <div className={`text-[11px] font-bold uppercase ${KIND_STYLE[k].text}`}>{KIND_STYLE[k].label}</div>
@@ -198,47 +228,63 @@ export default function KatJiraSection({ from, to, prevFrom, prevTo, compareLabe
             </div>
           </div>
           {/* Tạm ẩn SLA Dev xử lý (đôn đốc / % xử lý xong đúng hạn) – chờ người dùng có tài liệu SLA của KAT */}
-          <div className="border-t border-slate-100 pt-3 space-y-1.5">
+          <div className="border-t border-slate-100 pt-3 space-y-2.5">
             <div className="text-xs font-semibold text-slate-700">
-              Tạo trong kỳ: {formatNumber(view.created)} ticket Bug / Support / Sự cố · {formatNumber(view.createdShops)} gian hàng
+              Tạo trong kỳ ({formatDate(from)} – {formatDate(to)}), so với {compareLabel}
             </div>
-            <div className="flex h-2.5 rounded-sm overflow-hidden bg-slate-100">
-              {view.statusMix.map((s) => (
-                <div key={s.g} style={{ width: `${(s.n / Math.max(1, view.created)) * 100}%`, backgroundColor: STATUS_COLOR[s.g] }} title={`${s.g}: ${s.n}`}></div>
-              ))}
-            </div>
-            <div className="flex flex-wrap gap-x-3 text-[11px] text-slate-600">
-              {view.statusMix.map((s) => (
-                <span key={s.g} className="flex items-center gap-1">
-                  <span className="w-2 h-2 rounded-full" style={{ backgroundColor: STATUS_COLOR[s.g] }}></span>
-                  {s.g} {formatPercent(ratio(s.n, view.created))} ({formatNumber(s.n)})
-                </span>
-              ))}
-            </div>
-          </div>
-          <div className="grid grid-cols-2 gap-2 text-center text-[11px] pt-1">
-            <div>
-              <div className="text-slate-500">So với {compareLabel}</div>
-              <div className="font-mono font-bold text-slate-900 text-sm">{formatNumber(view.createdPrev)}</div>
-              <div className="text-slate-400">ticket tạo</div>
-            </div>
-            <div>
-              <div className="text-slate-500">TG xử lý TB</div>
-              <div className="font-mono font-bold text-slate-900 text-sm">{fmtDays(view.avgDays)}</div>
-            </div>
+            {[
+              ...view.byKind.map((r) => ({ ...r, label: r.k, cls: KIND_STYLE[r.k].text })),
+              {
+                k: 'Tổng', label: 'Tổng', cls: 'text-slate-900', n: view.created, shops: view.createdShops, prev: view.createdPrev,
+                status: view.statusMix, avgDays: view.avgDays,
+              },
+            ].map((r) => {
+              const d = r.prev ? (r.n - r.prev) / r.prev : null;
+              return (
+                <div key={r.k} className={r.k === 'Tổng' ? 'border-t border-dashed border-slate-200 pt-2' : ''}>
+                  <div className="flex flex-wrap items-baseline justify-between gap-x-2 text-xs">
+                    <span>
+                      <strong className={`uppercase ${r.cls}`}>{r.label}</strong>{' '}
+                      <strong className="font-mono text-slate-900">{formatNumber(r.n)}</strong> ticket · {formatNumber(r.shops)} gian hàng
+                    </span>
+                    <span className="text-[11px] text-slate-500">
+                      <span className={`font-mono font-semibold ${d == null ? 'text-slate-400' : d > 0 ? 'text-rose-700' : 'text-emerald-700'}`}>
+                        {d == null ? '—' : Math.abs(d) < 0.005 ? '= 0%' : `${d > 0 ? '▲' : '▼'} ${formatPercent(Math.abs(d), 0)}`}
+                      </span>{' '}
+                      · TB {fmtDays(r.avgDays)}
+                    </span>
+                  </div>
+                  <div className="flex h-2 rounded-sm overflow-hidden bg-slate-100 mt-1">
+                    {r.status.map((s) => (
+                      <div key={s.g} style={{ width: `${(s.n / Math.max(1, r.n)) * 100}%`, backgroundColor: STATUS_COLOR[s.g] }} title={`${s.g}: ${s.n}`}></div>
+                    ))}
+                  </div>
+                  <div className="flex flex-wrap gap-x-3 text-[11px] text-slate-600 mt-0.5">
+                    {r.status.map((s) => (
+                      <span key={s.g} className="flex items-center gap-1">
+                        <span className="w-2 h-2 rounded-full" style={{ backgroundColor: STATUS_COLOR[s.g] }}></span>
+                        {s.g} {formatNumber(s.n)} ({formatPercent(ratio(s.n, r.n), 0)})
+                      </span>
+                    ))}
+                  </div>
+                </div>
+              );
+            })}
+            <p className="text-[11px] text-slate-400">▲/▼ = số ticket tạo so với kỳ so sánh. TB = thời gian xử lý trung bình của ticket đã xong.</p>
           </div>
         </div>
 
         {/* Vấn đề nổi cộm */}
         <div className="xl:col-span-2 bg-white rounded-xl p-5 border border-slate-200 shadow-xs space-y-3 min-w-0">
           {header(
-            'Vấn Đề Phát Sinh Nổi Cộm (Bug + Support + Sự cố)',
+            'Vấn Đề Phát Sinh Nổi Cộm (Bug + Support)',
             <>
-              Ticket tạo từ {formatDate(from)} đến {formatDate(to)}, khái quát theo nhóm vấn đề từ tiêu đề và mô tả; so với {compareLabel}.
+              Ticket tạo từ {formatDate(from)} đến {formatDate(to)}: {TOP_TOPICS} nhóm vấn đề nhiều nhất (khái quát từ tiêu đề và mô tả), còn lại gộp vào
+              "Khác"; so với {compareLabel}.
             </>
           )}
           {view.topics.length === 0 ? (
-            <div className="text-xs text-slate-400 py-8 text-center">Không có ticket Bug / Support / Sự cố trong kỳ.</div>
+            <div className="text-xs text-slate-400 py-8 text-center">Không có ticket Bug / Support trong kỳ.</div>
           ) : (
             <div className="overflow-x-auto">
               <table className="w-full text-xs">
@@ -248,7 +294,7 @@ export default function KatJiraSection({ from, to, prevFrom, prevTo, compareLabe
                     <th className="py-2 px-2 text-right">Ticket</th>
                     <th className="py-2 px-2 text-right">Tỷ trọng</th>
                     <th className="py-2 px-2 text-right">Gian hàng</th>
-                    <th className="py-2 px-2 text-right">Bug / Khác</th>
+                    <th className="py-2 px-2 text-right">Bug / Support</th>
                     <th className="py-2 px-2 text-right">KVE / HKD</th>
                     <th className="py-2 px-2 text-left">Dịch vụ chính</th>
                     <th className="py-2 px-2 text-right">Đang treo</th>
@@ -257,13 +303,22 @@ export default function KatJiraSection({ from, to, prevFrom, prevTo, compareLabe
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-slate-100">
-                  {view.topics.slice(0, 10).map((t) => {
+                  {view.topics.map((t) => {
                     const sv = Object.entries(t.services).sort((a, b) => b[1] - a[1])[0];
                     const d = t.prev ? (t.n - t.prev) / t.prev : null;
                     const avg = t.days.length ? t.days.reduce((s, x) => s + x, 0) / t.days.length : null;
+                    const isOther = t.topic === 'Khác';
                     return (
-                      <tr key={t.topic} className="hover:bg-slate-50/70">
-                        <td className="py-2 px-2 font-semibold text-slate-900">{t.topic}</td>
+                      <tr key={t.topic} className={isOther ? 'bg-slate-50/60' : 'hover:bg-slate-50/70'}>
+                        <td className="py-2 px-2 font-semibold text-slate-900">
+                          {t.topic}
+                          {isOther && view.otherNames.length > 0 && (
+                            <div className="text-[10px] font-normal text-slate-500 leading-snug mt-0.5" title={view.otherNames.join(', ')}>
+                              Gồm: {view.otherNames.slice(0, 4).join(', ')}
+                              {view.otherNames.length > 4 ? `… (+${view.otherNames.length - 4} nhóm)` : ''}
+                            </div>
+                          )}
+                        </td>
                         <td className="py-2 px-2 text-right font-mono font-bold text-slate-900">{formatNumber(t.n)}</td>
                         <td className="py-2 px-2 text-right font-mono text-slate-700">{formatPercent(ratio(t.n, view.topicTotal))}</td>
                         <td className="py-2 px-2 text-right font-mono text-slate-700">{formatNumber(t.shops)}</td>
@@ -285,7 +340,7 @@ export default function KatJiraSection({ from, to, prevFrom, prevTo, compareLabe
                 </tbody>
               </table>
               <p className="text-[11px] text-slate-500 mt-2">
-                ▲ = nhiều ticket hơn kỳ so sánh (xấu đi). Gian hàng = tổng Impact scope. Bug / Khác = Bug và Support + Sự cố. TG xử lý TB tính
+                ▲ = nhiều ticket hơn kỳ so sánh (xấu đi). Gian hàng = tổng Impact scope. Bug / Support: Bug gồm cả Incident. TG xử lý TB tính
                 trên ticket đã xong (Created → Resolved). Lọc KVE / HKD ở khung bên trái.
               </p>
             </div>

@@ -39,7 +39,7 @@ const JIRA_LOAI = {
   'production bug': 'Bug', 'sub_bug': 'Bug', 'bug': 'Bug',
   'support': 'Support', 'sub_support': 'Support',
   'new feature': 'Case', 'sub_case': 'Case', 'case': 'Case',
-  'incident': 'Sự cố',
+  'incident': 'Bug',   // Sự cố: rất hiếm (cả năm 2026 có 1) → tính vào Bug
 };
 
 // Trạng thái xử lý (so sánh sau chuanHoa_): Từ chối trước, rồi Đã xong (thêm 2 trạng thái tạm coi như xong), còn lại Đang treo
