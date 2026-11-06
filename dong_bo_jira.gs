@@ -159,6 +159,7 @@ function dsFileJira_() {
 /** Đọc các file CSV, gộp theo Issue key (file sau thắng), trả về các dòng để ghi */
 function docJira_(files) {
   const theoMa = {};
+  const tieuDeTheoMa = {};
   files.forEach(file => {
     const rows = Utilities.parseCsv(file.getBlob().getDataAsString('UTF-8').replace(/^\uFEFF/, ''));
     if (rows.length < 2) return;
@@ -198,11 +199,21 @@ function docJira_(files) {
       const tt = chuanHoa_(row[C.trangThai]);
       const nhom = JIRA_TU_CHOI.indexOf(tt) >= 0 ? 'Từ chối'
         : (nhomTT ? chuanHoa_(nhomTT) === 'done' : !!xong) || JIRA_XONG_THEM.indexOf(tt) >= 0 ? 'Đã xong' : 'Đang treo';
+      // Dịch vụ & sản phẩm: TIÊU ĐỀ rõ ràng thì theo tiêu đề (Thuế – Kế toán → HKD, HĐĐT → KVE);
+      // tiêu đề không rõ mới dùng mô tả (dịch vụ) và liên kết Dev KVEIN/KAT (sản phẩm)
+      const dvTieuDe = dichVuTieuDeJira_(tieuDe);
+      const topic = kind === 'Case' ? null : nhomVanDeJira_(tieuDe, moTa);
+      const service = dvTieuDe
+        || (topic === 'Sổ doanh thu / sổ kế toán lệch' ? 'Thuế – Kế toán' : null)
+        || nhomNoiDungKAT_({ tieuDe: tieuDe, moTa: moTa, ai: '' });
+      const product = dvTieuDe === 'Thuế – Kế toán' ? 'HKD' : dvTieuDe === 'HĐĐT' ? 'KVE'
+        : /^KVEIN-/.test(dev) ? 'KVE' : /^KAT-/.test(dev) ? 'HKD' : 'Khác';
+      tieuDeTheoMa[ma] = tieuDe;
       theoMa[ma] = {
         issue_key: ma,
         issue_type: loaiGoc,
         kind,
-        product: /^KVEIN-/.test(dev) ? 'KVE' : /^KAT-/.test(dev) ? 'HKD' : 'Khác',
+        product,
         dev_key: dev || null,
         priority: C.uuTien >= 0 ? String(row[C.uuTien] || '').trim() || null : null,
         status: String(row[C.trangThai] || '').trim() || null,
@@ -214,19 +225,59 @@ function docJira_(files) {
         resolved_at: xong ? xong.ngay + ' ' + xong.gio : null,
         changed_at: doiTT ? doiTT.ngay + ' ' + doiTT.gio : null,
         impact_scope: isFinite(phamVi) && String(row[C.phamVi]).trim() !== '' ? phamVi : null,
-        topic: kind === 'Case' ? null : nhomVanDeJira_(tieuDe, moTa),
-        service: nhomNoiDungKAT_({ tieuDe: tieuDe, moTa: moTa, ai: '' }),
+        topic,
+        service,
         feature_title: kind === 'Case' ? tieuDeTinhNang_(tieuDe) : null,
       };
     }
   });
+  // Case có tiêu đề chỉ là mã ticket khác (vd "KTS-13458") → mượn tên của ticket đó
+  Object.keys(theoMa).forEach(k => {
+    const x = theoMa[k];
+    if (x.kind !== 'Case' || x.feature_title) return;
+    const m = String(tieuDeTheoMa[k] || '').trim().match(/^([A-Z]+-\d+)$/);
+    if (m && tieuDeTheoMa[m[1]]) x.feature_title = tieuDeTinhNang_(tieuDeTheoMa[m[1]]);
+  });
   return Object.keys(theoMa).map(k => theoMa[k]);
 }
 
+// Tờ khai ĐĂNG KÝ SỬ DỤNG HĐĐT (mẫu 01, lỗi 10xx khi nộp, chờ CQT duyệt) → KVE / HĐĐT, không phải tờ khai thuế
+const JIRA_TO_KHAI_HDDT = /to khai (dang ky|dk|sdhd|su dung)|tk (dang ky|sdhd)|nop to khai|to khai\b.*\b(10\d\d|cho (cqt )?duyet|chua duoc duyet|cqt (duyet|tiep nhan|tu choi|chap nhan)|tu choi)|\b01\/?dktd/;
+const JIRA_TD_THUE = /thue\s*(&|va|-|\/)?\s*ke toan|thue ket toan|\bso (doanh thu|ke toan|chi phi|tien|quy|sach)|doanh thu|\bs1a\b|\bs2[a-e]\b|\bs3a\b|to khai thue|to khai (quy|thang|nam)|ke khai thue|quyet toan|thue khoan|\btncn\b|\bbctc\b|nop thue|thong tu 88|\btt ?88\b|\bknote\b/;
+const JIRA_TD_HDDT = /\bkve\b|\bhddt\b|hoa don|\bhd\b|einvoice|e-invoice|kv invoice|dieu chinh|thay the|phat hanh|mau (hoa don|in|so)|ky hieu|\bmtt\b|may tinh tien|\bvnpt\b|viettel|\bmisa\b|cap ma/;
+const JIRA_TD_CKS = /\bcks\b|chu ky so|token|ky so|smartca|chung thu/;
+
+/** Dịch vụ đọc từ tiêu đề Jira; tiêu đề không có dấu hiệu rõ thì trả về null */
+function dichVuTieuDeJira_(tieuDe) {
+  const t = chuanHoa_(tieuDe);
+  if (JIRA_TO_KHAI_HDDT.test(t) && !/to khai thue/.test(t)) return 'HĐĐT';
+  if (JIRA_TD_THUE.test(t)) return 'Thuế – Kế toán';
+  if (JIRA_TD_CKS.test(t) && !JIRA_TD_HDDT.test(t)) return 'CKS';
+  if (JIRA_TD_HDDT.test(t)) return 'HĐĐT';
+  return null;
+}
+
+/** Nhóm vấn đề: đọc TIÊU ĐỀ trước (tiêu đề do CS tóm tắt, rõ hơn); tiêu đề không khớp nhóm nào mới đọc thêm mô tả */
 function nhomVanDeJira_(tieuDe, moTa) {
-  const s = chuanHoa_(tieuDe + ' ' + String(moTa).slice(0, 600));
-  for (const [ten, re] of JIRA_NHOM_VAN_DE) if (re.test(s)) return ten;
-  return 'Khác';
+  const td = chuanHoa_(tieuDe);
+  // Tờ khai đăng ký sử dụng HĐĐT không xếp vào nhóm "Tờ khai thuế / kê khai"
+  const toKhaiHddt = JIRA_TO_KHAI_HDDT.test(td) && !/to khai thue/.test(td);
+  // Tiêu đề rõ là HĐĐT thì mô tả không kéo sang nhóm sổ sách / tờ khai thuế
+  const laHddt = dichVuTieuDeJira_(tieuDe) === 'HĐĐT';
+  const tim = (s, boThue) => {
+    for (const [ten, re] of JIRA_NHOM_VAN_DE) {
+      if (boThue && ten === 'Tờ khai thuế / kê khai') continue;
+      if (boThue && ten === 'Sổ doanh thu / sổ kế toán lệch') continue;
+      if (re.test(s)) return ten;
+    }
+    return null;
+  };
+  const nhom = tim(td, false) || tim(chuanHoa_(tieuDe + ' ' + String(moTa).slice(0, 600)), laHddt);
+  // Tờ khai đăng ký / thay đổi / ngừng sử dụng HĐĐT (tiêu đề HĐĐT, KVE) tách khỏi "Tờ khai thuế"
+  if ((toKhaiHddt || (laHddt && /to khai|ke khai/.test(td))) && (!nhom || nhom === 'Tờ khai thuế / kê khai')) {
+    return 'Tờ khai đăng ký sử dụng HĐĐT';
+  }
+  return nhom || 'Khác';
 }
 
 /**
