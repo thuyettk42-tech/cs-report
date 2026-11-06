@@ -234,6 +234,32 @@ export async function loadKatJira(from: string, to: string): Promise<KatJiraIssu
   return [...m.values()].map((x) => ((x.kind as string) === 'Sự cố' ? { ...x, kind: 'Bug' as const } : x));
 }
 
+/** Một sự cố sản phẩm (bảng kat_incident, nguồn sheet "Sự cố KAT" quản lý tự ghi) */
+export interface KatIncident {
+  row_no: number;
+  incident_date: string;
+  error_name: string;
+  error_code: string | null;
+  /** Nghiêm trọng / Ảnh hưởng vận hành / Nhẹ – null = chưa đánh giá */
+  severity: string | null;
+  handle_time: string | null;
+  stores_reported: number | null;
+  stores_actual: number | null;
+  impact_text: string | null;
+  summary: string | null;
+}
+
+/** Tất cả sự cố (bảng nhỏ) – lọc theo kỳ ở màn hình */
+export async function loadKatIncidents(): Promise<KatIncident[]> {
+  const { data, error } = await getSupabaseClient()
+    .from('kat_incident')
+    .select('row_no, incident_date, error_name, error_code, severity, handle_time, stores_reported, stores_actual, impact_text, summary')
+    .order('incident_date', { ascending: false })
+    .order('row_no', { ascending: false });
+  if (error) throw new Error(error.message);
+  return data || [];
+}
+
 export async function loadKatJiraSlaDays(): Promise<number> {
   const { data } = await getSupabaseClient().from('kpi_targets').select('value').eq('code', 'KAT_JIRA_SLA_DAYS').limit(1);
   return data && data[0] ? Number(data[0].value) : 5;

@@ -31,10 +31,13 @@ import {
   loadKatLastSync,
   loadKatJira,
   KatJiraIssue,
+  loadKatIncidents,
+  KatIncident,
 } from '../../services/katData';
 import { Legend, OTHER_COLOR, SERIES_COLORS, StackedBarChart } from './callCenterCharts';
 import KatAgentProductivity from './KatAgentProductivity';
 import KatJiraSection from './KatJiraSection';
+import KatIncidentSection, { incidentsInRange } from './KatIncidentSection';
 
 const CONTENT_COLOR: Record<string, string> = {
   HĐĐT: SERIES_COLORS[0],
@@ -193,7 +196,9 @@ export default function KatTicketReport() {
     loadKatLastSync().then(setLastSync).catch(() => undefined);
     // Thẻ "Ticket Jira mở": chỉ cần ticket đang treo (khoảng ngày rỗng để không lấy thêm ticket theo kỳ)
     loadKatJira('9999-01-01', '9999-01-01').then(setJiraOpen).catch(() => setJiraOpen([]));
+    loadKatIncidents().then(setIncidents).catch((e) => setIncidents(e.message || String(e)));
   }, []);
+  const [incidents, setIncidents] = useState<KatIncident[] | null | string>(null);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
@@ -518,8 +523,38 @@ export default function KatTicketReport() {
             <Delta cur={slaRate} prev={prevOr(ratio(p.withinSla, p.slaBase))} points />
           </span>
         </Card>
-        <Card title="Khiếu nại đang xử lý" icon="warning" iconClass="text-amber-500">
-          <NoData hint="Cần danh sách khiếu nại KAT." />
+        <Card title={`Sự cố phát sinh [${dayLabel}]`} icon="report" iconClass="text-amber-600">
+          {incidents === null ? (
+            <span className="text-xs text-slate-400 mt-1">Đang tải…</span>
+          ) : typeof incidents === 'string' ? (
+            <NoData hint="Chưa có bảng sự cố – chạy buoc15_tao_bang_su_co.sql và hàm dongBoSuCo." />
+          ) : (() => {
+            const cur = incidentsInRange(incidents, period!.from, period!.to);
+            const prevN = incidentsInRange(incidents, period!.prevFrom, period!.prevTo).length;
+            const serious = cur.filter((x) => x.severity === 'Nghiêm trọng').length;
+            const ops = cur.filter((x) => x.severity === 'Ảnh hưởng vận hành').length;
+            const diff = cur.length - prevN;
+            return (
+              <>
+                <span className={`text-2xl sm:text-3xl font-extrabold font-mono ${cur.length ? 'text-amber-700' : 'text-emerald-700'}`}>
+                  {formatNumber(cur.length)} <span className="text-xs font-semibold text-slate-400">sự cố</span>
+                </span>
+                <span className="text-[11px] text-slate-500 mt-1">
+                  {cur.length ? `Nghiêm trọng: ${serious} | Ảnh hưởng VH: ${ops}` : 'Không có sự cố phát sinh'}
+                </span>
+                <span className="text-xs mt-auto pt-2">
+                  {diff === 0 ? (
+                    <span className="text-slate-500">= kỳ so sánh ({formatNumber(prevN)})</span>
+                  ) : (
+                    <span className={`font-semibold ${diff > 0 ? 'text-rose-700' : 'text-emerald-700'}`}>
+                      {diff > 0 ? '▲ +' : '▼ −'}{formatNumber(Math.abs(diff))}{' '}
+                      <span className="font-normal text-slate-500">(kỳ so sánh: {formatNumber(prevN)})</span>
+                    </span>
+                  )}
+                </span>
+              </>
+            );
+          })()}
         </Card>
         <Card title="Ticket Jira mở (Bug + Sup)" icon="settings" iconClass="text-sky-700">
           {jiraOpen == null ? (
@@ -674,6 +709,16 @@ export default function KatTicketReport() {
       {/* Jira chuyển sản phẩm, vấn đề nổi cộm, đề xuất tính năng */}
       {period && (
         <KatJiraSection from={period.from} to={period.to} prevFrom={period.prevFrom} prevTo={period.prevTo} compareLabel={compareLabel} />
+      )}
+
+      {/* Sự cố sản phẩm (sheet "Sự cố KAT"), mỗi sự cố 1 dòng */}
+      {period && (
+        <KatIncidentSection
+          incidents={incidents}
+          from={period.from}
+          to={period.to}
+          periodLabel={period.from === period.to ? formatDate(period.from) : `${formatDate(period.from)} – ${formatDate(period.to)}`}
+        />
       )}
 
       {/* Bảng theo kênh – chi tiết để tra cứu, thu gọn mặc định */}
