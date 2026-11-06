@@ -133,11 +133,21 @@ export default function KatAgentProductivity({ rows, from, to, prevFrom, prevTo,
       ) : (
         <>
           <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
-            <Stat label="Nhân sự KAT có ticket" value={formatNumber(view.agents.length)} sub="mã tổng đài 88xx" />
             <Stat
-              label="Ticket đội KAT xử lý"
-              value={formatNumber(view.tickets)}
-              sub={`${formatPercent(ratio(view.tickets, allTickets))} tổng ticket KAT`}
+              label="Đội KAT tự xử lý"
+              value={formatPercent(ratio(view.tickets, allTickets))}
+              tone="text-slate-900"
+              sub={`${formatNumber(view.tickets)} ticket · ${formatNumber(view.agents.length)} nhân sự 88xx`}
+            />
+            <Stat
+              label="Do đội khác xử lý"
+              value={formatPercent(ratio(allTickets - view.tickets, allTickets))}
+              tone="text-amber-700"
+              sub={
+                view.others.length
+                  ? `${formatNumber(allTickets - view.tickets)} ticket · nhiều nhất ${view.others[0][0]} (${formatPercent(ratio(view.others[0][1], allTickets - view.tickets), 0)})`
+                  : `${formatNumber(allTickets - view.tickets)} ticket`
+              }
             />
             <Stat
               label="TB ticket / người / ngày"

@@ -21,6 +21,20 @@ const isIssue = (x: KatJiraIssue) => x.kind !== 'Case'; // Bug (gồm Incident),
 const shops = (xs: KatJiraIssue[]) => xs.reduce((s, x) => s + (Number(x.impact_scope) || 0), 0);
 const fmtDays = (d: number | null) => (d == null || !isFinite(d) ? '—' : `${d.toLocaleString('vi-VN', { maximumFractionDigits: 1 })} ngày`);
 const formatDate = (d: string) => `${d.slice(8, 10)}/${d.slice(5, 7)}/${d.slice(0, 4)}`;
+/** Kỳ trước dưới 10 ticket thì % dễ phóng đại (1 → 4 = ▲300%) → hiện chênh lệch tuyệt đối "▲ +3" */
+const SMALL_BASE = 10;
+function ChangeCell({ n, prev }: { n: number; prev: number }) {
+  if (!prev && !n) return <span className="text-slate-400">—</span>;
+  const diff = n - prev;
+  if (diff === 0) return <span className="text-slate-500">= 0</span>;
+  const cls = diff > 0 ? 'text-rose-700' : 'text-emerald-700';
+  const text = prev < SMALL_BASE ? `${diff > 0 ? '+' : '−'}${formatNumber(Math.abs(diff))}` : formatPercent(Math.abs(diff) / prev, 0);
+  return (
+    <span className={`font-mono font-semibold ${cls}`} title={`Kỳ so sánh: ${formatNumber(prev)} ticket`}>
+      {diff > 0 ? '▲' : '▼'} {text}
+    </span>
+  );
+}
 
 const KIND_STYLE: Record<string, { label: string; box: string; text: string; sub: string }> = {
   Bug: { label: 'Bug', box: 'bg-rose-50 border-rose-200', text: 'text-rose-700', sub: 'Lỗi hệ thống' },
@@ -139,9 +153,16 @@ export default function KatJiraSection({ from, to, prevFrom, prevTo, compareLabe
       openByKind: (['Bug', 'Support', 'Case'] as const).map((k) => ({ k, n: open.filter((x) => x.kind === k).length })),
       openKve: open.filter((x) => x.product === 'KVE').length,
       openHkd: open.filter((x) => x.product === 'HKD').length,
-      ages: AGE_BUCKETS.map((b, i) => ({
-        ...b,
-        n: open.filter((x) => { const a = ageDays(x); return a <= b.max && (i === 0 || a > AGE_BUCKETS[i - 1].max); }).length,
+      // Tuổi ticket đang treo: Bug + Support (cần đôn đốc) tách riêng khỏi Case (đề xuất, chờ lâu là bình thường)
+      ageGroups: [
+        { key: 'issue', label: 'Bug + Support', xs: open.filter(isIssue) },
+        { key: 'case', label: 'Case (đề xuất tính năng)', xs: open.filter((x) => x.kind === 'Case') },
+      ].map((g) => ({
+        ...g,
+        ages: AGE_BUCKETS.map((b, i) => ({
+          ...b,
+          n: g.xs.filter((x) => { const a = ageDays(x); return a <= b.max && (i === 0 || a > AGE_BUCKETS[i - 1].max); }).length,
+        })),
       })),
       overSla: open.filter((x) => isIssue(x) && ageDays(x) > slaDays).length,
       created: curIssues.length,
@@ -207,70 +228,94 @@ export default function KatJiraSection({ from, to, prevFrom, prevTo, compareLabe
             </span>
           </div>
           <div>
-            <div className="flex justify-between text-xs mb-1.5">
-              <span className="font-semibold text-slate-700">Phân bổ tuổi ticket đang treo</span>
-              <span className="font-semibold text-rose-700">
-                {formatNumber(view.ages[1].n + view.ages[2].n + view.ages[3].n)} ticket &gt; 3 ngày
-              </span>
-            </div>
-            <div className="flex h-2.5 rounded-sm overflow-hidden bg-slate-100">
-              {view.ages.map((b) => (
-                <div key={b.label} style={{ width: `${(b.n / Math.max(1, openTotal)) * 100}%`, backgroundColor: b.color }} title={`${b.label}: ${b.n}`}></div>
-              ))}
-            </div>
-            <div className="grid grid-cols-2 gap-x-3 gap-y-1 mt-2 text-[11px]">
-              {view.ages.map((b) => (
-                <span key={b.label} className="flex items-center gap-1.5 text-slate-600">
-                  <span className="w-2 h-2 rounded-full" style={{ backgroundColor: b.color }}></span>
-                  {b.label}: <strong className="text-slate-800">{formatNumber(b.n)} ticket</strong>
-                </span>
-              ))}
-            </div>
+            <div className="text-xs font-semibold text-slate-700 mb-1.5">Tuổi ticket đang treo (tính đến hôm nay)</div>
+            <table className="w-full text-xs">
+              <thead className="text-[10px] text-slate-500 uppercase">
+                <tr className="border-b border-slate-200">
+                  <th className="py-1.5 pr-1 text-left font-semibold"></th>
+                  {AGE_BUCKETS.map((b) => (
+                    <th key={b.label} className="py-1.5 px-1 text-right font-semibold whitespace-nowrap">{b.label}</th>
+                  ))}
+                  <th className="py-1.5 pl-1 text-right font-semibold">Tổng</th>
+                </tr>
+              </thead>
+              <tbody className="font-mono">
+                {view.ageGroups.map((g) => (
+                  <tr key={g.key} className="border-b border-slate-100">
+                    <td className="py-1.5 pr-1 font-sans font-semibold text-slate-800 whitespace-nowrap">{g.key === 'issue' ? 'Bug + Support' : 'Case'}</td>
+                    {g.ages.map((b, i) => {
+                      // Bug + Support: càng lâu càng đỏ (cần đôn đốc); Case chờ lâu là bình thường → chỉ tô xám
+                      const tone = !b.n
+                        ? 'text-slate-300'
+                        : g.key === 'case'
+                          ? 'text-slate-600'
+                          : ['text-slate-700', 'bg-amber-50 text-amber-800', 'bg-orange-100 text-orange-800 font-semibold', 'bg-rose-100 text-rose-800 font-bold'][i];
+                      return (
+                        <td key={b.label} className={`py-1.5 px-1 text-right rounded-sm ${tone}`}>
+                          {formatNumber(b.n)}
+                        </td>
+                      );
+                    })}
+                    <td className="py-1.5 pl-1 text-right font-bold text-slate-900">{formatNumber(g.xs.length)}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+            <p className="text-[11px] text-slate-400 mt-1">Case = đề xuất tính năng, thường chờ lâu theo lộ trình sản phẩm nên không tô đỏ.</p>
           </div>
           {/* Tạm ẩn SLA Dev xử lý (đôn đốc / % xử lý xong đúng hạn) – chờ người dùng có tài liệu SLA của KAT */}
-          <div className="border-t border-slate-100 pt-3 space-y-2.5">
-            <div className="text-xs font-semibold text-slate-700">
+          <div className="border-t border-slate-100 pt-3">
+            <div className="text-xs font-semibold text-slate-700 mb-1.5">
               Tạo trong kỳ ({formatDate(from)} – {formatDate(to)}), so với {compareLabel}
             </div>
-            {[
-              ...view.byKind.map((r) => ({ ...r, label: r.k, cls: KIND_STYLE[r.k].text })),
-              {
-                k: 'Tổng', label: 'Tổng', cls: 'text-slate-900', n: view.created, shops: view.createdShops, prev: view.createdPrev,
-                status: view.statusMix, avgDays: view.avgDays,
-              },
-            ].map((r) => {
-              const d = r.prev ? (r.n - r.prev) / r.prev : null;
-              return (
-                <div key={r.k} className={r.k === 'Tổng' ? 'border-t border-dashed border-slate-200 pt-2' : ''}>
-                  <div className="flex flex-wrap items-baseline justify-between gap-x-2 text-xs">
-                    <span>
-                      <strong className={`uppercase ${r.cls}`}>{r.label}</strong>{' '}
-                      <strong className="font-mono text-slate-900">{formatNumber(r.n)}</strong> ticket · {formatNumber(r.shops)} gian hàng
-                    </span>
-                    <span className="text-[11px] text-slate-500">
-                      <span className={`font-mono font-semibold ${d == null ? 'text-slate-400' : d > 0 ? 'text-rose-700' : 'text-emerald-700'}`}>
-                        {d == null ? '—' : Math.abs(d) < 0.005 ? '= 0%' : `${d > 0 ? '▲' : '▼'} ${formatPercent(Math.abs(d), 0)}`}
-                      </span>{' '}
-                      · TB {fmtDays(r.avgDays)}
-                    </span>
-                  </div>
-                  <div className="flex h-2 rounded-sm overflow-hidden bg-slate-100 mt-1">
-                    {r.status.map((s) => (
-                      <div key={s.g} style={{ width: `${(s.n / Math.max(1, r.n)) * 100}%`, backgroundColor: STATUS_COLOR[s.g] }} title={`${s.g}: ${s.n}`}></div>
-                    ))}
-                  </div>
-                  <div className="flex flex-wrap gap-x-3 text-[11px] text-slate-600 mt-0.5">
-                    {r.status.map((s) => (
-                      <span key={s.g} className="flex items-center gap-1">
-                        <span className="w-2 h-2 rounded-full" style={{ backgroundColor: STATUS_COLOR[s.g] }}></span>
-                        {s.g} {formatNumber(s.n)} ({formatPercent(ratio(s.n, r.n), 0)})
-                      </span>
-                    ))}
-                  </div>
-                </div>
-              );
-            })}
-            <p className="text-[11px] text-slate-400">▲/▼ = số ticket tạo so với kỳ so sánh. TB = thời gian xử lý trung bình của ticket đã xong.</p>
+            <div className="overflow-x-auto">
+              <table className="w-full text-xs">
+                <thead className="text-[10px] text-slate-500 uppercase">
+                  <tr className="border-b border-slate-200">
+                    <th className="py-1.5 pr-1 text-left font-semibold">Loại</th>
+                    <th className="py-1.5 px-1 text-right font-semibold">Ticket</th>
+                    <th className="py-1.5 px-1 text-left font-semibold">Đã xong</th>
+                    <th className="py-1.5 px-1 text-right font-semibold">Từ chối</th>
+                    <th className="py-1.5 px-1 text-right font-semibold">Đang treo</th>
+                    <th className="py-1.5 px-1 text-right font-semibold whitespace-nowrap">So kỳ trước</th>
+                    <th className="py-1.5 pl-1 text-right font-semibold whitespace-nowrap">TG xử lý TB</th>
+                  </tr>
+                </thead>
+                <tbody className="font-mono">
+                  {[
+                    ...view.byKind.map((r) => ({ ...r, label: r.k, cls: KIND_STYLE[r.k].text })),
+                    { k: 'Tổng', label: 'Tổng', cls: 'text-slate-900', n: view.created, prev: view.createdPrev, status: view.statusMix, avgDays: view.avgDays },
+                  ].map((r) => {
+                    const st = (g: string) => r.status.find((s) => s.g === g)?.n || 0;
+                    const doneRate = ratio(st('Đã xong'), r.n);
+                    const total = r.k === 'Tổng';
+                    return (
+                      <tr key={r.k} className={total ? 'bg-slate-50 font-bold' : 'border-b border-slate-100'}>
+                        <td className={`py-1.5 pr-1 font-sans font-bold ${r.cls}`}>{r.label}</td>
+                        <td className="py-1.5 px-1 text-right font-bold text-slate-900">{formatNumber(r.n)}</td>
+                        <td className="py-1.5 px-1">
+                          <div className="flex items-center gap-1.5">
+                            <div className="w-10 h-1.5 bg-slate-100 rounded-sm overflow-hidden shrink-0">
+                              <div className="h-full" style={{ width: `${(doneRate || 0) * 100}%`, backgroundColor: STATUS_COLOR['Đã xong'] }}></div>
+                            </div>
+                            <span className="text-slate-800">{formatPercent(doneRate, 0)}</span>
+                          </div>
+                        </td>
+                        <td className="py-1.5 px-1 text-right text-slate-600">{formatNumber(st('Từ chối'))}</td>
+                        <td className={`py-1.5 px-1 text-right ${st('Đang treo') ? 'text-amber-700 font-semibold' : 'text-slate-400'}`}>{formatNumber(st('Đang treo'))}</td>
+                        <td className="py-1.5 px-1 text-right">
+                          <ChangeCell n={r.n} prev={r.prev} />
+                        </td>
+                        <td className="py-1.5 pl-1 text-right text-slate-700 whitespace-nowrap">{fmtDays(r.avgDays)}</td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            </div>
+            <p className="text-[11px] text-slate-400 mt-1">
+              So kỳ trước = số ticket tạo (kỳ trước dưới {SMALL_BASE} ticket thì ghi chênh lệch, vd "+3"). TG xử lý TB tính trên ticket đã xong.
+            </p>
           </div>
         </div>
 
@@ -305,7 +350,6 @@ export default function KatJiraSection({ from, to, prevFrom, prevTo, compareLabe
                 <tbody className="divide-y divide-slate-100">
                   {view.topics.map((t) => {
                     const sv = Object.entries(t.services).sort((a, b) => b[1] - a[1])[0];
-                    const d = t.prev ? (t.n - t.prev) / t.prev : null;
                     const avg = t.days.length ? t.days.reduce((s, x) => s + x, 0) / t.days.length : null;
                     const isOther = t.topic === 'Khác';
                     return (
@@ -331,8 +375,8 @@ export default function KatJiraSection({ from, to, prevFrom, prevTo, compareLabe
                         <td className="py-2 px-2 text-slate-700">{sv ? `${sv[0]} (${formatPercent(ratio(sv[1], t.n), 0)})` : '—'}</td>
                         <td className={`py-2 px-2 text-right font-mono ${t.open ? 'text-amber-700 font-semibold' : 'text-slate-400'}`}>{formatNumber(t.open)}</td>
                         <td className="py-2 px-2 text-right font-mono text-slate-700">{fmtDays(avg)}</td>
-                        <td className={`py-2 px-2 text-right font-mono font-semibold ${d == null ? 'text-slate-400' : d > 0 ? 'text-rose-700' : 'text-emerald-700'}`}>
-                          {d == null ? '—' : Math.abs(d) < 0.005 ? '= 0%' : `${d > 0 ? '▲' : '▼'} ${formatPercent(Math.abs(d), 0)}`}
+                        <td className="py-2 px-2 text-right">
+                          <ChangeCell n={t.n} prev={t.prev} />
                         </td>
                       </tr>
                     );
@@ -340,7 +384,7 @@ export default function KatJiraSection({ from, to, prevFrom, prevTo, compareLabe
                 </tbody>
               </table>
               <p className="text-[11px] text-slate-500 mt-2">
-                ▲ = nhiều ticket hơn kỳ so sánh (xấu đi). Gian hàng = tổng Impact scope. Bug / Support: Bug gồm cả Incident. TG xử lý TB tính
+                ▲ = nhiều ticket hơn kỳ so sánh (xấu đi); kỳ trước dưới {SMALL_BASE} ticket thì ghi chênh lệch số ticket (vd "+3") thay cho %. Gian hàng = tổng Impact scope. Bug / Support: Bug gồm cả Incident. TG xử lý TB tính
                 trên ticket đã xong (Created → Resolved). Lọc KVE / HKD ở khung bên trái.
               </p>
             </div>

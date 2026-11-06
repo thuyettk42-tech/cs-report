@@ -466,15 +466,9 @@ export const ProjectKatView: React.FC<ProjectKatViewProps> = ({ onOpenExport }) 
         </div>
       </div>
 
-      {/* FOOTER LIVE SYNC BAR */}
-      <div className="pt-2 pb-2 flex flex-col sm:flex-row items-center justify-between text-xs text-slate-400 gap-2 border-t border-slate-200">
-        <div className="flex items-center gap-2">
-          <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
-          <span>Hệ thống KiotViet Care Hub • KAT Analytics Engine Live Sync</span>
-        </div>
-        <div>
-          Thời gian kết xuất: 24/10/2026 14:35:00 • Mã vận hành: <b>KAT-OP-9014</b>
-        </div>
+      {/* Chân trang: ngày dữ liệu & giờ đồng bộ thật nằm ở đầu báo cáo (KatTicketReport) */}
+      <div className="pt-2 pb-2 text-xs text-slate-400 border-t border-slate-200">
+        Nguồn: file ticket CRM, Jira và 3CX do Apps Script đồng bộ vào Supabase mỗi sáng.
       </div>
 
       {/* GOOGLE SHEET CONFIGURATION MODAL */}

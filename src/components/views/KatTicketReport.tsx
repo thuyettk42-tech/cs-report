@@ -28,6 +28,9 @@ import {
   KAT_DEFAULT_TARGET_PER_DAY,
   loadKatAgents,
   loadKatTargetPerDay,
+  loadKatLastSync,
+  loadKatJira,
+  KatJiraIssue,
 } from '../../services/katData';
 import { Legend, OTHER_COLOR, SERIES_COLORS, StackedBarChart } from './callCenterCharts';
 import KatAgentProductivity from './KatAgentProductivity';
@@ -41,6 +44,7 @@ const CONTENT_COLOR: Record<string, string> = {
 };
 const CHANNEL_COLOR: Record<string, string> = { Call: SERIES_COLORS[0], Chat: SERIES_COLORS[1], Ticket: SERIES_COLORS[2], Khác: OTHER_COLOR };
 const SLA_TARGET = 0.95;
+const MISS_CALL = 'Call – Miss call';
 /** Mục tiêu tỷ lệ gọi nhỡ line KAT (như thiết kế: < 5%) */
 const ABANDON_TARGET = 0.05;
 /** Kỳ dài hơn số ngày này thì biểu đồ sản lượng gộp theo tháng */
@@ -182,8 +186,13 @@ export default function KatTicketReport() {
   const [data, setData] = useState<{ key: string; daily: KatDailyRow[]; calls: KatCallDay[]; agents: KatAgentDay[] } | null>(null);
   const [targetPerDay, setTargetPerDay] = useState(KAT_DEFAULT_TARGET_PER_DAY);
 
+  const [lastSync, setLastSync] = useState<{ run_at: string; status: string } | null>(null);
+  const [jiraOpen, setJiraOpen] = useState<KatJiraIssue[] | null>(null);
   useEffect(() => {
     loadKatTargetPerDay().then(setTargetPerDay).catch(() => undefined);
+    loadKatLastSync().then(setLastSync).catch(() => undefined);
+    // Thẻ "Ticket Jira mở": chỉ cần ticket đang treo (khoảng ngày rỗng để không lấy thêm ticket theo kỳ)
+    loadKatJira('9999-01-01', '9999-01-01').then(setJiraOpen).catch(() => setJiraOpen([]));
   }, []);
   const [error, setError] = useState<string | null>(null);
 
@@ -281,11 +290,14 @@ export default function KatTicketReport() {
       buckets,
       segs,
       volume,
+      // Ticket "Call – Miss call" hầu như không có nội dung (rơi vào "Khác") → không tính vào tỷ trọng dịch vụ
       contentShare: KAT_CONTENT.map((c) => ({
         c,
-        cur: count(cur, (r) => r.content_group === c),
-        prev: count(prev, (r) => r.content_group === c),
+        cur: count(cur, (r) => r.content_group === c && r.channel !== MISS_CALL),
+        prev: count(prev, (r) => r.content_group === c && r.channel !== MISS_CALL),
       })),
+      shareBase: count(cur, (r) => r.channel !== MISS_CALL),
+      missCalls: count(cur, (r) => r.channel === MISS_CALL),
       allCur: count(cur, () => true),
       channels: KAT_CHANNELS.map((ch) => {
         const rs = curF.filter((r) => r.channel === ch);
@@ -312,6 +324,21 @@ export default function KatTicketReport() {
               {period.from === period.to ? formatDate(period.from) : `${formatDate(period.from)} – ${formatDate(period.to)}`} ({period.days} ngày)
             </span>
           )}
+          {range && (() => {
+            // Hôm qua theo giờ Việt Nam: file ticket ngày hôm qua thường được thả vào sáng nay
+            const yesterday = addDays(new Date(Date.now() + 7 * 3600000).toISOString().slice(0, 10), -1);
+            const late = range.latest < yesterday;
+            return (
+              <span
+                className={`px-2.5 py-0.5 rounded-full font-semibold text-[11px] border ${late ? 'bg-amber-50 text-amber-800 border-amber-200' : 'bg-slate-50 text-slate-600 border-slate-200'}`}
+                title={late ? `Chưa có ticket từ ${formatDate(addDays(range.latest, 1))} – kiểm tra đã thả file xuất CRM vào thư mục KAT chưa` : undefined}
+              >
+                {late && '⚠ '}Ticket CRM có đến {formatDate(range.latest)}
+                {lastSync && ` · đồng bộ lúc ${new Date(lastSync.run_at).toLocaleString('vi-VN', { hour: '2-digit', minute: '2-digit', day: '2-digit', month: '2-digit' })}`}
+                {lastSync?.status === 'error' && ' (lỗi)'}
+              </span>
+            );
+          })()}
         </div>
         <h1 className="text-xl sm:text-2xl font-bold text-slate-900 tracking-tight">Báo cáo vận hành dự án KAT</h1>
         <p className="text-xs text-slate-500 max-w-3xl">
@@ -323,6 +350,17 @@ export default function KatTicketReport() {
             </>
           )}
         </p>
+        {period && (mode === 'day' || mode === 'range' || mode === 'month') && (() => {
+          // Tháng đầu quý (T1, T4, T7, T10) là cao điểm kê khai HĐĐT / thuế → so với tháng thường dễ lệch mạnh
+          const peak = (d: string) => [1, 4, 7, 10].includes(Number(d.slice(5, 7)));
+          if (peak(period.from) === peak(period.prevFrom)) return null;
+          return (
+            <p className="text-[11px] text-amber-800 bg-amber-50 border border-amber-200 rounded-md px-2 py-1 inline-block">
+              Lưu ý mùa vụ: {peak(period.prevFrom) ? 'kỳ so sánh' : 'kỳ đang xem'} rơi vào tháng đầu quý (cao điểm kê khai), nên các chỉ số so sánh thường
+              {peak(period.prevFrom) ? ' giảm' : ' tăng'} mạnh – nên xem thêm "Cùng kỳ quý trước".
+            </p>
+          );
+        })()}
       </div>
       <div className="flex flex-wrap items-center gap-2">
         <div className="inline-flex p-0.5 bg-slate-100 rounded-lg text-xs font-semibold" role="tablist">
@@ -484,7 +522,27 @@ export default function KatTicketReport() {
           <NoData hint="Cần danh sách khiếu nại KAT." />
         </Card>
         <Card title="Ticket Jira mở (Bug + Sup)" icon="settings" iconClass="text-sky-700">
-          <NoData hint="Cần dữ liệu ticket chuyển sản phẩm (Jira)." />
+          {jiraOpen == null ? (
+            <span className="text-xs text-slate-400 mt-1">Đang tải…</span>
+          ) : (() => {
+            const issues = jiraOpen.filter((x) => x.is_open && x.kind !== 'Case');
+            const bug = issues.filter((x) => x.kind === 'Bug').length;
+            const nowMs = Date.now();
+            const old = issues.filter((x) => (nowMs - new Date(x.created_at.replace(' ', 'T') + '+07:00').getTime()) / 86400000 > 7).length;
+            return (
+              <>
+                <span className={`text-2xl sm:text-3xl font-extrabold font-mono ${issues.length ? 'text-amber-700' : 'text-emerald-700'}`}>
+                  {formatNumber(issues.length)} <span className="text-xs font-semibold text-slate-400">ticket</span>
+                </span>
+                <span className="text-[11px] text-slate-500 mt-1">
+                  Bug: {formatNumber(bug)} | Support: {formatNumber(issues.length - bug)}
+                </span>
+                <span className="text-xs mt-auto pt-2">
+                  {old ? <span className="font-semibold text-rose-700">{formatNumber(old)} ticket treo &gt; 7 ngày</span> : <span className="text-slate-500">Không có ticket treo &gt; 7 ngày</span>}
+                </span>
+              </>
+            );
+          })()}
         </Card>
       </div>
 
@@ -508,13 +566,6 @@ export default function KatTicketReport() {
             <div key={x.l} style={{ width: `${(x.n / Math.max(1, s.tickets)) * 100}%`, backgroundColor: x.c }} title={`${x.l}: ${formatNumber(x.n)}`}></div>
           ))}
         </div>
-        <Legend
-          items={[
-            { label: `Hoàn thiện ${formatPercent(ratio(s.done, s.tickets))}`, color: '#1baf7a' },
-            { label: `Không xử lý ${formatPercent(ratio(s.rejected, s.tickets))}`, color: '#94a3b8' },
-            { label: `Đang treo ${formatNumber(s.pending)}`, color: '#eda100' },
-          ]}
-        />
         <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-3">
         <SmallStat
           label="Đã hoàn thiện"
@@ -574,7 +625,10 @@ export default function KatTicketReport() {
         <div className="bg-white rounded-xl p-5 border border-slate-200 shadow-xs space-y-3 min-w-0">
           <div className="border-b border-slate-100 pb-3">
             <h2 className="text-base font-bold text-slate-900">Tỷ Trọng Theo Loại Dịch Vụ</h2>
-            <p className="text-xs text-slate-500 mt-0.5">Trên tổng {formatNumber(view.allCur)} ticket của kỳ.</p>
+            <p className="text-xs text-slate-500 mt-0.5">
+              Trên {formatNumber(view.shareBase)} ticket có nội dung
+              {view.missCalls > 0 && <> (không tính {formatNumber(view.missCalls)} ticket gọi nhỡ chưa ghi nội dung)</>}.
+            </p>
           </div>
           <div className="space-y-3">
             {view.contentShare.map((x) => (
@@ -585,7 +639,7 @@ export default function KatTicketReport() {
                     {x.c}
                   </span>
                   <span className="font-mono text-slate-700">
-                    <strong className="text-slate-900">{formatNumber(x.cur)}</strong> ({formatPercent(ratio(x.cur, view.allCur))})
+                    <strong className="text-slate-900">{formatNumber(x.cur)}</strong> ({formatPercent(ratio(x.cur, view.shareBase))})
                   </span>
                 </div>
                 <div className="flex items-center gap-2 mt-1">
@@ -601,80 +655,6 @@ export default function KatTicketReport() {
             Loại dịch vụ do hệ thống đọc mô tả + AI summary của ticket; 1 ticket nhiều việc ưu tiên Thuế → HĐĐT → CKS → Khác.
           </p>
         </div>
-      </div>
-
-      {/* Bảng theo kênh */}
-      <div className="bg-white rounded-xl p-5 border border-slate-200 shadow-xs space-y-3">
-        <div className="border-b border-slate-100 pb-3">
-          <h2 className="text-base font-bold text-slate-900">Ticket Theo Kênh Hỗ Trợ</h2>
-          <p className="text-xs text-slate-500 mt-0.5">
-            Ticket CRM không ghi kênh: người tạo = người xử lý thì lấy kênh nhân viên đó dùng trong ngày; khác người thì tính là Ticket.
-          </p>
-        </div>
-        <div className="overflow-x-auto">
-          <table className="w-full text-xs">
-            <thead className="bg-slate-50 text-slate-600 uppercase font-semibold border-b border-slate-200">
-              <tr>
-                <th className="py-2.5 px-2 text-left">Kênh</th>
-                <th className="py-2.5 px-2 text-right">Ticket</th>
-                <th className="py-2.5 px-2 text-right">Tỷ trọng</th>
-                {KAT_CONTENT.map((c) => (
-                  <th key={c} className="py-2.5 px-2 text-right">
-                    {c}
-                  </th>
-                ))}
-                <th className="py-2.5 px-2 text-right">Hoàn thiện</th>
-                <th className="py-2.5 px-2 text-right">Không xử lý</th>
-                <th className="py-2.5 px-2 text-right">Đúng SLA 4h</th>
-                <th className="py-2.5 px-2 text-right">TG xử lý TB</th>
-                <th className="py-2.5 px-2 text-right">Kỳ so sánh</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-slate-100 font-mono">
-              {view.channels.map(({ ch, s: c, byContent, prev }) => {
-                const t = isTicketChannel(ch);
-                const sla = ratio(c.withinSla, c.slaBase);
-                return (
-                  <tr key={ch} className="hover:bg-slate-50/70">
-                    <td className="py-2.5 px-2 font-sans font-semibold text-slate-900">{ch}</td>
-                    <td className="py-2.5 px-2 text-right font-bold text-slate-900">{formatNumber(c.tickets)}</td>
-                    <td className="py-2.5 px-2 text-right text-slate-700">{formatPercent(ratio(c.tickets, s.tickets))}</td>
-                    {byContent.map((n, i) => (
-                      <td key={i} className="py-2.5 px-2 text-right text-slate-700">
-                        {formatNumber(n)}
-                      </td>
-                    ))}
-                    <td className="py-2.5 px-2 text-right text-slate-700">{formatPercent(ratio(c.done, c.tickets))}</td>
-                    <td className="py-2.5 px-2 text-right text-slate-700">{formatNumber(c.rejected)}</td>
-                    <td className={`py-2.5 px-2 text-right font-semibold ${t ? (sla != null && sla >= SLA_TARGET ? 'text-emerald-700' : 'text-rose-700') : 'text-slate-400'}`}>
-                      {t ? formatPercent(sla) : '—'}
-                    </td>
-                    <td className="py-2.5 px-2 text-right text-slate-700">{t ? formatDuration(ratio(c.ticketSeconds, c.ticketChannel)) : '—'}</td>
-                    <td className="py-2.5 px-2 text-right text-slate-500">{hasPrev ? formatNumber(prev) : '—'}</td>
-                  </tr>
-                );
-              })}
-              <tr className="bg-slate-100 font-bold">
-                <td className="py-2.5 px-2 font-sans text-slate-900">Tổng</td>
-                <td className="py-2.5 px-2 text-right text-slate-900">{formatNumber(s.tickets)}</td>
-                <td className="py-2.5 px-2 text-right">100%</td>
-                {KAT_CONTENT.map((_, i) => (
-                  <td key={i} className="py-2.5 px-2 text-right">
-                    {formatNumber(view.channels.reduce((sum, x) => sum + x.byContent[i], 0))}
-                  </td>
-                ))}
-                <td className="py-2.5 px-2 text-right">{formatPercent(ratio(s.done, s.tickets))}</td>
-                <td className="py-2.5 px-2 text-right">{formatNumber(s.rejected)}</td>
-                <td className="py-2.5 px-2 text-right">{formatPercent(slaRate)}</td>
-                <td className="py-2.5 px-2 text-right">{formatDuration(avgTicket)}</td>
-                <td className="py-2.5 px-2 text-right text-slate-500">{hasPrev ? formatNumber(p.tickets) : '—'}</td>
-              </tr>
-            </tbody>
-          </table>
-        </div>
-        <p className="text-[11px] text-slate-500">
-          SLA chỉ tính kênh Ticket (xử lý xong trong 4 giờ, không tính ticket Từ chối / Trùng lặp). Call và Chat xử lý ngay khi KH liên hệ.
-        </p>
       </div>
 
       {/* Năng suất nhân sự KAT (mã tổng đài 88xx) */}
@@ -695,6 +675,68 @@ export default function KatTicketReport() {
       {period && (
         <KatJiraSection from={period.from} to={period.to} prevFrom={period.prevFrom} prevTo={period.prevTo} compareLabel={compareLabel} />
       )}
+
+      {/* Bảng theo kênh – chi tiết để tra cứu, thu gọn mặc định */}
+      <details className="group bg-white rounded-xl p-5 border border-slate-200 shadow-xs">
+        <summary className="cursor-pointer list-none flex items-start justify-between gap-2">
+          <div>
+            <h2 className="text-base font-bold text-slate-900">Chi Tiết: Ticket Theo Kênh Hỗ Trợ</h2>
+            <p className="text-xs text-slate-500 mt-0.5">
+              {view.channels.length} kênh · bấm để xem. Ticket CRM không ghi kênh: người tạo = người xử lý thì lấy kênh nhân viên đó dùng trong ngày; khác người thì tính là Ticket.
+            </p>
+          </div>
+          <span className="material-symbols-outlined text-slate-400 transition-transform group-open:rotate-180">expand_more</span>
+        </summary>
+        <div className="overflow-x-auto mt-3">
+          <table className="w-full text-xs">
+            <thead className="bg-slate-50 text-slate-600 uppercase font-semibold border-b border-slate-200">
+              <tr>
+                <th className="py-2.5 px-2 text-left">Kênh</th>
+                <th className="py-2.5 px-2 text-right">Ticket</th>
+                <th className="py-2.5 px-2 text-right">Tỷ trọng</th>
+                <th className="py-2.5 px-2 text-right">Hoàn thiện</th>
+                <th className="py-2.5 px-2 text-right">Không xử lý</th>
+                <th className="py-2.5 px-2 text-right">Đúng SLA 4h</th>
+                <th className="py-2.5 px-2 text-right">TG xử lý TB</th>
+                <th className="py-2.5 px-2 text-right">Kỳ so sánh</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-slate-100 font-mono">
+              {view.channels.map(({ ch, s: c, byContent, prev }) => {
+                const t = isTicketChannel(ch);
+                const sla = ratio(c.withinSla, c.slaBase);
+                return (
+                  <tr key={ch} className="hover:bg-slate-50/70">
+                    <td className="py-2.5 px-2 font-sans font-semibold text-slate-900">{ch}</td>
+                    <td className="py-2.5 px-2 text-right font-bold text-slate-900">{formatNumber(c.tickets)}</td>
+                    <td className="py-2.5 px-2 text-right text-slate-700">{formatPercent(ratio(c.tickets, s.tickets))}</td>
+                    <td className="py-2.5 px-2 text-right text-slate-700">{formatPercent(ratio(c.done, c.tickets))}</td>
+                    <td className="py-2.5 px-2 text-right text-slate-700">{formatNumber(c.rejected)}</td>
+                    <td className={`py-2.5 px-2 text-right font-semibold ${t ? (sla != null && sla >= SLA_TARGET ? 'text-emerald-700' : 'text-rose-700') : 'text-slate-400'}`}>
+                      {t ? formatPercent(sla) : '—'}
+                    </td>
+                    <td className="py-2.5 px-2 text-right text-slate-700">{t ? formatDuration(ratio(c.ticketSeconds, c.ticketChannel)) : '—'}</td>
+                    <td className="py-2.5 px-2 text-right text-slate-500">{hasPrev ? formatNumber(prev) : '—'}</td>
+                  </tr>
+                );
+              })}
+              <tr className="bg-slate-100 font-bold">
+                <td className="py-2.5 px-2 font-sans text-slate-900">Tổng</td>
+                <td className="py-2.5 px-2 text-right text-slate-900">{formatNumber(s.tickets)}</td>
+                <td className="py-2.5 px-2 text-right">100%</td>
+                <td className="py-2.5 px-2 text-right">{formatPercent(ratio(s.done, s.tickets))}</td>
+                <td className="py-2.5 px-2 text-right">{formatNumber(s.rejected)}</td>
+                <td className="py-2.5 px-2 text-right">{formatPercent(slaRate)}</td>
+                <td className="py-2.5 px-2 text-right">{formatDuration(avgTicket)}</td>
+                <td className="py-2.5 px-2 text-right text-slate-500">{hasPrev ? formatNumber(p.tickets) : '—'}</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+        <p className="text-[11px] text-slate-500">
+          SLA chỉ tính kênh Ticket (xử lý xong trong 4 giờ, không tính ticket Từ chối / Trùng lặp). Call và Chat xử lý ngay khi KH liên hệ.
+        </p>
+      </details>
     </div>
   );
 }

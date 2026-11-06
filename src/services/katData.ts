@@ -103,6 +103,17 @@ async function perMonth<T>(from: string, to: string, load: (a: string, b: string
   return out.flat();
 }
 
+/** Lần đồng bộ KAT gần nhất (ticket CRM hoặc Jira) trong nhật ký sync_log */
+export async function loadKatLastSync(): Promise<{ run_at: string; status: string; message: string | null } | null> {
+  const { data } = await getSupabaseClient()
+    .from('sync_log')
+    .select('run_at, status, message')
+    .ilike('message', '%KAT%')
+    .order('run_at', { ascending: false })
+    .limit(1);
+  return data && data[0] ? data[0] : null;
+}
+
 export function loadKatDaily(from: string, to: string): Promise<KatDailyRow[]> {
   return perMonth(from, to, loadKatDailyRange);
 }
