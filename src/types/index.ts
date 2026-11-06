@@ -54,6 +54,20 @@ export interface AllowedUser {
   addedBy: string;
 }
 
+export interface AccessRequest {
+  id: string;
+  email: string;
+  name: string;
+  department?: string;
+  requestedRole: string;
+  note?: string;
+  provider: 'google' | 'email';
+  status: 'pending' | 'approved' | 'rejected';
+  createdAt: string;
+  reviewedAt?: string;
+  reviewedBy?: string;
+}
+
 export interface KpiGroup {
   id: number;
   name: string;

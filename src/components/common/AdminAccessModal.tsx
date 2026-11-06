@@ -9,9 +9,12 @@ import {
   getGoogleClientId,
   saveGoogleClientId,
   getCurrentOrigin,
+  getAccessRequests,
+  approveAccessRequest,
+  rejectAccessRequest,
 } from '../../services/authService';
 import { getSupabaseCredentials, saveSupabaseCredentials, SUPABASE_SQL_SCHEMA } from '../../services/supabaseClient';
-import { AllowedUser, UserProfile } from '../../types';
+import { AllowedUser, UserProfile, AccessRequest } from '../../types';
 
 interface AdminAccessModalProps {
   isOpen: boolean;
@@ -26,8 +29,10 @@ export const AdminAccessModal: React.FC<AdminAccessModalProps> = ({
   currentUser,
   onSwitchUser,
 }) => {
-  const [activeTab, setActiveTab] = useState<'whitelist' | 'google-oauth' | 'supabase'>('whitelist');
+  const [activeTab, setActiveTab] = useState<'whitelist' | 'requests' | 'google-oauth' | 'supabase'>('whitelist');
   const [users, setUsers] = useState<AllowedUser[]>(getAllowedUsers());
+  const [requests, setRequests] = useState<AccessRequest[]>(getAccessRequests());
+  const [roleToAssignMap, setRoleToAssignMap] = useState<Record<string, string>>({});
   const [newEmail, setNewEmail] = useState('');
   const [newName, setNewName] = useState('');
   const [newRole, setNewRole] = useState('Quản lý CSKH');
@@ -200,6 +205,38 @@ export const AdminAccessModal: React.FC<AdminAccessModalProps> = ({
     setTimeout(() => setCopiedSql(false), 2500);
   };
 
+  const pendingRequestsCount = requests.filter((r) => r.status === 'pending').length;
+
+  const handleApproveRequest = (req: AccessRequest) => {
+    if (!isUserSuperAdmin) {
+      showToast('Chỉ tài khoản Super Admin (thuyettk42@gmail.com) mới có quyền phê duyệt yêu cầu!');
+      return;
+    }
+    const roleToAssign = roleToAssignMap[req.id] || req.requestedRole || 'Quản lý CSKH';
+    const res = approveAccessRequest(req.id, roleToAssign, currentUser?.email || 'thuyettk42@gmail.com');
+    if (res.success) {
+      setUsers(getAllowedUsers());
+      setRequests(getAccessRequests());
+      showToast(res.message);
+    } else {
+      showToast(res.message);
+    }
+  };
+
+  const handleRejectRequest = (req: AccessRequest) => {
+    if (!isUserSuperAdmin) {
+      showToast('Chỉ tài khoản Super Admin (thuyettk42@gmail.com) mới có quyền từ chối yêu cầu!');
+      return;
+    }
+    const res = rejectAccessRequest(req.id, currentUser?.email || 'thuyettk42@gmail.com');
+    if (res.success) {
+      setRequests(getAccessRequests());
+      showToast(res.message);
+    } else {
+      showToast(res.message);
+    }
+  };
+
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-black/60 backdrop-blur-xs animate-fadeIn">
       <div className="bg-white rounded-2xl shadow-2xl max-w-4xl w-full p-5 sm:p-6 border border-slate-200 flex flex-col max-h-[92vh] overflow-hidden text-left animate-in fade-in zoom-in-95 duration-150">
@@ -287,7 +324,19 @@ export const AdminAccessModal: React.FC<AdminAccessModalProps> = ({
             }`}
           >
             <span className="material-symbols-outlined text-[16px]">verified_user</span>
-            <span>Danh sách Whitelist ({users.length})</span>
+            <span>Whitelist ({users.length})</span>
+          </button>
+          <button
+            onClick={() => setActiveTab('requests')}
+            className={`flex-1 py-1.5 rounded-lg font-bold transition-all flex items-center justify-center gap-1.5 cursor-pointer relative ${
+              activeTab === 'requests' ? 'bg-white text-primary shadow-xs' : 'text-slate-600 hover:text-slate-900'
+            }`}
+          >
+            <span className="material-symbols-outlined text-[16px]">how_to_reg</span>
+            <span>Chờ Duyệt ({pendingRequestsCount})</span>
+            {pendingRequestsCount > 0 && (
+              <span className="w-2 h-2 rounded-full bg-rose-500 animate-pulse"></span>
+            )}
           </button>
           <button
             onClick={() => setActiveTab('google-oauth')}
@@ -296,7 +345,7 @@ export const AdminAccessModal: React.FC<AdminAccessModalProps> = ({
             }`}
           >
             <span className="material-symbols-outlined text-[16px]">vpn_key</span>
-            <span>Google OAuth 2.0 (SSO)</span>
+            <span>Google OAuth 2.0</span>
           </button>
           <button
             onClick={() => setActiveTab('supabase')}
@@ -305,7 +354,7 @@ export const AdminAccessModal: React.FC<AdminAccessModalProps> = ({
             }`}
           >
             <span className="material-symbols-outlined text-[16px]">database</span>
-            <span>Supabase Database</span>
+            <span>Supabase DB</span>
           </button>
         </div>
 
@@ -553,6 +602,158 @@ export const AdminAccessModal: React.FC<AdminAccessModalProps> = ({
                 </div>
               </div>
             </>
+          ) : activeTab === 'requests' ? (
+            <div className="space-y-4">
+              {/* Requests banner */}
+              <div className="p-3.5 bg-sky-50 border border-sky-200 rounded-xl text-xs text-slate-700 flex items-start justify-between gap-3">
+                <div className="flex items-start gap-2.5">
+                  <span className="material-symbols-outlined text-[20px] text-[#006195] shrink-0 mt-0.5">
+                    how_to_reg
+                  </span>
+                  <div className="space-y-0.5">
+                    <div className="font-bold text-[#006195] text-sm">
+                      Duyệt Yêu Cầu Đăng Ký Tài Khoản Google Account
+                    </div>
+                    <p className="text-slate-600 leading-relaxed text-[11px]">
+                      Nhân sự đăng ký bằng Google Account từ cổng đăng nhập sẽ hiển thị tại đây. Chỉ tài khoản Super Admin (<b>thuyettk42@gmail.com</b>) có quyền phê duyệt &amp; phân quyền truy cập.
+                    </p>
+                  </div>
+                </div>
+                <span className="px-2.5 py-1 rounded-full text-xs font-bold bg-white text-[#006195] border border-sky-200 shrink-0">
+                  {pendingRequestsCount} yêu cầu chờ duyệt
+                </span>
+              </div>
+
+              {/* Requests list */}
+              {requests.length === 0 ? (
+                <div className="p-8 text-center text-slate-400 bg-slate-50 rounded-xl border border-slate-200 text-xs">
+                  Chưa có yêu cầu đăng ký nào trong hệ thống.
+                </div>
+              ) : (
+                <div className="space-y-3">
+                  {requests.map((req) => {
+                    const isPending = req.status === 'pending';
+                    const assignedRole = roleToAssignMap[req.id] || req.requestedRole || 'Quản lý CSKH';
+
+                    return (
+                      <div
+                        key={req.id}
+                        className={`p-4 rounded-xl border transition-all ${
+                          isPending
+                            ? 'bg-white border-amber-300 shadow-xs ring-1 ring-amber-100'
+                            : req.status === 'approved'
+                            ? 'bg-slate-50/70 border-slate-200 opacity-80'
+                            : 'bg-rose-50/30 border-rose-200 opacity-70'
+                        }`}
+                      >
+                        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                          <div className="flex items-start gap-3">
+                            <div className="w-10 h-10 rounded-xl bg-slate-100 flex items-center justify-center font-bold text-slate-700 shrink-0 relative">
+                              <span className="text-sm">
+                                {req.name
+                                  .split(' ')
+                                  .map((w) => w[0])
+                                  .join('')
+                                  .slice(-2)
+                                  .toUpperCase()}
+                              </span>
+                              <span className="absolute -bottom-1 -right-1 w-4 h-4 rounded-full bg-white flex items-center justify-center shadow-xs">
+                                <svg className="w-3 h-3" viewBox="0 0 24 24">
+                                  <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" />
+                                  <path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" />
+                                  <path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.06H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.94l2.85-2.22.81-.63z" />
+                                  <path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.06l3.66 2.84c.87-2.6 3.3-4.52 6.16-4.52z" />
+                                </svg>
+                              </span>
+                            </div>
+
+                            <div className="space-y-1">
+                              <div className="flex items-center gap-2 flex-wrap">
+                                <span className="font-bold text-slate-900 text-sm">{req.name}</span>
+                                <span className="text-slate-400">•</span>
+                                <span className="font-mono text-slate-600 text-xs font-semibold">{req.email}</span>
+                                {isPending ? (
+                                  <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-amber-100 text-amber-800 border border-amber-300">
+                                    Chờ phê duyệt
+                                  </span>
+                                ) : req.status === 'approved' ? (
+                                  <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-100 text-emerald-800">
+                                    ✓ Đã duyệt
+                                  </span>
+                                ) : (
+                                  <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-rose-100 text-rose-800">
+                                    Đã từ chối
+                                  </span>
+                                )}
+                              </div>
+
+                              <div className="text-[11px] text-slate-500 flex items-center gap-3 flex-wrap">
+                                <span>Phòng ban: <b>{req.department || 'Vận hành CSKH'}</b></span>
+                                <span>Thời gian gửi: <b className="font-mono text-slate-700">{req.createdAt}</b></span>
+                              </div>
+
+                              {req.note && (
+                                <p className="text-[11px] text-slate-600 bg-slate-50 px-2 py-1 rounded border border-slate-200 mt-1 italic">
+                                  "{req.note}"
+                                </p>
+                              )}
+                            </div>
+                          </div>
+
+                          {/* Approval actions */}
+                          {isPending ? (
+                            <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2 shrink-0 pt-2 sm:pt-0 border-t sm:border-t-0 border-slate-100">
+                              <select
+                                value={assignedRole}
+                                onChange={(e) =>
+                                  setRoleToAssignMap({ ...roleToAssignMap, [req.id]: e.target.value })
+                                }
+                                disabled={!isUserSuperAdmin}
+                                className="h-8 px-2.5 rounded-lg bg-white border border-slate-300 text-slate-800 text-xs font-medium focus:outline-none focus:ring-1 focus:ring-primary cursor-pointer"
+                              >
+                                <option value="Manager CS (Super Admin)">Manager CS (Super Admin)</option>
+                                <option value="Giám Đốc / Quản Lý CSKH">Giám Đốc / Quản Lý CSKH</option>
+                                <option value="Quản lý CSKH">Quản lý CSKH</option>
+                                <option value="Quản Lý Vận Hành CSKH">Quản Lý Vận Hành CSKH</option>
+                                <option value="Giám sát / QA (View & Export)">Giám sát / QA (View &amp; Export)</option>
+                                <option value="Chỉ xem báo cáo (View Only)">Chỉ xem báo cáo (View Only)</option>
+                              </select>
+
+                              <div className="flex items-center gap-1.5">
+                                <button
+                                  type="button"
+                                  onClick={() => handleApproveRequest(req)}
+                                  disabled={!isUserSuperAdmin}
+                                  className="px-3 py-1.5 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs flex items-center gap-1 shadow-xs transition-colors cursor-pointer disabled:opacity-50"
+                                >
+                                  <span className="material-symbols-outlined text-[16px]">check</span>
+                                  <span>Phê Duyệt</span>
+                                </button>
+
+                                <button
+                                  type="button"
+                                  onClick={() => handleRejectRequest(req)}
+                                  disabled={!isUserSuperAdmin}
+                                  className="px-2.5 py-1.5 rounded-lg bg-rose-50 hover:bg-rose-100 text-rose-700 border border-rose-200 font-semibold text-xs flex items-center gap-1 transition-colors cursor-pointer disabled:opacity-50"
+                                >
+                                  <span className="material-symbols-outlined text-[16px]">close</span>
+                                  <span>Từ Chối</span>
+                                </button>
+                              </div>
+                            </div>
+                          ) : (
+                            <div className="text-[11px] text-slate-400 text-right">
+                              {req.reviewedBy && <div>Bởi: {req.reviewedBy}</div>}
+                              {req.reviewedAt && <div>Lúc: {req.reviewedAt}</div>}
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
+            </div>
           ) : activeTab === 'google-oauth' ? (
             <>
               {/* Google OAuth 2.0 configuration */}

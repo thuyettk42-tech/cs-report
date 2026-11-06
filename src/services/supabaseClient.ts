@@ -115,12 +115,40 @@ CREATE TABLE IF NOT EXISTS public.sync_audit_logs (
   created_at TIMESTAMPTZ DEFAULT now()
 );
 
--- 4. Kích hoạt Row Level Security (RLS) bảo mật dữ liệu
+-- 4. Bảng Yêu Cầu Đăng Ký Tài Khoản (Google Account chờ Super Admin xét duyệt)
+CREATE TABLE IF NOT EXISTS public.access_requests (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  email TEXT UNIQUE NOT NULL,
+  name TEXT NOT NULL,
+  department TEXT DEFAULT 'CSKH KiotViet',
+  requested_role TEXT DEFAULT 'Quản lý CSKH',
+  note TEXT,
+  provider TEXT DEFAULT 'google',
+  status TEXT DEFAULT 'pending', -- pending, approved, rejected
+  created_at TIMESTAMPTZ DEFAULT now(),
+  reviewed_at TIMESTAMPTZ,
+  reviewed_by TEXT
+);
+
+-- 5. Kích hoạt Row Level Security (RLS) bảo mật dữ liệu
 ALTER TABLE public.allowed_users ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.multichannel_metrics ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.sync_audit_logs ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.access_requests ENABLE ROW LEVEL SECURITY;
 
--- Policy: Chỉ user đã xác thực trong Whitelist mới có quyền đọc và ghi dữ liệu
+-- Policy: Cho phép người dùng gửi yêu cầu đăng ký
+CREATE POLICY "Allow public insert access_requests"
+ON public.access_requests
+FOR INSERT
+WITH CHECK (true);
+
+-- Policy: Chỉ user đã xác thực trong Whitelist mới có quyền đọc và duyệt yêu cầu
+CREATE POLICY "Allow whitelisted admins manage access_requests"
+ON public.access_requests
+FOR ALL
+USING (auth.jwt() ->> 'email' IN (SELECT email FROM public.allowed_users WHERE is_active = TRUE));
+
+-- Policy: Chỉ user đã xác thực trong Whitelist mới có quyền đọc và ghi dữ liệu metrics
 CREATE POLICY "Allow whitelisted admins full access" 
 ON public.multichannel_metrics
 FOR ALL

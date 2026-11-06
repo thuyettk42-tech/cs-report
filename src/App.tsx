@@ -224,6 +224,7 @@ export default function App() {
           {currentTab === 'ticket-ho-tro' && (
             <TicketSupportView
               onOpenExport={() => handleOpenExport('Báo Cáo Ticket & SLA 4h Hỗ Trợ')}
+              onOpenDataSourceModal={() => setIsSettingsModalOpen(true)}
             />
           )}
 

@@ -5,8 +5,10 @@ interface SettingsReportViewProps {
 }
 
 export default function SettingsReportView({ onOpenExport }: SettingsReportViewProps) {
-  const [activeTab, setActiveTab] = useState<'kpi' | 'sync' | 'export'>('kpi');
+  const [activeTab, setActiveTab] = useState<'kpi' | 'sync' | 'sheets' | 'export'>('kpi');
   const [saveSuccess, setSaveSuccess] = useState(false);
+  const [ticketSheetUrl, setTicketSheetUrl] = useState(() => localStorage.getItem('kiotviet_ticket_sheet_url') || '');
+  const [multichannelSheetUrl, setMultichannelSheetUrl] = useState(() => localStorage.getItem('kiotviet_multichannel_sheet_url') || '');
 
   // Editable thresholds state
   const [departmentWeight, setDepartmentWeight] = useState(30);
@@ -104,6 +106,18 @@ export default function SettingsReportView({ onOpenExport }: SettingsReportViewP
         >
           <span className="material-symbols-outlined text-[18px]">history_toggle_off</span>
           <span>Nhật ký Đồng bộ Dữ liệu T-1</span>
+        </button>
+
+        <button
+          onClick={() => setActiveTab('sheets')}
+          className={`flex items-center gap-2 px-4 py-2 rounded-lg font-label-md text-sm transition-all ${
+            activeTab === 'sheets'
+              ? 'bg-primary text-white font-bold shadow-sm'
+              : 'text-slate-600 hover:bg-slate-100'
+          }`}
+        >
+          <span className="material-symbols-outlined text-[18px]">table_chart</span>
+          <span>Liên Kết Nguồn Google Sheets (Ticket &amp; Đa Kênh)</span>
         </button>
       </div>
 
@@ -299,7 +313,7 @@ export default function SettingsReportView({ onOpenExport }: SettingsReportViewP
             </button>
           </div>
         </form>
-      ) : (
+      ) : activeTab === 'sync' ? (
         /* SYNC LOGS TABLE */
         <div className="bg-surface-container-lowest rounded-xl p-space-lg shadow-sm border border-slate-200">
           <div className="flex items-center justify-between mb-4">
@@ -340,6 +354,136 @@ export default function SettingsReportView({ onOpenExport }: SettingsReportViewP
                 ))}
               </tbody>
             </table>
+          </div>
+        </div>
+      ) : (
+        /* SHEETS LINK SETTINGS TAB */
+        <div className="space-y-6">
+          {/* Card 1: Ticket Support Google Sheet */}
+          <div className="bg-surface-container-lowest rounded-xl p-space-lg shadow-sm border-2 border-[#0090DA]/30 space-y-4">
+            <div className="flex items-center justify-between pb-3 border-b border-slate-100 flex-wrap gap-2">
+              <div className="flex items-center gap-2.5">
+                <div className="w-9 h-9 rounded-lg bg-sky-100 text-[#006195] flex items-center justify-center font-bold">
+                  <span className="material-symbols-outlined text-[20px]">confirmation_number</span>
+                </div>
+                <div>
+                  <h3 className="font-bold text-slate-900 text-base">
+                    Nguồn Dữ Liệu Google Sheet: Kênh Vận Hành · Report Ticket Hỗ Trợ (CSKH_04_Ticket)
+                  </h3>
+                  <p className="text-xs text-slate-500">
+                    Cung cấp các chỉ số KPI tháng, tốc độ assign 45p, xử lý trong 4h, nguồn tạo &amp; 52 loại việc
+                  </p>
+                </div>
+              </div>
+              <span className="px-3 py-1 rounded-full text-xs font-bold bg-emerald-100 text-emerald-800 flex items-center gap-1.5">
+                <span className="w-2 h-2 rounded-full bg-emerald-600 animate-pulse"></span>
+                Đang nạp CSKH_04_Ticket
+              </span>
+            </div>
+
+            <form
+              onSubmit={(e) => {
+                e.preventDefault();
+                localStorage.setItem('kiotviet_ticket_sheet_url', ticketSheetUrl);
+                setSaveSuccess(true);
+                setTimeout(() => setSaveSuccess(false), 3000);
+              }}
+              className="space-y-3"
+            >
+              <div>
+                <label className="block text-xs font-bold text-slate-700 mb-1">
+                  Đường dẫn liên kết Google Sheet (Chế độ xem hoặc sửa)
+                </label>
+                <div className="flex items-center gap-2">
+                  <input
+                    type="url"
+                    value={ticketSheetUrl}
+                    onChange={(e) => setTicketSheetUrl(e.target.value)}
+                    placeholder="https://docs.google.com/spreadsheets/d/.../edit#gid=0"
+                    className="flex-1 h-10 px-3 text-xs bg-slate-50 border border-slate-200 rounded-lg text-slate-800 font-mono focus:outline-none focus:ring-2 focus:ring-[#0090DA]/20"
+                  />
+                  <button
+                    type="submit"
+                    className="px-4 h-10 bg-[#006195] hover:bg-[#004b74] text-white text-xs font-bold rounded-lg shadow-xs transition-colors shrink-0 flex items-center gap-1.5"
+                  >
+                    <span className="material-symbols-outlined text-[16px]">save</span>
+                    <span>Lưu Link Sheet Ticket</span>
+                  </button>
+                </div>
+              </div>
+
+              <div className="p-3 bg-slate-50 rounded-lg border border-slate-200 flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-xs">
+                <div className="space-y-0.5">
+                  <div className="font-semibold text-slate-800">Tệp CSV cục bộ đính kèm:</div>
+                  <div className="font-mono text-slate-500 text-[11px]">/public/assets/aistudio/CSKH_04_Ticket_d384a4c8</div>
+                  <div className="text-emerald-700 font-medium">✓ Đã phân tích: 25.187 tickets tạo, 31 ngày T10, 9 nguồn, 52 loại việc.</div>
+                </div>
+
+                <a
+                  href="/assets/aistudio/CSKH_04_Ticket_d384a4c8"
+                  download="CSKH_04_Ticket_Raw.csv"
+                  className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-slate-300 hover:bg-slate-100 text-slate-700 text-xs font-semibold shrink-0"
+                >
+                  <span className="material-symbols-outlined text-[16px]">download</span>
+                  <span>Tải file gốc CSV</span>
+                </a>
+              </div>
+            </form>
+          </div>
+
+          {/* Card 2: Multichannel Google Sheet */}
+          <div className="bg-surface-container-lowest rounded-xl p-space-lg shadow-sm border border-slate-200 space-y-4">
+            <div className="flex items-center justify-between pb-3 border-b border-slate-100 flex-wrap gap-2">
+              <div className="flex items-center gap-2.5">
+                <div className="w-9 h-9 rounded-lg bg-emerald-100 text-emerald-800 flex items-center justify-center font-bold">
+                  <span className="material-symbols-outlined text-[20px]">hub</span>
+                </div>
+                <div>
+                  <h3 className="font-bold text-slate-900 text-base">
+                    Nguồn Dữ Liệu Google Sheet: Báo Cáo Tiếp Nhận Đa Kênh Tổng Đài
+                  </h3>
+                  <p className="text-xs text-slate-500">
+                    Bảng tổng hợp dữ liệu toàn khối tổng đài (Call, Freshchat, Fanpage, CRM Ticket, Email)
+                  </p>
+                </div>
+              </div>
+              <span className="px-3 py-1 rounded-full text-xs font-bold bg-emerald-100 text-emerald-800 flex items-center gap-1.5">
+                <span className="w-2 h-2 rounded-full bg-emerald-600 animate-pulse"></span>
+                Đã kết nối
+              </span>
+            </div>
+
+            <form
+              onSubmit={(e) => {
+                e.preventDefault();
+                localStorage.setItem('kiotviet_multichannel_sheet_url', multichannelSheetUrl);
+                setSaveSuccess(true);
+                setTimeout(() => setSaveSuccess(false), 3000);
+              }}
+              className="space-y-3"
+            >
+              <div>
+                <label className="block text-xs font-bold text-slate-700 mb-1">
+                  Đường dẫn liên kết Google Sheet Đa Kênh
+                </label>
+                <div className="flex items-center gap-2">
+                  <input
+                    type="url"
+                    value={multichannelSheetUrl}
+                    onChange={(e) => setMultichannelSheetUrl(e.target.value)}
+                    placeholder="https://docs.google.com/spreadsheets/d/.../edit"
+                    className="flex-1 h-10 px-3 text-xs bg-slate-50 border border-slate-200 rounded-lg text-slate-800 font-mono focus:outline-none focus:ring-2 focus:ring-[#0090DA]/20"
+                  />
+                  <button
+                    type="submit"
+                    className="px-4 h-10 bg-[#006195] hover:bg-[#004b74] text-white text-xs font-bold rounded-lg shadow-xs transition-colors shrink-0 flex items-center gap-1.5"
+                  >
+                    <span className="material-symbols-outlined text-[16px]">save</span>
+                    <span>Lưu Link Sheet Đa Kênh</span>
+                  </button>
+                </div>
+              </div>
+            </form>
           </div>
         </div>
       )}

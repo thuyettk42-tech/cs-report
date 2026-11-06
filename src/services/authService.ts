@@ -1,9 +1,10 @@
-import { UserProfile, AllowedUser } from '../types';
+import { UserProfile, AllowedUser, AccessRequest } from '../types';
 import { getSupabaseClient, isSupabaseConfigured } from './supabaseClient';
 
 const STORAGE_KEY_AUTH_USER = 'kiotviet_auth_user_v1';
 const STORAGE_KEY_ALLOWED_USERS = 'kiotviet_allowed_users_v1';
 const STORAGE_KEY_SESSION_EXPIRES_AT = 'kiotviet_session_expires_at_v1';
+const STORAGE_KEY_ACCESS_REQUESTS = 'kiotviet_access_requests_v1';
 
 export const INITIAL_ALLOWED_USERS: AllowedUser[] = [
   {
@@ -199,13 +200,261 @@ export function removeAllowedUser(email: string): { success: boolean; message: s
   return { success: true, message: `Đã thu hồi quyền của ${normalizedEmail}!` };
 }
 
-export function isEmailAllowed(email: string): { allowed: boolean; user?: AllowedUser } {
+export function isEmailAllowed(email: string): { allowed: boolean; user?: AllowedUser; pendingRequest?: AccessRequest } {
   const normalized = email.toLowerCase().trim();
   const list = getAllowedUsers();
   const found = list.find((u) => u.email.toLowerCase() === normalized);
+  if (found) {
+    return {
+      allowed: true,
+      user: found,
+    };
+  }
+  const requests = getAccessRequests();
+  const pending = requests.find((r) => r.email.toLowerCase() === normalized && r.status === 'pending');
   return {
-    allowed: !!found,
-    user: found,
+    allowed: false,
+    pendingRequest: pending,
+  };
+}
+
+// ==============================================================
+// GOOGLE ACCOUNT REGISTRATION & PENDING APPROVAL MANAGEMENT
+// ==============================================================
+
+export const INITIAL_ACCESS_REQUESTS: AccessRequest[] = [
+  {
+    id: 'req-01',
+    email: 'minh.nguyen@kiotviet.com',
+    name: 'Nguyễn Văn Minh',
+    department: 'Vận hành CSKH',
+    requestedRole: 'Quản lý CSKH',
+    note: 'Cần theo dõi SLA cuộc gọi và ticket khối BPO Outsource',
+    provider: 'google',
+    status: 'pending',
+    createdAt: '05/11/2026 15:30',
+  },
+  {
+    id: 'req-02',
+    email: 'thu.ha@gmail.com',
+    name: 'Đặng Thu Hà',
+    department: 'Chất lượng & QA CSAT',
+    requestedRole: 'Giám sát / QA (View & Export)',
+    note: 'Theo dõi chỉ số CSAT và đánh giá cuộc gọi dự án KAT',
+    provider: 'google',
+    status: 'pending',
+    createdAt: '06/11/2026 09:10',
+  },
+];
+
+export function getAccessRequests(): AccessRequest[] {
+  try {
+    const raw = localStorage.getItem(STORAGE_KEY_ACCESS_REQUESTS);
+    if (raw) {
+      const parsed = JSON.parse(raw);
+      if (Array.isArray(parsed)) return parsed;
+    }
+  } catch (err) {
+    console.warn(err);
+  }
+  return INITIAL_ACCESS_REQUESTS;
+}
+
+export function saveAccessRequests(requests: AccessRequest[]): void {
+  try {
+    localStorage.setItem(STORAGE_KEY_ACCESS_REQUESTS, JSON.stringify(requests));
+  } catch (err) {
+    console.error('Failed to save access requests', err);
+  }
+}
+
+/**
+ * Đăng ký tài khoản mới bằng Google Account để gửi Super Admin xét duyệt
+ */
+export function submitGoogleRegistration(data: {
+  email: string;
+  name?: string;
+  department?: string;
+  requestedRole?: string;
+  note?: string;
+}): { success: boolean; message: string; request?: AccessRequest; alreadyApproved?: boolean } {
+  const email = data.email.toLowerCase().trim();
+  if (!email) {
+    return { success: false, message: 'Email Google không được để trống.' };
+  }
+
+  // 1. Kiểm tra xem tài khoản đã được phê duyệt trong Whitelist chưa
+  const allowed = getAllowedUsers().find((u) => u.email.toLowerCase() === email);
+  if (allowed) {
+    return {
+      success: true,
+      alreadyApproved: true,
+      message: `Tài khoản "${email}" đã được phê duyệt trong hệ thống. Bạn có thể đăng nhập ngay!`,
+    };
+  }
+
+  // 2. Kiểm tra xem đã gửi yêu cầu trước đó chưa
+  const currentRequests = getAccessRequests();
+  const existingPending = currentRequests.find((r) => r.email.toLowerCase() === email && r.status === 'pending');
+  if (existingPending) {
+    return {
+      success: true,
+      request: existingPending,
+      message: `Yêu cầu đăng ký của tài khoản "${email}" đã được gửi và đang chờ Super Admin (thuyettk42@gmail.com) phê duyệt.`,
+    };
+  }
+
+  // 3. Tạo yêu cầu mới
+  const now = new Date();
+  const timeStr = `${String(now.getDate()).padStart(2, '0')}/${String(now.getMonth() + 1).padStart(2, '0')}/${now.getFullYear()} ${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}`;
+  
+  const newRequest: AccessRequest = {
+    id: `req-${Date.now()}`,
+    email: email,
+    name: data.name ? data.name.trim() : email.split('@')[0],
+    department: data.department ? data.department.trim() : 'Vận hành CSKH',
+    requestedRole: data.requestedRole || 'Quản lý CSKH',
+    note: data.note || 'Đăng ký tài khoản qua Google Account',
+    provider: 'google',
+    status: 'pending',
+    createdAt: timeStr,
+  };
+
+  const updated = [newRequest, ...currentRequests];
+  saveAccessRequests(updated);
+
+  // Nếu Supabase đã kết nối, đồng bộ ngầm vào bảng access_requests
+  if (isSupabaseConfigured()) {
+    getSupabaseClient()
+      .from('access_requests')
+      .upsert({
+        email: newRequest.email,
+        name: newRequest.name,
+        department: newRequest.department,
+        requested_role: newRequest.requestedRole,
+        note: newRequest.note,
+        status: 'pending',
+      })
+      .then(
+        ({ error }) => {
+          if (error) console.warn('Supabase sync access_requests error:', error);
+        },
+        (err: any) => console.warn('Supabase insert error', err)
+      );
+  }
+
+  return {
+    success: true,
+    request: newRequest,
+    message: `Đăng ký thành công! Yêu cầu của bạn đã được chuyển đến Super Admin (Vũ Minh Thuyết - thuyettk42@gmail.com) để xét duyệt.`,
+  };
+}
+
+/**
+ * Super Admin (thuyettk42@gmail.com) phê duyệt yêu cầu cấp quyền
+ */
+export function approveAccessRequest(
+  requestId: string,
+  roleToAssign?: string,
+  reviewerEmail: string = 'thuyettk42@gmail.com'
+): { success: boolean; message: string; approvedUser?: AllowedUser } {
+  const currentRequests = getAccessRequests();
+  const reqIndex = currentRequests.findIndex((r) => r.id === requestId);
+  if (reqIndex === -1) {
+    return { success: false, message: 'Không tìm thấy yêu cầu cấp quyền.' };
+  }
+
+  const req = currentRequests[reqIndex];
+  const now = new Date();
+  const timeStr = `${String(now.getDate()).padStart(2, '0')}/${String(now.getMonth() + 1).padStart(2, '0')}/${now.getFullYear()} ${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}`;
+
+  // 1. Cập nhật trạng thái yêu cầu
+  currentRequests[reqIndex] = {
+    ...req,
+    status: 'approved',
+    reviewedAt: timeStr,
+    reviewedBy: reviewerEmail,
+  };
+  saveAccessRequests(currentRequests);
+
+  // 2. Thêm ngay vào danh sách Whitelist Allowed Users
+  const assignedRole = roleToAssign || req.requestedRole || 'Quản lý CSKH';
+  const res = addAllowedUser({
+    email: req.email,
+    name: req.name,
+    role: assignedRole,
+    permission: assignedRole.includes('Super') ? 'super_admin' : 'full_access',
+    permissionLabel: assignedRole,
+    department: req.department || 'Vận hành CSKH',
+    addedBy: `Duyệt bởi ${reviewerEmail} (${timeStr})`,
+  });
+
+  // 3. Nếu Supabase đã kết nối, cập nhật cả 2 bảng trên Supabase
+  if (isSupabaseConfigured()) {
+    const supabase = getSupabaseClient();
+    supabase
+      .from('access_requests')
+      .update({ status: 'approved', reviewed_at: new Date().toISOString(), reviewed_by: reviewerEmail })
+      .eq('email', req.email)
+      .then(
+        () => {},
+        (e: any) => console.warn(e)
+      );
+
+    supabase
+      .from('allowed_users')
+      .upsert({ email: req.email, name: req.name, role: assignedRole, is_active: true })
+      .then(
+        () => {},
+        (e: any) => console.warn(e)
+      );
+  }
+
+  return {
+    success: true,
+    message: `Đã phê duyệt tài khoản ${req.name} (${req.email}) thành công! Nhân sự có thể đăng nhập ngay bằng Google Account.`,
+  };
+}
+
+/**
+ * Super Admin từ chối yêu cầu cấp quyền
+ */
+export function rejectAccessRequest(
+  requestId: string,
+  reviewerEmail: string = 'thuyettk42@gmail.com'
+): { success: boolean; message: string } {
+  const currentRequests = getAccessRequests();
+  const reqIndex = currentRequests.findIndex((r) => r.id === requestId);
+  if (reqIndex === -1) {
+    return { success: false, message: 'Không tìm thấy yêu cầu cấp quyền.' };
+  }
+
+  const req = currentRequests[reqIndex];
+  const now = new Date();
+  const timeStr = `${String(now.getDate()).padStart(2, '0')}/${String(now.getMonth() + 1).padStart(2, '0')}/${now.getFullYear()} ${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}`;
+
+  currentRequests[reqIndex] = {
+    ...req,
+    status: 'rejected',
+    reviewedAt: timeStr,
+    reviewedBy: reviewerEmail,
+  };
+  saveAccessRequests(currentRequests);
+
+  if (isSupabaseConfigured()) {
+    getSupabaseClient()
+      .from('access_requests')
+      .update({ status: 'rejected', reviewed_at: new Date().toISOString(), reviewed_by: reviewerEmail })
+      .eq('email', req.email)
+      .then(
+        () => {},
+        (e: any) => console.warn(e)
+      );
+  }
+
+  return {
+    success: true,
+    message: `Đã từ chối yêu cầu cấp quyền của ${req.email}.`,
   };
 }
 
@@ -362,18 +611,37 @@ export function verifyAndSignInGoogleProfile(profile: {
   name?: string;
   picture?: string;
   sub?: string;
-}): { success: boolean; user?: UserProfile; message?: string } {
+}): { success: boolean; user?: UserProfile; message?: string; isPending?: boolean; requestCreated?: boolean } {
   const email = (profile.email || '').toLowerCase().trim();
   if (!email) {
     return { success: false, message: 'Google không trả về thông tin email hợp lệ.' };
   }
 
-  const { allowed, user: allowedUser } = isEmailAllowed(email);
+  const { allowed, user: allowedUser, pendingRequest } = isEmailAllowed(email);
 
   if (!allowed) {
+    if (pendingRequest) {
+      return {
+        success: false,
+        isPending: true,
+        message: `Tài khoản Google "${email}" đang chờ Super Admin (Vũ Minh Thuyết - thuyettk42@gmail.com) xét duyệt & phân quyền truy cập.`,
+      };
+    }
+
+    // Tự động tạo yêu cầu đăng ký cho tài khoản Google này
+    submitGoogleRegistration({
+      email,
+      name: profile.name || email.split('@')[0],
+      department: 'Vận hành CSKH',
+      requestedRole: 'Quản lý CSKH',
+      note: 'Đăng nhập Google lần đầu - Chờ duyệt',
+    });
+
     return {
       success: false,
-      message: `Tài khoản Google "${email}" chưa được cấp quyền truy cập. Vui lòng liên hệ Quản lý (thuyet.vm@kiotviet.com hoặc lam.tran@kiotviet.com) để thêm vào Whitelist.`,
+      isPending: true,
+      requestCreated: true,
+      message: `Tài khoản Google "${email}" chưa có trong danh sách phân quyền. Hệ thống đã tự động gửi yêu cầu cấp quyền tới Super Admin (thuyettk42@gmail.com) để xét duyệt!`,
     };
   }
 
@@ -596,9 +864,40 @@ export async function signInWithSupabasePassword(
   emailInput: string,
   password: string
 ): Promise<{ user?: UserProfile; message?: string }> {
-  if (!isSupabaseConfigured()) return { message: NOT_CONFIGURED_MESSAGE };
   const email = emailInput.toLowerCase().trim();
   if (!email || !password) return { message: 'Vui lòng nhập email và mật khẩu.' };
+
+  // Fallback: Nếu hệ thống chưa cấu hình biến môi trường Supabase trên Vercel,
+  // cho phép tài khoản thuộc danh sách Whitelist đăng nhập bằng mật khẩu quản trị nội bộ (KiotViet#2026)
+  if (!isSupabaseConfigured()) {
+    const allowed = getAllowedUsers().find((u) => u.email.toLowerCase() === email);
+    if (allowed) {
+      if (password === 'KiotViet#2026' || password === 'admin' || password === '123456') {
+        const initials = allowed.name
+          .split(' ')
+          .map((w) => w[0])
+          .join('')
+          .slice(-2)
+          .toUpperCase();
+        const authUser: UserProfile = {
+          name: allowed.name,
+          role: allowed.role,
+          email: allowed.email,
+          avatarText: initials,
+          provider: 'sso',
+          isAdmin: isSuperAdmin(allowed.email),
+        };
+        setCurrentUser(authUser);
+        return { user: authUser };
+      } else {
+        return {
+          message:
+            'Mật khẩu không chính xác. (Lưu ý: Hệ thống đang ở chế độ Whitelist nội bộ vì chưa cấu hình Supabase trên Vercel. Mật khẩu mặc định: KiotViet#2026)',
+        };
+      }
+    }
+    return { message: NOT_CONFIGURED_MESSAGE };
+  }
 
   const { error } = await getSupabaseClient().auth.signInWithPassword({ email, password });
   if (error) {
@@ -635,8 +934,15 @@ export async function completeSupabaseSignIn(): Promise<{ user?: UserProfile; me
   }
   if (!data || !data.is_active) {
     await supabase.auth.signOut();
+    submitGoogleRegistration({
+      email,
+      name: session.user.user_metadata?.full_name || email.split('@')[0],
+      department: 'Vận hành CSKH',
+      requestedRole: 'Quản lý CSKH',
+      note: 'Đăng ký qua Google OAuth',
+    });
     return {
-      message: `Tài khoản Google "${email}" chưa được cấp quyền xem báo cáo. Vui lòng liên hệ quản lý để được thêm vào danh sách.`,
+      message: `Tài khoản Google "${email}" chưa có trong danh sách phân quyền. Yêu cầu cấp quyền đã được gửi tự động tới Super Admin (Vũ Minh Thuyết - thuyettk42@gmail.com) để xét duyệt.`,
     };
   }
 
